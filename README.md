@@ -30,6 +30,7 @@ Een vak bijsturen raakt dus nooit een ander vak.
 |---|---|---|---|
 | `frans-5a` | Frans 5de leerjaar – Cahier A (Missions 1-3 + Destination A) | woordenlijsten, zinnen, grammaticaregels | vertalen NL↔FR, vervoegen, lidwoorden, meervoud, … |
 | `wiskunde-2-m01` | Wiskunde 2de middelbaar – Nando 2, Meetkunde module 01 | begrippen, stellingen, figuren, uitleg, fouttypes | notaties, rooster, coördinaten, rotatiehoeken, klik-constructies, symmetrie |
+| `frans-2-t2` | Frans 2de middelbaar – Trajet 2 · 1 (p.101-108) | woordenschat met geslacht en voorbeeldzinnen, weer, seizoenen, activiteiten, windrichtingen, actes de parole, oef. 26-27 | in boekstijl: vocabulaire NL↔FR, Complète la phrase, Quel mot cherchons-nous ?, Fais des phrases (zinsbouw), lidwoorden, du/de la/au, en/au, il va + infinitief, il fait/c'est chaud, actes de parole |
 | `latijn-2` | Latijn 2de middelbaar – genummerde woordenlijst (nu 344–408) + woordvorming | woordenlijst (eerste kolom, middenkolom, vertaling), woordvormingskaders | enkel Latijn → Nederlands, middenkolom (genitief/geslacht, vormen, stamtijden), vorm herkennen, woordvorming, verbuiging, geslacht, vervoeging, + datief; keuze "van nr. … tot nr. …" |
 
 ## Voortgang (lokaal, geen server)

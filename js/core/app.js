@@ -250,6 +250,19 @@
       $(".hlp").addEventListener("click", () => insertAt(state.lastInput || $("#cx"), "-"));
       $("#cx").addEventListener("keydown", (e) => { if (e.key === "Enter" && !$("#cy").value) { e.preventDefault(); e.stopPropagation(); $("#cy").focus(); } });
       setTimeout(() => $("#cx") && $("#cx").focus(), 30);
+    } else if (q.mode === "order") {
+      // zinsbouw: tik de stukken in de juiste volgorde
+      area.innerHTML = `<div class="orderline" id="orderLine"></div><div class="orderpool" id="orderPool"></div>
+        <div class="clickinfo"><span class="muted small">Tik de stukken in de juiste volgorde. Tik opnieuw om terug te zetten.</span><button type="button" id="clearOrder" class="small">Wis</button></div>`;
+      state.order = [];
+      const draw = () => {
+        $("#orderLine").innerHTML = state.order.length ? state.order.map((k, i) => `<button type="button" class="chunk on" data-pos="${i}">${esc(q.chunks[k])}</button>`).join("") : `<span class="muted small">… jouw zin …</span>`;
+        $("#orderPool").innerHTML = q.chunks.map((c, k) => state.order.includes(k) ? "" : `<button type="button" class="chunk" data-k="${k}">${esc(c)}</button>`).join("");
+        $$("#orderPool .chunk").forEach((b) => b.addEventListener("click", () => { if (state.answered) return; state.order.push(+b.dataset.k); draw(); }));
+        $$("#orderLine .chunk").forEach((b) => b.addEventListener("click", () => { if (state.answered) return; state.order.splice(+b.dataset.pos, 1); draw(); }));
+      };
+      $("#clearOrder").addEventListener("click", () => { if (!state.answered) { state.order = []; draw(); } });
+      draw();
     } else if (q.mode === "click") {
       area.innerHTML = `<div class="clickinfo"><span id="clickStatus"></span><button type="button" id="clearClicks" class="small">Wis</button></div>`;
       $("#clearClicks").addEventListener("click", () => { if (!state.answered) { state.clicks = []; drawClicks(); } });
@@ -296,6 +309,7 @@
     if (q.mode === "mc") return state.choice;
     if (q.mode === "coord") { const x = $("#cx").value.trim(), y = $("#cy").value.trim(); return x && y ? `${x};${y}` : ""; }
     if (q.mode === "click") return state.clicks.length === q.nPts ? state.clicks.map((p) => [...p]) : null;
+    if (q.mode === "order") return state.order.length === q.chunks.length ? state.order.map((k) => q.chunks[k]).join(" ") : null;
     return $("#answer").value;
   }
   function givenText(q, g) {
@@ -311,7 +325,7 @@
     const given = readGiven(q);
     if (given == null || given === "" || (typeof given === "string" && !given.trim())) {
       $("#qFeedback").className = "feedback warn";
-      $("#qFeedback").textContent = q.mode === "click" ? `Duid eerst ${q.nPts} punt(en) aan.` : q.mode === "coord" ? "Vul beide coördinaten in." : "Geef eerst een antwoord.";
+      $("#qFeedback").textContent = q.mode === "order" ? "Gebruik alle stukken om de zin te maken." : q.mode === "click" ? `Duid eerst ${q.nPts} punt(en) aan.` : q.mode === "coord" ? "Vul beide coördinaten in." : "Geef eerst een antwoord.";
       return;
     }
     const r = vak.check(given, q, state.settings.level);
@@ -332,7 +346,7 @@
       else if (b.classList.contains("selected")) b.classList.add("wrongopt");
       b.disabled = true;
     });
-    else $$("#qAnswerArea input").forEach((i) => (i.readOnly = true));
+    else { $$("#qAnswerArea input").forEach((i) => (i.readOnly = true)); $$("#qAnswerArea .chunk").forEach((b) => (b.disabled = true)); }
     if (q.solutionSvg && r.status !== "correct") {
       $("#qFigure").innerHTML = q.solutionSvg;
       if (q.mode === "click") drawGiven($("#qFigure svg"), given);
