@@ -307,3 +307,16 @@ a.chipbtn { text-decoration: none; color: var(--ink); display: inline-flex; gap:
   .card { padding: 18px 16px; }
 }
 @media (max-width: 360px) { #homeLink .lbl { display: none; } }
+
+/* bereik van nr. tot nr. */
+.rangebox { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+.rangebox label { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.rangeinp { width: 100px; padding: 10px 12px; text-align: center; }
+.rangepresets { margin-bottom: 6px; }
+.chipbtn small { opacity: .75; font-weight: 500; }
+
+/* Latijn */
+.latin, .prompt.latin { font-family: Georgia, "Times New Roman", serif; letter-spacing: .01em; }
+.prompt.latin { font-size: 1.5rem; font-weight: 700; }
+.prompt.latin small { font-family: "Plus Jakarta Sans", system-ui, sans-serif; font-size: .9rem; }
+.midcol { margin-left: .6em; font-weight: 500; opacity: .85; }

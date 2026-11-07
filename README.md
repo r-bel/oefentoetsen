@@ -30,6 +30,7 @@ Een vak bijsturen raakt dus nooit een ander vak.
 |---|---|---|---|
 | `frans-5a` | Frans 5de leerjaar – Cahier A (Missions 1-3 + Destination A) | woordenlijsten, zinnen, grammaticaregels | vertalen NL↔FR, vervoegen, lidwoorden, meervoud, … |
 | `wiskunde-2-m01` | Wiskunde 2de middelbaar – Nando 2, Meetkunde module 01 | begrippen, stellingen, figuren, uitleg, fouttypes | notaties, rooster, coördinaten, rotatiehoeken, klik-constructies, symmetrie |
+| `latijn-2` | Latijn 2de middelbaar – genummerde woordenlijst (nu 344–408) + woordvorming | woordenlijst (eerste kolom, middenkolom, vertaling), woordvormingskaders | enkel Latijn → Nederlands, middenkolom (genitief/geslacht, vormen, stamtijden), vorm herkennen, woordvorming, verbuiging, geslacht, vervoeging, + datief; keuze "van nr. … tot nr. …" |
 
 ## Voortgang (lokaal, geen server)
 - Elke afgewerkte toets wordt in de browser bewaard: vak, niveau, score, score per onderdeel, fouttypes,

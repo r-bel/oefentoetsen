@@ -12,6 +12,8 @@
   const LEVEL_NAME = { easy: "makkelijk", normal: "normaal", hard: "moeilijk" };
   const fmtDate = (iso) => { const d = new Date(iso); return d.toLocaleDateString("nl-BE", { day: "numeric", month: "short" }) + " " + d.toLocaleTimeString("nl-BE", { hour: "2-digit", minute: "2-digit" }); };
   const toast = (msg) => { const t = $("#toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("show"), 3200); };
+  // paginaverwijzing: "p.12" bij een getal, anders de tekst zelf (bv. "§3.4 · nr. 370")
+  const pg = (x) => (x === undefined || x === null || x === "" ? "" : /^\d/.test(String(x)) ? "p." + esc(x) : esc(x));
   const groupOf = (vak, id) => vak.groups.find((g) => g.id === id) || { id, short: id, titel: id };
 
   let vak = null;     // actief vak
@@ -111,14 +113,19 @@
       if (!items.length) return "";
       const kinds = v.kinds ? Object.keys(v.kinds) : [null];
       const block = (list, title) => !list.length ? "" : `<div class="kindgroup">${title ? `<div class="kindtitle">${esc(title)}</div>` : ""}` + list.map((u) =>
-        `<label class="unit"><input type="checkbox" class="unit-cb" data-group="${g.id}" value="${u.id}" ${u.defaultOn !== false ? "checked" : ""}> ${esc(u.label)} <small>p.${esc(u.page)}</small></label>`).join("") + `</div>`;
+        `<label class="unit"><input type="checkbox" class="unit-cb" data-group="${g.id}" value="${u.id}" ${u.defaultOn !== false ? "checked" : ""}> ${esc(u.label)} <small>${pg(u.page)}</small></label>`).join("") + `</div>`;
       const body = kinds.map((k) => block(items.filter((u) => !k || u.kind === k), k && v.kinds[k])).join("");
-      return `<details class="mission" open><summary><label><input type="checkbox" class="mission-cb" data-group="${g.id}"> ${esc(g.titel)} ${g.p ? `<small class="muted">p.${esc(g.p)}</small>` : ""}</label></summary><div class="kinds ${kinds.length > 1 ? "" : "single"}">${body}</div></details>`;
+      return `<details class="mission" open><summary><label><input type="checkbox" class="mission-cb" data-group="${g.id}"> ${esc(g.titel)} ${g.p ? `<small class="muted">${pg(g.p)}</small>` : ""}</label></summary><div class="kinds ${kinds.length > 1 ? "" : "single"}">${body}</div></details>`;
     }).join("") + `</div>`;
     let html = sec("Wat wil je oefenen?", quick + tree);
     // extra instellingen van het vak (bv. richting bij talen)
-    (v.settings || []).filter((s) => s.type === "radio").forEach((s) => {
-      html += sec(s.label, `<div class="seg seg${s.options.length}">${s.options.map((o) => `<label><input type="radio" name="x-${s.key}" value="${o.v}" ${o.v === s.default ? "checked" : ""}><span>${o.label}</span></label>`).join("")}</div>`);
+    (v.settings || []).forEach((s) => {
+      if (s.type === "radio") html += sec(s.label, `<div class="seg seg${s.options.length}">${s.options.map((o) => `<label><input type="radio" name="x-${s.key}" value="${o.v}" ${o.v === s.default ? "checked" : ""}><span>${o.label}</span></label>`).join("")}</div>`);
+      // bereik: "van nr. … tot nr. …" met snelkeuzes (bv. per paragraaf)
+      if (s.type === "range") html += sec(s.label, `<div class="rangebox"><label>van nr. <input type="number" id="x-${s.key}-from" class="answer rangeinp" min="${s.min}" max="${s.max}" value="${s.default[0]}" inputmode="numeric"></label>
+        <label>tot nr. <input type="number" id="x-${s.key}-to" class="answer rangeinp" min="${s.min}" max="${s.max}" value="${s.default[1]}" inputmode="numeric"></label></div>` +
+        (s.presets ? `<div class="quick rangepresets">${s.presets.map((p, i) => `<button type="button" class="chipbtn" data-range="${s.key}" data-i="${i}">${p.label} <small>${p.v[0]}–${p.v[1]}</small></button>`).join("")}</div>` : "") +
+        (s.hint ? `<div class="muted small">${s.hint}</div>` : ""));
     });
     html += sec("Moeilijkheid", `<div class="seg seg3 tall">${["easy", "normal", "hard"].map((l) => `<label><input type="radio" name="level" value="${l}" ${l === "normal" ? "checked" : ""}><span><b>${v.levels[l].title}</b><small>${v.levels[l].desc}</small></span></label>`).join("")}</div>`);
     html += sec("Aantal vragen", `<div class="seg seg5">${["10", "20", "30", "50"].map((c) => `<label><input type="radio" name="count" value="${c}" ${c === "20" ? "checked" : ""}><span>${c}</span></label>`).join("")}<label><input type="radio" name="count" value="all"><span>Alle 🎯</span></label></div>`,
@@ -127,6 +134,11 @@
     $("#setupBody").innerHTML = html;
 
     $$(".mission-cb").forEach((cb) => cb.addEventListener("change", () => { $$(`.unit-cb[data-group="${cb.dataset.group}"]`).forEach((u) => (u.checked = cb.checked)); sync(); }));
+    $$(".rangeinp").forEach((el) => el.addEventListener("input", sync));
+    $$("[data-range]").forEach((b) => b.addEventListener("click", () => {
+      const st = v.settings.find((x) => x.key === b.dataset.range), p = st.presets[+b.dataset.i];
+      $(`#x-${st.key}-from`).value = p.v[0]; $(`#x-${st.key}-to`).value = p.v[1]; sync();
+    }));
     $$(".unit-cb, #setupBody input[type=radio], #setupBody input[type=checkbox]").forEach((el) => el.addEventListener("change", sync));
     $$("[data-quick]").forEach((b) => b.addEventListener("click", () => {
       const q = b.dataset.quick === "none" ? null : v.quick[+b.dataset.quick];
@@ -144,7 +156,15 @@
       level: $('input[name="level"]:checked').value,
       count: ((x) => (x === "all" ? "all" : +x))($('input[name="count"]:checked').value),
     };
-    (vak.settings || []).forEach((x) => { s[x.key] = x.type === "radio" ? $(`input[name="x-${x.key}"]:checked`).value : $(`#x-${x.key}`).checked; });
+    (vak.settings || []).forEach((x) => {
+      if (x.type === "radio") s[x.key] = $(`input[name="x-${x.key}"]:checked`).value;
+      else if (x.type === "range") {
+        let a = parseInt($(`#x-${x.key}-from`).value, 10), b = parseInt($(`#x-${x.key}-to`).value, 10);
+        if (isNaN(a)) a = x.min; if (isNaN(b)) b = x.max;
+        if (a > b) [a, b] = [b, a];
+        s[x.key] = [Math.max(x.min, a), Math.min(x.max, b)];
+      } else s[x.key] = $(`#x-${x.key}`).checked;
+    });
     return s;
   }
   function applySettings(s) {
@@ -152,7 +172,12 @@
     if (Array.isArray(s.units)) $$(".unit-cb").forEach((c) => (c.checked = s.units.includes(c.value)));
     const set = (n, val) => { const el = $(`input[name="${n}"][value="${val}"]`); if (el) el.checked = true; };
     set("level", s.level); set("count", s.count);
-    (vak.settings || []).forEach((x) => { if (s[x.key] === undefined) return; if (x.type === "radio") set("x-" + x.key, s[x.key]); else $(`#x-${x.key}`).checked = !!s[x.key]; });
+    (vak.settings || []).forEach((x) => {
+      if (s[x.key] === undefined) return;
+      if (x.type === "radio") set("x-" + x.key, s[x.key]);
+      else if (x.type === "range") { if (Array.isArray(s[x.key])) { $(`#x-${x.key}-from`).value = s[x.key][0]; $(`#x-${x.key}-to`).value = s[x.key][1]; } }
+      else $(`#x-${x.key}`).checked = !!s[x.key];
+    });
   }
   function sync() {
     $$(".mission-cb").forEach((cb) => {
@@ -163,8 +188,10 @@
     const s = readSettings(), k = s.units.length;
     $("#allInfo").classList.toggle("hidden", s.count !== "all");
     (vak.settings || []).filter((x) => x.type === "checkbox" && x.showIf).forEach((x) => $(`[data-cb="${x.key}"]`).classList.toggle("hidden", !x.showIf(s)));
+    (vak.settings || []).filter((x) => x.type === "range").forEach((x) => $$(`[data-range="${x.key}"]`).forEach((b) => { const p = x.presets[+b.dataset.i].v; b.classList.toggle("on", p[0] === s[x.key][0] && p[1] === s[x.key][1]); }));
+    const n = s.count === "all" ? vak.countAll(s) : s.count;
     $("#setupMsg").textContent = !k ? "Kies minstens één onderdeel"
-      : `${k} ${k === 1 ? "onderdeel" : "onderdelen"} gekozen · ${s.count === "all" ? vak.countAll(s) : s.count} vragen`;
+      : `${k} ${k === 1 ? "onderdeel" : "onderdelen"} gekozen · ${n} vragen` + (vak.describe ? " · " + vak.describe(s) : "");
   }
 
   // ============================================================
@@ -210,7 +237,7 @@
       }));
     } else if (q.mode === "text" || q.mode === "num") {
       const helpers = q.mode === "num" ? ["−"] : q.helpers || [];
-      const keyboard = q.mode === "text" && vak.keyboard ? `<div class="acc-label">${esc(vak.keyboardLabel || "")}</div><div class="accents">${vak.keyboard.map((a) => `<button type="button" class="acc">${a}</button>`).join("")}</div>` : "";
+      const keyboard = q.mode === "text" && vak.keyboard && !q.noKeyboard ? `<div class="acc-label">${esc(vak.keyboardLabel || "")}</div><div class="accents">${vak.keyboard.map((a) => `<button type="button" class="acc">${a}</button>`).join("")}</div>` : "";
       area.innerHTML = `<div class="row-input"><input id="answer" class="answer ${q.short || q.mode === "num" ? "shortans" : ""}" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" inputmode="${q.mode === "num" ? "decimal" : "text"}" placeholder="${q.mode === "num" ? "getal" : "Typ je antwoord…"}">${q.unitSuffix ? `<span class="suffix">${esc(q.unitSuffix)}</span>` : ""}</div>` +
         (helpers.length ? `<div class="helpers">${helpers.map((h) => `<button type="button" class="hlp acc">${h}</button>`).join("")}</div>` : "") + keyboard;
       const inp = $("#answer");
@@ -298,7 +325,7 @@
     fb.innerHTML = `<b>${stText[r.status] || stText.wrong}</b>` + (r.note ? ` ${esc(r.note)}` : "") +
       (r.strictNote && !ok ? ` ${esc(r.strictNote)}` : "") +
       (r.status !== "correct" ? ` Juist antwoord: <b>${q.answerShown}</b>` : "") +
-      (!ok && q.rule ? `<div class="rule">📘 p.${esc(q.page)}: ${q.rule}</div>` : "");
+      (!ok && q.rule ? `<div class="rule">📘 ${pg(q.page)}: ${q.rule}</div>` : "");
     if (q.mode === "mc") $$(".option").forEach((b) => {
       const o = q.options[+b.dataset.k];
       if (o.v === q.answer) b.classList.add("right");
@@ -341,14 +368,14 @@
     $("#topicTable").innerHTML = `<table><thead><tr><th>Onderdeel</th><th>Score</th><th></th></tr></thead><tbody>` +
       Object.values(a.byUnit).sort((x, y) => x.ok / x.n - y.ok / y.n).map((u) => {
         const p = Math.round((u.ok / u.n) * 100);
-        return `<tr><td>${esc(u.label)} <small>${esc(groupOf(vak, u.group).short)} · p.${esc(u.page)}</small></td><td>${u.ok}/${u.n}</td><td><div class="bar"><div class="${p >= 80 ? "ok" : p >= 60 ? "warn" : "bad"}" style="width:${p}%"></div></div></td></tr>`;
+        return `<tr><td>${esc(u.label)} <small>${esc(groupOf(vak, u.group).short)} · ${pg(u.page)}</small></td><td>${u.ok}/${u.n}</td><td><div class="bar"><div class="${p >= 80 ? "ok" : p >= 60 ? "warn" : "bad"}" style="width:${p}%"></div></div></td></tr>`;
       }).join("") + `</tbody></table>`;
     renderFinal(a);
     $("#mistakeList").innerHTML = a.mistakes.length ? a.mistakes.map((r) => {
       const tag = vak.tags && vak.tags[r.tag];
       const fig = r.q.solutionSvg || r.q.svg;
       return `<div class="mistake ${r.points ? "warn" : "bad"}">
-        <div class="mq"><small>${esc(r.q.unitLabel)} · p.${esc(r.q.page)}</small><br>${r.q.instruction}${r.q.prompt ? `: <b class="${r.q.promptClass || ""}">${r.q.prompt}</b>` : ""}</div>
+        <div class="mq"><small>${esc(r.q.unitLabel)} · ${pg(r.q.page)}</small><br>${r.q.instruction}${r.q.prompt ? `: <b class="${r.q.promptClass || ""}">${r.q.prompt}</b>` : ""}</div>
         ${fig ? `<div class="thumb">${fig}</div>` : ""}
         <div>Jouw antwoord: <span class="given">${givenText(r.q, r.given)}</span> · Juist: <b>${r.q.answerShown}</b>${tag ? ` <span class="tag">${esc(tag.short || tag.title)}</span>` : ""}</div>
       </div>`;
@@ -367,7 +394,7 @@
     $("#finalIntro").innerHTML = `Alle leerstof van de ${units.length} gekozen onderdelen werd bevraagd (${a.total} vragen, niveau ${LEVEL_NAME[state.settings.level]}). <b>${nFull} van de ${units.length}</b> onderdelen zijn volledig gekend.` +
       (state.settings.level !== "hard" ? " Tip: een eindtoets op niveau <i>moeilijk</i> geeft de strengste controle." : "");
     $("#finalTable").innerHTML = `<table><thead><tr><th>Onderdeel</th><th>Score</th><th>Oordeel</th></tr></thead><tbody>` +
-      units.map((u) => { const [ic, txt, cls] = verdict(u); return `<tr><td>${esc(u.label)} <small>${esc(groupOf(vak, u.group).short)} · p.${esc(u.page)}</small></td><td>${Math.round(u.ok)}/${u.n}</td><td class="verdict ${cls}">${ic} ${txt}</td></tr>`; }).join("") +
+      units.map((u) => { const [ic, txt, cls] = verdict(u); return `<tr><td>${esc(u.label)} <small>${esc(groupOf(vak, u.group).short)} · ${pg(u.page)}</small></td><td>${Math.round(u.ok)}/${u.n}</td><td class="verdict ${cls}">${ic} ${txt}</td></tr>`; }).join("") +
       `</tbody></table>`;
   }
 
@@ -418,11 +445,11 @@
       </div>
       <div class="card">
         <h2>🎯 Werkpunten</h2>
-        ${weak.length ? `<table><tbody>${weak.map((u) => `<tr><td>${esc(u.label)} <small>p.${esc(u.page)} · ${u.n} vragen${u.recentPct !== u.pct ? ` · laatste keren ${u.recentPct}%` : ""}</small></td><td>${u.pct}%</td><td>${bar(u.pct)}</td></tr>`).join("")}</tbody></table>
+        ${weak.length ? `<table><tbody>${weak.map((u) => `<tr><td>${esc(u.label)} <small>${pg(u.page)} · ${u.n} vragen${u.recentPct !== u.pct ? ` · laatste keren ${u.recentPct}%` : ""}</small></td><td>${u.pct}%</td><td>${bar(u.pct)}</td></tr>`).join("")}</tbody></table>
           <button id="practiceWeak" class="primary big">Oefen mijn werkpunten (${weak.length} onderdelen)</button>`
           : `<p class="muted">Geen onderdelen onder 75% (met minstens 3 vragen). ${strong.length ? "Goed bezig!" : "Maak nog wat toetsen voor een duidelijker beeld."}</p>`}
       </div>
-      ${recurring.length ? `<div class="card"><h2>🔁 Fouten die blijven terugkomen</h2><ul class="conclusions">${recurring.map(([t, x]) => { const g = v.tags[t]; return `<li class="${x.sessions >= 3 ? "bad" : "ok"}"><b>${esc(g.title)}</b> — ${x.count}× in ${x.sessions} toetsen. ${g.advice}${g.page ? ` <small>p.${esc(g.page)}</small>` : ""}</li>`; }).join("")}</ul></div>` : ""}
+      ${recurring.length ? `<div class="card"><h2>🔁 Fouten die blijven terugkomen</h2><ul class="conclusions">${recurring.map(([t, x]) => { const g = v.tags[t]; return `<li class="${x.sessions >= 3 ? "bad" : "ok"}"><b>${esc(g.title)}</b> — ${x.count}× in ${x.sessions} toetsen. ${g.advice}${g.page ? ` <small>${pg(g.page)}</small>` : ""}</li>`; }).join("")}</ul></div>` : ""}
       ${S.hardItems.length ? `<div class="card"><h2>🧩 Blijft moeilijk</h2><p class="muted small">Vragen of woorden die meer dan eens fout gingen (alle niveaus samen).</p><ul class="itemlist">${S.hardItems.map((i) => `<li><span>${esc(i.label)}</span><small>${i.ok}/${i.n} juist${i.lastOk ? " · laatste keer wel juist ✓" : ""}</small></li>`).join("")}</ul></div>` : ""}
       ${strong.length ? `<div class="card"><h2>✅ Goed gekend</h2><p>${strong.map((u) => `${esc(u.label)} <small class="muted">(${u.pct}%)</small>`).join(" · ")}</p></div>` : ""}
       <div class="card"><h2>📋 Geschiedenis</h2><table><thead><tr><th>Datum</th><th>Niveau</th><th>Score</th></tr></thead><tbody>${Store.sessions(v.id, progLevel).slice(-15).reverse().map((s) => `<tr><td>${fmtDate(s.date)}${s.isRetry ? " <small>(herhaling)</small>" : ""}${s.count === "all" ? " <small>(eindtoets)</small>" : ""}</td><td>${LEVEL_NAME[s.level]}</td><td>${s.points}/${s.total} (${s.pct}%)</td></tr>`).join("")}</tbody></table></div>`;

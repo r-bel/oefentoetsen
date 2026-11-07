@@ -9,6 +9,10 @@ Alles staat in `vakken/<id>/inhoud.js`. Pas aan, sla op, ververs de pagina.
 - hint bij dubbelzinnige woorden: `"hint_nl": "zoals in: …"`, `"hint_fr": "…"`
 - grammaticaregel (uitleg bij fout): `missions[].grammatica[].regel`
 
+**Latijn (`latijn-2`)** – één regel per woord in `WOORDEN`, in de volgorde van het boek:
+`W(409, "3.7", "laudāre, ~ō", "", "prijzen", "ww", { verv: 1, vet: true })`
+Het bereik (van nr. … tot nr. …) en de snelkeuzes per paragraaf passen zich vanzelf aan.
+
 **Wiskunde (`wiskunde-2-m01`)** – gewone JavaScript-lijsten:
 - uitleg bij een fout of paginanummers van een onderdeel: `UNITS`
 - begrip toevoegen: regel in `BEGRIPPEN` → `{ q: "vraag met …", a: ["aanvaard", "ook goed"], show: "getoond", p: "4" }`
@@ -43,6 +47,8 @@ Test na een wijziging alle niveaus eens met 10 vragen en met *Alle*.
 | `answerShown`, `rule` | juist antwoord en uitleg die bij een fout verschijnen (HTML) |
 | `key`, `itemLabel` | stabiele id + leesbare naam van de vraag/het woord (voor *Mijn voortgang*) |
 | `svg`, `solutionSvg` | optionele figuur en oplossingsfiguur (zie `js/core/geo.js`) |
+Extra instellingen per vak (`settings`): `radio` (bv. vertaalrichting), `checkbox`, en `range` (van nr. … tot nr. …, met snelkeuzes `presets`).
+
 `check(given, q, level)` geeft `{ status, points, tag }` terug; `tag` is het fouttype (moet in `tags` staan om
 een tip te tonen en in de voortgang mee te tellen).
 
