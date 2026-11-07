@@ -56,3 +56,7 @@ een tip te tonen en in de voortgang mee te tellen).
 1. Foto's van de cursus in een map (bv. `261107 Briek Wiskunde 2de latijn`).
 2. Laat Claude de leerstof uitlezen naar `leerstof.json` (context) en `inhoud.js` (wat de app gebruikt).
 3. Kies/maak de vraagtypes in `vak.js`, test alle niveaus, publiceer.
+
+## 5. Na elke wijziging: versie ophogen
+Browsers bewaren de scripts een tijd in hun cache. Verhoog daarom in `index.html` overal `?v=…` (bv. `?v=2` → `?v=3`),
+zodat iedereen meteen de nieuwe versie krijgt en kern en vakken nooit door elkaar lopen.
