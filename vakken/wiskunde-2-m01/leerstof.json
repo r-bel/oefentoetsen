@@ -1,0 +1,215 @@
+{
+  "cursus": "Wiskunde 2de middelbaar (2de Latijn) - Nando 2, Meetkunde module 01: Transformaties van het vlak en symmetrie",
+  "uitgever": "die Keure, tweede editie (module 01 van 17)",
+  "bron": "Foto's 261107 (21 stuks): cover, p.2-39 als dubbele pagina's, studiewijzer",
+  "volledigheid": {
+    "aanwezig": "cover/inhoud, instap p.2, theorie p.3-6 + 10-17, verwerking p.7-9 + 13-14 + 18, signaal p.19-21, differentiatie D1-D50 p.22-39, studiewijzer",
+    "opmerking": "Werkboek deels ingevuld door Briek (potlood/pen) - antwoorden in het boek niet als bron gebruiken."
+  },
+
+  "doelen": [
+    {"id": "D1", "doel": "Het beeld van een vlakke figuur verklaren als resultaat van een transformatie van het vlak (spiegeling om as, puntspiegeling, translatie, rotatie); beeld is congruent.",
+     "verwerking": [1,2,3,4,5,6], "signaal": [1,2], "differentiatie": "D1-D35", "p": [3,7]},
+    {"id": "D2", "doel": "Eigenschappen van transformaties herkennen en gebruiken (niet elk beeldpunt hoeven tekenen; niet elke eigenschap geldt voor alle transformaties).",
+     "verwerking": [7,8,9], "signaal": [3], "differentiatie": "D36-D40", "p": [10,14]},
+    {"id": "D3", "doel": "Spiegelsymmetrie herkennen in vlakke figuren en ruimtefiguren.",
+     "verwerking": [10,11,12], "signaal": [4,5], "differentiatie": "D41-D50", "p": [15,18]}
+  ],
+
+  "wiskundetaal": ["beeld","congruente figuren","spiegelen om een as","spiegeling","as","dekpunt","verschuiven","verschuiving","translatie","vector","roteren","rotatie","centrum","spiegelen om een punt","puntspiegeling","symmetrie","spiegelsymmetrisch om een as","lijnsymmetrisch","spiegelsymmetrisch om een punt","puntsymmetrisch","symmetrieas","symmetriemiddelpunt","symmetrievlak","isometrie","collineair","evenwijdig","richting","zin","grootte","wijzerzin","tegenwijzerzin"],
+
+  "onderdelen": [
+    {
+      "id": "T0", "titel": "Transformatie van het vlak", "p": 3,
+      "theorie": [
+        "Een transformatie van het vlak beeldt elk punt van dat vlak af op juist één ander punt in dat vlak.",
+        "Soorten: spiegelen om een as, verschuiven over een vector, roteren rond een centrum over een hoek, spiegelen om een punt."
+      ]
+    },
+    {
+      "id": "T1", "titel": "Spiegelen om een as", "p": 3,
+      "notatie": [
+        {"symbool": "s_a(A) = A'", "lees": "A' is het beeld van het punt A door spiegeling om de as a"},
+        {"symbool": "s_a(ABCD) = A'B'C'D'", "lees": "A'B'C'D' is het beeld van ABCD door spiegeling om de as a"}
+      ],
+      "theorie": [
+        "De as a (een rechte) heet de spiegelas.",
+        "De afstand van A tot de spiegelas = de afstand van A' tot de spiegelas.",
+        "Een punt op de spiegelas heeft zichzelf als beeld: een dekpunt.",
+        "Twee vlakke figuren met dezelfde vorm en dezelfde grootte zijn congruente figuren; figuur en beeld door spiegeling zijn congruent.",
+        "Stappenplan (D10): 1) loodlijn door A op a (stippellijn) 2) snijpunt S 3) A' zodat |AS| = |SA'|."
+      ]
+    },
+    {
+      "id": "T2", "titel": "Translatie over een vector", "p": 4,
+      "notatie": [
+        {"symbool": "XY→", "lees": "de vector XY"},
+        {"symbool": "t_XY→(A) = A'", "lees": "A' is het beeld van het punt A door een translatie over de vector XY"},
+        {"symbool": "t_XY→(ΔBCD) = ΔB'C'D'", "lees": "ΔB'C'D' is het beeld van ΔBCD door een translatie over de vector XY"}
+      ],
+      "theorie": [
+        "De vector bepaalt de richting (evenwijdig met de drager), de zin (volgens de pijl) en de grootte (de afstand) van de translatie.",
+        "Een ander woord voor translatie is verschuiving.",
+        "|XY| = |AA'| = |BB'| en XY // AA' // BB'.",
+        "XY→ = AA'→: gelijke vectoren.",
+        "XY→ ≠ YX→: andere zin, tegengestelde vectoren.",
+        "Figuur en beeld door translatie zijn congruent.",
+        "Stappenplan (D11): 1) evenwijdige aan XY door A 2) A' zodat |AA'| = |XY| en AA'→ = XY→ 3) zelfde doorloopzin."
+      ]
+    },
+    {
+      "id": "T3", "titel": "Rotatie rond een centrum over een hoek", "p": 5,
+      "notatie": [
+        {"symbool": "r(O, α)", "lees": "een rotatie met centrum O over hoek α"},
+        {"symbool": "r(O, 150°)(P) = P'", "lees": "P' is het beeld van het punt P door een rotatie rond het centrum O over 150° in tegenwijzerzin"},
+        {"symbool": "r(O, -105°)(DEFG) = D'E'F'G'", "lees": "D'E'F'G' is het beeld van DEFG door een rotatie rond het centrum O over 105° in wijzerzin"}
+      ],
+      "theorie": [
+        "Afspraak: positieve hoek (bv. 60°) = tegenwijzerzin; negatieve hoek (bv. -150°) = wijzerzin.",
+        "r(O, -210°)(P) = r(O, 150°)(P): hoeken die 360° verschillen geven hetzelfde beeld.",
+        "Stappenplan (D12): 1) [OA in stippellijn 2) passer in O, cirkelboog door A in tegenwijzerzin 3) hoek AÔA' = α."
+      ]
+    },
+    {
+      "id": "T4", "titel": "Spiegeling om een punt (puntspiegeling)", "p": 6,
+      "notatie": [
+        {"symbool": "s_O", "lees": "een spiegeling om het punt O"},
+        {"symbool": "s_O(P) = P'", "lees": "P' is het beeld van het punt P door een spiegeling om het punt O"},
+        {"symbool": "s_O(DEFG) = D'E'F'G'", "lees": "D'E'F'G' is het beeld van DEFG door een spiegeling om het punt O"}
+      ],
+      "theorie": [
+        "Spiegelen om een punt O = roteren rond het centrum O over 180°; ook puntspiegeling met centrum O.",
+        "Stappenplan (D13): 1) rechte AO 2) A' zodat O het midden is van [AA']."
+      ]
+    },
+    {
+      "id": "T5", "titel": "Andere transformaties en samenstellingen", "p": 6,
+      "theorie": [
+        "Bij spiegeling, translatie, rotatie, puntspiegeling is het beeld steeds congruent met de oorspronkelijke figuur.",
+        "Ook een samenstelling (bv. eerst spiegelen om a, dan verschuiven over XY) geeft een congruente figuur.",
+        "Niet-congruente transformaties: projectie, homothetie (schaalmodel; volgend jaar).",
+        "Samenstelling notatie: s_O(t_AB→(C)) = D betekent eerst translatie, dan puntspiegeling (D34-D35)."
+      ]
+    },
+    {
+      "id": "E", "titel": "Eigenschappen van transformaties", "p": 10,
+      "tabel_behoud": {
+        "kolommen": ["spiegeling om as", "translatie", "rotatie", "puntspiegeling"],
+        "collineariteit": [true, true, true, true],
+        "evenwijdigheid": [true, true, true, true],
+        "beeld van rechte is rechte": [true, true, true, true],
+        "beeld van rechte // oorspronkelijke rechte": [false, true, false, true],
+        "lengte lijnstuk": [true, true, true, true],
+        "hoekgrootte": [true, true, true, true],
+        "loodrechte stand": [true, true, true, true],
+        "oppervlakte": [true, true, true, true]
+      },
+      "theorie": [
+        "Als drie punten collineair zijn, dan zijn hun beeldpunten (door elk van de 4 transformaties) ook collineair.",
+        "Elk van de 4 transformaties bewaart de evenwijdigheid.",
+        "Het beeld van een rechte door een translatie of een puntspiegeling is een rechte evenwijdig met de oorspronkelijke rechte.",
+        "Lengte blijft behouden (figuur en beeld zijn congruent), dus ook de oppervlakte.",
+        "Hoekgrootte blijft behouden; ook de loodrechte stand van twee rechten.",
+        "Transformaties die afstanden en hoekgroottes behouden heten isometrieën; enkel de positie (en soms de oriëntatie) verandert.",
+        "Toepassing (D38-D39): bij tekenopdrachten zo weinig mogelijk punten transformeren, de rest volgt uit de eigenschappen."
+      ]
+    },
+    {
+      "id": "C", "titel": "Transformaties in een assenstelsel (coördinaten)", "p": [14, 32, 33],
+      "regels": [
+        {"transformatie": "s_x (spiegeling om x-as)", "regel": "(a, b) → (a, -b)"},
+        {"transformatie": "s_y (spiegeling om y-as)", "regel": "(a, b) → (-a, b)"},
+        {"transformatie": "s_O (puntspiegeling om oorsprong)", "regel": "(a, b) → (-a, -b)"},
+        {"transformatie": "r(O, 90°)", "regel": "(a, b) → (-b, a)"},
+        {"transformatie": "r(O, -90°)", "regel": "(a, b) → (b, -a)"},
+        {"transformatie": "r(O, 180°) = s_O", "regel": "(a, b) → (-a, -b)"},
+        {"transformatie": "spiegeling om bissectrice 1e kwadrant (y = x)", "regel": "(a, b) → (b, a)"},
+        {"transformatie": "t_PQ→ met P(p1,p2), Q(q1,q2)", "regel": "(a, b) → (a + q1 - p1, b + q2 - p2)"}
+      ],
+      "opmerking": "Regels zelf niet als kader in de theorie, maar gevraagd als 'besluit' in V9, D27-D32. Notatie co(A) = (x, y)."
+    },
+    {
+      "id": "S1", "titel": "Spiegelsymmetrie bij vlakke figuren", "p": 15,
+      "theorie": [
+        "Een vlakke figuur is spiegelsymmetrisch om een as als ze zichzelf als beeld heeft bij spiegeling om die as; die as heet symmetrieas.",
+        "De symmetrieas verdeelt de figuur in twee congruente vlakke figuren.",
+        "Spiegelsymmetrisch om een as = lijnsymmetrisch.",
+        "Een vlakke figuur is spiegelsymmetrisch om een punt als ze zichzelf als beeld heeft bij spiegeling om dat punt; dat punt heet symmetriemiddelpunt. Ook: puntsymmetrisch.",
+        "De symmetrieas van een gelijkbenige driehoek is een merkwaardige lijn: hoogtelijn uit de top = bissectrice van de tophoek = zwaartelijn uit de top = middelloodlijn van de basis.",
+        "Een gelijkzijdige driehoek is een bijzondere gelijkbenige driehoek: elke hoek kan tophoek zijn, dus 3 symmetrieassen.",
+        "Driehoeken hebben geen symmetriemiddelpunt.",
+        "Alle parallellogrammen (dus ook ruiten, rechthoeken, vierkanten) zijn spiegelsymmetrisch om een punt: het snijpunt van de diagonalen."
+      ],
+      "aantal_symmetrieassen": {
+        "ongelijkbenige driehoek": "0", "gelijkbenige driehoek": "1", "gelijkzijdige driehoek": "3",
+        "willekeurige vierhoek": "0 of 1 (vlieger: 1)", "trapezium": "0 of 1 (gelijkbenig trapezium: 1)", "parallellogram": "0",
+        "ruit": "2", "rechthoek": "2", "vierkant": "4", "cirkel": "oneindig veel", "regelmatige n-hoek": "n"
+      },
+      "symmetriemiddelpunt": {
+        "driehoek": false, "parallellogram": true, "ruit": true, "rechthoek": true, "vierkant": true,
+        "trapezium (niet-parallellogram)": false, "vlieger (niet-ruit)": false, "cirkel": true,
+        "regelmatige n-hoek": "enkel als n even is"
+      }
+    },
+    {
+      "id": "S2", "titel": "Spiegelsymmetrie in ruimtefiguren", "p": 17,
+      "theorie": [
+        "Een ruimtefiguur is spiegelsymmetrisch om een vlak als ze zichzelf als beeld heeft bij spiegeling om dat vlak; dat vlak heet symmetrievlak en verdeelt de figuur in twee congruente ruimtefiguren.",
+        "Een ruimtefiguur is spiegelsymmetrisch om een punt als ze zichzelf als beeld heeft bij spiegeling om dat punt.",
+        "In een kubus en een balk is het snijpunt van de ruimtediagonalen het symmetriemiddelpunt."
+      ],
+      "aantal_symmetrievlakken": {
+        "kubus": 9, "balk (3 verschillende afmetingen)": 3, "balk met vierkant grondvlak": 5,
+        "bol": "oneindig veel", "cilinder": "oneindig veel (+1 evenwijdig met grondvlak)",
+        "recht prisma met gelijkzijdige driehoek als grondvlak": 4, "recht prisma met gelijkbenige driehoek als grondvlak": 2,
+        "regelmatige vierzijdige piramide": 4
+      },
+      "opmerking": "Afgeleide waarden (prisma, piramide, cilinder) nakijken met leerkracht/antwoorden - boek geeft enkel kubus = 9 expliciet."
+    }
+  ],
+
+  "oefentypes_in_boek": [
+    {"type": "transformatie herkennen (figuur → welke transformatie)", "ex": ["Instap", "V1", "V2", "V3a-d", "V5", "S1a-c", "D1", "D2", "D5", "D8", "D9"], "digitaliseerbaar": "ja - gegenereerde figuren op rooster"},
+    {"type": "beeldpunt benoemen op gelabeld rooster/wiel", "ex": ["V3f-k", "S1e-k", "D21", "D22", "D24", "D25", "D26"], "digitaliseerbaar": "ja - gegenereerd rooster met letters"},
+    {"type": "notatie lezen ↔ schrijven", "ex": ["V3l", "S2", "D19", "D20"], "digitaliseerbaar": "ja"},
+    {"type": "rotatiehoek bepalen (tafels, molentjes, wiel)", "ex": ["V4a", "V6a", "D7", "D25f-j"], "digitaliseerbaar": "ja - k·360°/n en teken"},
+    {"type": "coördinaten van beeldpunten berekenen", "ex": ["V9", "D27", "D28", "D29", "D30", "D31", "D32", "D50"], "digitaliseerbaar": "ja - volledig parametrisch"},
+    {"type": "beeld tekenen (spiegeling/translatie/rotatie/puntspiegeling)", "ex": ["V3e", "V4b-c", "D3", "D4", "D10", "D11", "D12", "D13", "D33"], "digitaliseerbaar": "deels - klik beeldpunten op rooster (enkel roosterpunten, hoeken veelvoud van 90°)"},
+    {"type": "samenstelling / omgekeerd zoeken (as, vector, centrum)", "ex": ["D34", "D35", "S1l"], "digitaliseerbaar": "deels - meerkeuze"},
+    {"type": "eigenschap herkennen/benoemen", "ex": ["Onderzoek 1-5", "V7", "V8", "S3", "D36", "D37", "D38b", "D39b", "D40"], "digitaliseerbaar": "ja - meerkeuze / koppelen"},
+    {"type": "begrippen invullen", "ex": ["D6"], "digitaliseerbaar": "ja"},
+    {"type": "symmetrieassen / symmetriemiddelpunt bij vlakke figuren", "ex": ["V10", "V11", "S4", "D41", "D42", "D43"], "digitaliseerbaar": "ja - eigen SVG-figuren (geen merklogo's)"},
+    {"type": "symmetrievlakken ruimtefiguren", "ex": ["V12", "S5", "D44", "D45", "D47", "D48", "D49"], "digitaliseerbaar": "ja - aantal / waar-niet waar"},
+    {"type": "waar of niet waar", "ex": ["D46", "D48"], "digitaliseerbaar": "ja"},
+    {"type": "ICT / Scratch / GeoGebra", "ex": ["D14", "D15", "D16", "D17", "D18", "D23"], "digitaliseerbaar": "nee - buiten scope"}
+  ],
+
+  "waar_of_niet_waar_bank": [
+    {"stelling": "Elke driehoek heeft minstens één symmetrieas.", "juist": false, "bron": "D46a"},
+    {"stelling": "Als een vlakke figuur spiegelsymmetrisch is om een punt, dan is ze ook spiegelsymmetrisch om een as.", "juist": false, "uitleg": "parallellogram", "bron": "D46b"},
+    {"stelling": "Een cirkel heeft oneindig veel symmetrieassen.", "juist": true, "bron": "D46c"},
+    {"stelling": "Een regelmatige n-hoek is spiegelsymmetrisch om een punt.", "juist": false, "uitleg": "enkel als n even is", "bron": "D46d"},
+    {"stelling": "Een regelmatige n-hoek heeft n symmetrieassen.", "juist": true, "bron": "D46e"},
+    {"stelling": "Een vlakke figuur met minstens 2 symmetrieassen is ook spiegelsymmetrisch om een punt.", "juist": false, "uitleg": "gelijkzijdige driehoek", "bron": "D46f"},
+    {"stelling": "Een bol heeft oneindig veel symmetrievlakken.", "juist": true, "bron": "D48a"},
+    {"stelling": "Een balk heeft minstens drie symmetrievlakken.", "juist": true, "bron": "D48b"},
+    {"stelling": "Een kubus heeft zes symmetrievlakken.", "juist": false, "uitleg": "negen", "bron": "D48c"},
+    {"stelling": "Een cilinder heeft een symmetrievlak dat evenwijdig is met het grondvlak.", "juist": true, "bron": "D48d"},
+    {"stelling": "Een translatie over een vector bewaart de loodrechte stand.", "juist": true, "bron": "D36"},
+    {"stelling": "Het beeld van een rechte door een rotatie is altijd evenwijdig met die rechte.", "juist": false, "uitleg": "enkel bij translatie en puntspiegeling (en rotatie over 180°)", "bron": "p.12"},
+    {"stelling": "r(O, -210°) en r(O, 150°) geven hetzelfde beeld.", "juist": true, "bron": "p.5"},
+    {"stelling": "Een spiegeling om een punt O is hetzelfde als een rotatie rond O over 180°.", "juist": true, "bron": "p.6"},
+    {"stelling": "XY→ en YX→ zijn gelijke vectoren.", "juist": false, "uitleg": "tegengestelde vectoren", "bron": "p.4"}
+  ],
+
+  "typische_fouten": [
+    {"id": "teken_rotatie", "omschrijving": "wijzerzin en tegenwijzerzin verwisseld (teken van α)"},
+    {"id": "as_verwisseld", "omschrijving": "s_x en s_y verwisseld bij coördinaten"},
+    {"id": "coord_omgewisseld", "omschrijving": "x en y omgewisseld / rotatie 90° fout uitgewerkt"},
+    {"id": "tegengestelde_vector", "omschrijving": "translatie in de verkeerde zin (YX i.p.v. XY)"},
+    {"id": "punt_vs_as", "omschrijving": "puntspiegeling en spiegeling om een as verward"},
+    {"id": "notatie_volgorde", "omschrijving": "beeld en origineel omgedraaid in notatie (s_a(A') = A)"},
+    {"id": "hoek_niet_genormaliseerd", "omschrijving": "hoek klopt op 360° na (bv. -240° i.p.v. 120°) - telt als juist, maar melden"},
+    {"id": "symmetrie_parallellogram", "omschrijving": "parallellogram krijgt symmetrieassen (heeft er 0) of ruit/rechthoek 4"}
+  ]
+}

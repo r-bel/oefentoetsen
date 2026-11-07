@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Oefentoetsen</title>
+  <meta name="description" content="Gratis oefentoetsen op maat: kies een vak, oefen en zie meteen wat je al kent en wat je nog moet herhalen.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body data-theme="indigo">
+  <header class="topbar">
+    <a class="brand" href="#/">
+      <div class="logo">✓</div>
+      <div>
+        <div class="title">Oefentoetsen</div>
+        <div class="subtitle">oefenen op maat</div>
+      </div>
+    </a>
+    <div class="topright">
+      <a id="homeLink" class="small btnlink ghost hidden" href="#/">☰<span class="lbl"> Vakken</span></a>
+      <label class="profile" title="Wie oefent er?">👤 <select id="profileSel" aria-label="Leerling"></select></label>
+      <button id="stopBtn" class="small hidden">Stop toets</button>
+    </div>
+  </header>
+  <form id="profileForm" class="profileform hidden">
+    <input id="profileName" class="answer" type="text" maxlength="30" autocomplete="off">
+    <button type="submit" class="primary small">OK</button>
+    <button type="button" id="profileCancel" class="small ghost">Annuleer</button>
+    <small class="muted">De voortgang blijft enkel op dit toestel bewaard.</small>
+  </form>
+
+  <main>
+    <!-- 0. HOOFDMENU -->
+    <section id="screen-home" class="screen">
+      <div class="card hero">
+        <span class="badge">✨ Oefen op jouw maat</span>
+        <h1>Kies een vak</h1>
+        <p class="lead">Elke toets is nieuw. Op het einde zie je wat je al goed kent en wat je nog moet herhalen.</p>
+      </div>
+      <div id="vakList"></div>
+      <div class="actions">
+        <a id="homeProgressBtn" class="btnlink" href="#voortgang">📈 Mijn voortgang</a>
+      </div>
+    </section>
+
+    <!-- 1. INSTELLINGEN -->
+    <section id="screen-setup" class="screen">
+      <div class="card hero">
+        <div class="setuphead">
+          <span id="setupIcon" class="vakicon big"></span>
+          <div><div id="setupVak" class="muted"></div><h1 id="setupTitle"></h1><div id="setupBron" class="muted small"></div></div>
+        </div>
+        <div id="setupBody"></div>
+        <button id="startBtn" class="primary big">Start de toets 🚀</button>
+        <div id="setupMsg" class="msg"></div>
+      </div>
+    </section>
+
+    <!-- 2. TOETS -->
+    <section id="screen-quiz" class="screen">
+      <div class="card status">
+        <div>
+          <div id="qCounter" class="counter"></div>
+          <div class="muted">Onderdeel: <b id="qTopic" class="white"></b></div>
+        </div>
+        <div class="progress"><div id="progressBar"></div></div>
+      </div>
+      <div class="card">
+        <div id="qInstruction" class="instruction"></div>
+        <div id="qPrompt" class="prompt"></div>
+        <div id="qHint" class="hint"></div>
+        <div id="qFigure" class="figure"></div>
+        <div id="qAnswerArea"></div>
+        <div id="qFeedback" class="feedback"></div>
+        <button id="nextBtn" class="primary big">Controleer ✓</button>
+      </div>
+    </section>
+
+    <!-- 3. RESULTAAT -->
+    <section id="screen-result" class="screen">
+      <div class="card hero center">
+        <span class="badge" id="scoreBadge"></span>
+        <div id="scoreBox" class="score"></div>
+      </div>
+      <div class="card hidden" id="finalCard">
+        <h2>🎓 Eindtoets: wat is volledig gekend?</h2>
+        <p class="muted" id="finalIntro"></p>
+        <div id="finalTable"></div>
+      </div>
+      <div class="card">
+        <h2>🔍 Wat zeggen je fouten?</h2>
+        <ul id="conclusions" class="conclusions"></ul>
+      </div>
+      <div class="card">
+        <h2>📊 Score per onderdeel</h2>
+        <div id="topicTable"></div>
+      </div>
+      <div class="card">
+        <h2>✏️ Overzicht van je fouten</h2>
+        <div id="mistakeList"></div>
+      </div>
+      <div class="actions">
+        <button id="retryMistakesBtn" class="primary">🔁 Oefen opnieuw</button>
+        <button id="againBtn">Nieuwe toets, zelfde instellingen</button>
+        <button id="resultProgressBtn">📈 Mijn voortgang</button>
+        <button id="homeBtn" class="ghost">Terug naar instellingen</button>
+      </div>
+    </section>
+
+    <!-- 4. VOORTGANG -->
+    <section id="screen-progress" class="screen">
+      <div class="card hero">
+        <span class="badge">📈 Mijn voortgang</span>
+        <h1 id="progName"></h1>
+        <p class="lead small">Alles wordt enkel op dit toestel bewaard (geen account, geen server).</p>
+        <div id="progTabs" class="quick center"></div>
+        <div id="progLevels" class="quick center"></div>
+      </div>
+      <div id="progBody"></div>
+      <div class="actions">
+        <button id="exportBtn" class="small">⬇️ Exporteer voortgang</button>
+        <button id="importBtn" class="small">⬆️ Importeer</button>
+        <input id="importFile" type="file" accept=".json,application/json" hidden>
+        <button id="clearBtn" class="small ghost">Wis voortgang</button>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div id="extraLinks" class="extra"></div>
+    <div class="muted small">Proefversie · leerstof volgens de gebruikte handboeken · je voortgang blijft op dit toestel</div>
+  </footer>
+  <div id="toast" class="toast"></div>
+
+  <!-- kern -->
+  <script src="js/config.js"></script>
+  <script src="js/core/analytics.js"></script>
+  <script src="js/core/vakken.js"></script>
+  <script src="js/core/store.js"></script>
+  <script src="js/core/geo.js"></script>
+  <!-- vakken: per vak eerst de inhoud, dan de logica -->
+  <script src="vakken/frans-5a/inhoud.js"></script>
+  <script src="vakken/frans-5a/vak.js"></script>
+  <script src="vakken/wiskunde-2-m01/inhoud.js"></script>
+  <script src="vakken/wiskunde-2-m01/vak.js"></script>
+  <!-- interface -->
+  <script src="js/core/app.js"></script>
+</body>
+</html>
