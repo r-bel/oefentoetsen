@@ -129,7 +129,8 @@
     }
     if (res === "spelling") return { status: "spelling", tag: "spelling" };
     if (partial) return { status: "partial", tag: "geslacht", note: partial };
-    if (res === "macron") return { status: "lengteteken", tag: "lengteteken" };
+    // ontbrekende of verkeerde lengtetekens zijn nooit fout (op geen enkel niveau); we tonen enkel de schrijfwijze
+    if (res === "macron") return { status: "correct", note: `Met lengtetekens: ${q.answerShown.replace(/&amp;/g, "&")}` };
     return { status: "correct" };
   }
   // geloofwaardige foute middenkolommen voor meerkeuze
@@ -374,11 +375,10 @@
     else if (q.check === "mid") r = checkMid(given, q, level);
     else if (q.check === "lemma") {
       const t = tokens(given)[0], c = cmpTok(t, q.target);
-      r = c === "ok" ? { status: "correct" } : c === "macron" ? { status: "lengteteken", tag: "lengteteken" } : c === "spelling" ? { status: "spelling", tag: "spelling" } : { status: "wrong", tag: "middenkolom" };
+      r = c === "ok" ? { status: "correct" } : c === "macron" ? { status: "correct", note: `Met lengtetekens: ${q.target}` } : c === "spelling" ? { status: "spelling", tag: "spelling" } : { status: "wrong", tag: "middenkolom" };
     } else r = checkNl(given, q);
-    // punten: lengtetekens en "bijna volledig" tellen enkel niet op niveau moeilijk
+    // punten: lengtetekens tellen nooit mee; "bijna volledig" (geslacht vergeten) telt niet op niveau moeilijk
     r.points = r.status === "correct" ? 1 : (r.status === "lengteteken" || r.status === "partial") ? (level === "hard" ? 0 : 1) : 0;
-    if (r.status === "lengteteken" && level === "hard") r.strictNote = "(op 'Moeilijk' moeten de lengtetekens juist zijn)";
     if (r.status === "partial" && level === "hard") r.strictNote = "(op 'Moeilijk' moet alles volledig zijn)";
     return r;
   }
@@ -419,12 +419,12 @@
     describe: (s) => `woorden ${s.bereik[0]}–${s.bereik[1]} (${inRange(s).length})`,
     levels: {
       easy: { title: "🙂 Makkelijk", desc: "alles meerkeuze" },
-      normal: { title: "💪 Normaal", desc: "meerkeuze + typen; lengtetekens (ā, ē…) tellen nog niet mee" },
-      hard: { title: "🔥 Moeilijk", desc: "zelf typen; lengtetekens en geslacht moeten juist zijn" },
+      normal: { title: "💪 Normaal", desc: "meerkeuze + typen; lengtetekens (ā, ē…) hoeven niet" },
+      hard: { title: "🔥 Moeilijk", desc: "alles zelf typen; geslacht moet erbij (lengtetekens hoeven niet)" },
     },
     allInfo: "<b>Eindtoets-modus:</b> elk woord uit het gekozen bereik komt per aangevinkt onderdeel precies één keer aan bod.",
     keyboard: ["ā", "ē", "ī", "ō", "ū", "~", ","], keyboardLabel: "Lengtetekens invoegen:",
-    statusText: { lengteteken: "Bijna: let op de lengtetekens.", spelling: "Bijna: één letter fout.", partial: "Bijna!" },
+    statusText: { spelling: "Bijna: één letter fout.", partial: "Bijna!" },
     tags: TAGS,
     makeQuiz, countAll, check, conclusions, regen, fromKey,
     _UNITS: UNITS, _norm: norm, // voor tests
