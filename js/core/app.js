@@ -499,6 +499,7 @@
     $("#progLevels").innerHTML = [["all", "Alle niveaus"], ["easy", "🙂 makkelijk"], ["normal", "💪 normaal"], ["hard", "🔥 moeilijk"]]
       .map(([l, t]) => `<button type="button" class="chipbtn ${l === progLevel ? "on" : ""}" data-lvl="${l}">${t}</button>`).join("");
     $$("[data-lvl]").forEach((b) => b.addEventListener("click", () => { progLevel = b.dataset.lvl; openProgress(v.id); }));
+    $("#backupInfo").innerHTML = "";
     renderProgressBody(v);
     show("screen-progress");
     Analytics.page("/voortgang", "Voortgang");
@@ -546,6 +547,9 @@
       ${S.hardItems.length ? `<div class="card"><h2>🧩 Blijft moeilijk</h2><p class="muted small">Vragen of woorden die meer dan eens fout gingen (alle niveaus samen).</p><ul class="itemlist">${S.hardItems.map((i) => `<li><span>${esc(i.label)}</span><small>${i.ok}/${i.n} juist${i.lastOk ? " · laatste keer wel juist ✓" : ""}</small></li>`).join("")}</ul></div>` : ""}
       ${strong.length ? `<div class="card"><h2>✅ Goed gekend</h2><p>${strong.map((u) => `${esc(u.label)} <small class="muted">(${u.pct}%)</small>`).join(" · ")}</p></div>` : ""}
       <div class="card"><h2>📋 Geschiedenis</h2><table class="history"><thead><tr><th>Datum</th><th>Toets</th><th>Niveau</th><th>Score</th></tr></thead><tbody>${Store.sessions(v.id, progLevel).slice(-20).reverse().map((s) => `<tr><td class="nowrap">${fmtDate(s.date)}</td><td class="desc">${esc(histDesc(v, s))}</td><td>${LEVEL_NAME[s.level]}</td><td class="nowrap">${s.points}/${s.total} <small>(${s.pct}%)</small></td></tr>`).join("")}</tbody></table></div>`;
+    const le = Store.lastExport(), nTests = Store.sessions().length;
+    const days = le ? Math.floor((Date.now() - new Date(le).getTime()) / 864e5) : null;
+    $("#backupInfo").innerHTML = `Laatste reservekopie: <b>${le ? fmtDate(le) : "nog nooit"}</b>.` + ((days === null && nTests >= 3) || days > 30 ? ` <span class="warnline">Maak af en toe een reservekopie: op iPhone/iPad wist Safari de gegevens als de site 7 dagen niet gebruikt wordt, en bij het wissen van browsergegevens zijn ze ook weg.</span>` : "");
     const plan = errorPlan(v);
     if (plan.items.length || plan.units.length) box.insertAdjacentHTML("afterbegin", `<div class="card errorcard"><h2>🎯 Toets op basis van je fouten</h2><p class="muted">${plan.items.length} vragen/woorden die eerder fout gingen${plan.units.length ? `, ${plan.units.length} zwakke onderdelen` : ""}${plan.recurring.length ? `. Terugkerend: ${plan.recurring.map((t) => esc(v.tags[t].title)).join(", ")}` : ""}.</p><button id="errorQuizProg" class="primary big">Start een foutgerichte toets (20 vragen)</button></div>`);
     const eq = $("#errorQuizProg");
@@ -569,16 +573,18 @@
   }
   // export / import / wissen
   $("#exportBtn").addEventListener("click", () => {
-    const data = JSON.stringify(Store.exportProfile(), null, 1);
+    // volledige reservekopie: alle leerlingen op dit toestel
+    const data = JSON.stringify(Store.exportAll(), null, 1);
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([data], { type: "application/json" }));
-    a.download = `voortgang-${Store.activeName().replace(/\W+/g, "_")}-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `oefentoetsen-reservekopie-${new Date().toISOString().slice(0, 10)}.json`;
+    setTimeout(() => route(), 300);
     document.body.appendChild(a); a.click(); a.remove();
   });
   $("#importBtn").addEventListener("click", () => $("#importFile").click());
   $("#importFile").addEventListener("change", async (e) => {
     const f = e.target.files[0]; if (!f) return;
-    try { Store.importProfile(JSON.parse(await f.text())); renderProfile(); toast("Voortgang geïmporteerd als nieuwe leerling."); route(); }
+    try { Store.importProfile(JSON.parse(await f.text())); renderProfile(); toast("Reservekopie ingelezen (toegevoegd naast de bestaande leerlingen)."); route(); }
     catch (err) { toast("Dit bestand kon niet ingelezen worden."); }
     e.target.value = "";
   });

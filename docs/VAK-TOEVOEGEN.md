@@ -60,3 +60,22 @@ een tip te tonen en in de voortgang mee te tellen).
 ## 5. Na elke wijziging: versie ophogen
 Browsers bewaren de scripts een tijd in hun cache. Verhoog daarom in `index.html` overal `?v=…` (bv. `?v=2` → `?v=3`),
 zodat iedereen meteen de nieuwe versie krijgt en kern en vakken nooit door elkaar lopen.
+
+## 6. Voortgang bewaren bij nieuwe versies
+De voortgang staat in de browser van de leerling (localStorage, sleutel `oefentoetsen-v1`). Een nieuwe versie van
+de site raakt die gegevens niet, zolang je deze regels volgt:
+- **Adres niet wijzigen.** De gegevens horen bij het adres (`www.dirkdhaenens.com`). Een ander domein of een andere
+  repo-naam = een lege voortgang (dan via *Reservekopie maken* / *terugzetten* overzetten).
+- **Sleutel niet wijzigen.** `KEY` in `js/core/store.js` blijft `oefentoetsen-v1`, ook al heet de structuur nu versie 2.
+- **Structuur aanpassen = migratie.** Verhoog `VERSION` en voeg in `MIGRATIONS` een stap toe die oude gegevens omzet
+  en aanvult. Nooit velden verwijderen of de gegevens leegmaken. Vóór elke migratie wordt automatisch een
+  reservekopie gemaakt (`oefentoetsen-backup-…`, de laatste 3 blijven).
+- **Id's stabiel houden.** De geschiedenis verwijst naar het vak-id (`latijn-2`), de onderdeel-id's (`vertalen`)
+  en de vraagsleutels (`vertalen:352`). Een naam of label mag je vrij aanpassen; een id liever niet. Moet een id toch
+  wijzigen, voeg dan een migratiestap toe die de oude id in sessies en items vervangt.
+- **Vangnetten die er al zijn:** na elke toets een reservekopie van de vorige toestand (`oefentoetsen-reserve`),
+  automatisch terugzetten als de hoofdgegevens weg of onleesbaar zijn, onleesbare gegevens worden apart bewaard,
+  een nieuwere structuur (oude cache) wordt nooit overschreven, en de browser wordt gevraagd de opslag te bewaren.
+- **Wat de site niet kan voorkomen:** het wissen van browsergegevens door de gebruiker, en Safari op iPhone/iPad
+  dat sitegegevens wist na 7 dagen zonder bezoek. Daarvoor dient *Reservekopie maken* (alle leerlingen in één bestand);
+  *Mijn voortgang* herinnert eraan.

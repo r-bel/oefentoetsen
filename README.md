@@ -44,8 +44,10 @@ Een vak bijsturen raakt dus nooit een ander vak.
   vragen/woorden die eerder fout gingen (vooral herhaaldelijk en recent fout), aangevuld met onderdelen met een lage
   score of terugkerende fouttypes. Werkt per vak; elke vakmodule levert daarvoor `fromKey(key, niveau)`.
 - **Geschiedenis** toont per toets een leesbare beschrijving van de instellingen (onderdelen, richting/bereik, aantal, foutgericht).
-- **Exporteer / importeer**: voortgang als JSON-bestand (bv. om naar een ander toestel over te zetten).
-- Wissen van browsergegevens = voortgang weg. Dat is de prijs van "geen server".
+- **Reservekopie maken / terugzetten**: alle leerlingen in één JSON-bestand (ook om naar een ander toestel over te zetten).
+- **Nieuwe versies wissen de voortgang niet**: versiebeheer met migraties, automatische reservekopieën en herstel
+  (zie `docs/VAK-TOEVOEGEN.md`, "Voortgang bewaren"). Wissen van browsergegevens of Safari na 7 dagen niet-gebruik
+  kan de site niet tegenhouden: daarvoor dient de reservekopie.
 
 ## Bezoekersstatistieken
 Actief via GoatCounter (account `oefentoetsen`, dashboard: https://oefentoetsen.goatcounter.com), zonder cookies.

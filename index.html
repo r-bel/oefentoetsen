@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=5">
+  <link rel="stylesheet" href="css/style.css?v=6">
 </head>
 <body data-theme="indigo">
   <header class="topbar">
@@ -122,9 +122,10 @@
         <div id="progLevels" class="quick center"></div>
       </div>
       <div id="progBody"></div>
+      <p id="backupInfo" class="muted small center"></p>
       <div class="actions">
-        <button id="exportBtn" class="small">⬇️ Exporteer voortgang</button>
-        <button id="importBtn" class="small">⬆️ Importeer</button>
+        <button id="exportBtn" class="small">⬇️ Reservekopie maken</button>
+        <button id="importBtn" class="small">⬆️ Reservekopie terugzetten</button>
         <input id="importFile" type="file" accept=".json,application/json" hidden>
         <button id="clearBtn" class="small ghost">Wis voortgang</button>
       </div>
@@ -138,21 +139,21 @@
   <div id="toast" class="toast"></div>
 
   <!-- kern -->
-  <script src="js/config.js?v=5"></script>
-  <script src="js/core/analytics.js?v=5"></script>
-  <script src="js/core/vakken.js?v=5"></script>
-  <script src="js/core/store.js?v=5"></script>
-  <script src="js/core/geo.js?v=5"></script>
+  <script src="js/config.js?v=6"></script>
+  <script src="js/core/analytics.js?v=6"></script>
+  <script src="js/core/vakken.js?v=6"></script>
+  <script src="js/core/store.js?v=6"></script>
+  <script src="js/core/geo.js?v=6"></script>
   <!-- vakken: per vak eerst de inhoud, dan de logica -->
-  <script src="vakken/frans-5a/inhoud.js?v=5"></script>
-  <script src="vakken/frans-5a/vak.js?v=5"></script>
-  <script src="vakken/frans-2-t2/inhoud.js?v=5"></script>
-  <script src="vakken/frans-2-t2/vak.js?v=5"></script>
-  <script src="vakken/wiskunde-2-m01/inhoud.js?v=5"></script>
-  <script src="vakken/wiskunde-2-m01/vak.js?v=5"></script>
-  <script src="vakken/latijn-2/inhoud.js?v=5"></script>
-  <script src="vakken/latijn-2/vak.js?v=5"></script>
+  <script src="vakken/frans-5a/inhoud.js?v=6"></script>
+  <script src="vakken/frans-5a/vak.js?v=6"></script>
+  <script src="vakken/frans-2-t2/inhoud.js?v=6"></script>
+  <script src="vakken/frans-2-t2/vak.js?v=6"></script>
+  <script src="vakken/wiskunde-2-m01/inhoud.js?v=6"></script>
+  <script src="vakken/wiskunde-2-m01/vak.js?v=6"></script>
+  <script src="vakken/latijn-2/inhoud.js?v=6"></script>
+  <script src="vakken/latijn-2/vak.js?v=6"></script>
   <!-- interface -->
-  <script src="js/core/app.js?v=5"></script>
+  <script src="js/core/app.js?v=6"></script>
 </body>
 </html>
