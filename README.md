@@ -40,11 +40,16 @@ Een vak bijsturen raakt dus nooit een ander vak.
 - **Mijn voortgang**: per vak en per niveau → aantal toetsen, gemiddelde, trend, werkpunten (onderdelen < 75%)
   met knop *Oefen mijn werkpunten*, fouten die blijven terugkomen (+ tip), woorden/vragen die moeilijk blijven,
   wat goed gekend is en de geschiedenis.
+- **Toets op basis van je fouten** (knop bij de instellingen en in *Mijn voortgang*): stelt een toets samen uit de
+  vragen/woorden die eerder fout gingen (vooral herhaaldelijk en recent fout), aangevuld met onderdelen met een lage
+  score of terugkerende fouttypes. Werkt per vak; elke vakmodule levert daarvoor `fromKey(key, niveau)`.
+- **Geschiedenis** toont per toets een leesbare beschrijving van de instellingen (onderdelen, richting/bereik, aantal, foutgericht).
 - **Exporteer / importeer**: voortgang als JSON-bestand (bv. om naar een ander toestel over te zetten).
 - Wissen van browsergegevens = voortgang weg. Dat is de prijs van "geen server".
 
-## Bezoekersstatistieken (later)
-Vul in `js/config.js` een GoatCounter-code in (gratis, zonder cookies). Dan worden geteld: paginabezoeken,
+## Bezoekersstatistieken
+Actief via GoatCounter (account `oefentoetsen`, dashboard: https://oefentoetsen.goatcounter.com), zonder cookies.
+Uitzetten: `goatcounterCode: ""` in `js/config.js`. Dan worden geteld: paginabezoeken,
 welk vak geopend, toets gestart/afgerond per vak en niveau. Geen namen, antwoorden of scores per leerling.
 
 ## Roadmap

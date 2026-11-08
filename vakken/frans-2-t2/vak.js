@@ -255,6 +255,15 @@
   function countAll(s) {
     return UNITS.filter((u) => s.units.includes(u.id)).reduce((a, u) => a + casesOf(u).length * (u.vocab && s.dir === "both" && s.bothDirs ? 2 : 1), 0);
   }
+  const KEY_UNIT = { trous: "trous", def: "definitions", phrase: "phrases", art: "articles", part: "partitif", futur: "futur", chaud: "chaud", actes: "actes" };
+  function fromKey(key, level, s = {}) {
+    const [pre, idx, dir] = key.split(":"), u = UNITS.find((x) => x.id === (KEY_UNIT[pre] || pre));
+    if (!u) return null;
+    const c = u.cases()[+idx];
+    if (!c) return null;
+    const d = u.vocab ? (dir === "nl-fr" || dir === "fr-nl" ? dir : undefined) : undefined;
+    return Object.assign(u.gen(level, c, { dir: s.dir || "both" }, d), { _c: c });
+  }
   function regen(q, level) {
     const u = UNITS.find((x) => x.id === q.unit);
     return q._c ? Object.assign(u.gen(level, q._c, { dir: "both" }, q.direction || undefined), { _c: q._c }) : { ...q };
@@ -328,7 +337,7 @@
     keyboard: ["é", "è", "ê", "à", "â", "ç", "ù", "û", "ô", "î", "ë", "ï", "'"], keyboardLabel: "Klik om accenten in te voegen:",
     statusText: { accent: "Bijna: let op het accent.", article: "Het woord is juist, maar het lidwoord niet.", spelling: "Bijna: één letter fout." },
     tags: TAGS,
-    makeQuiz, countAll, check, conclusions, regen,
+    makeQuiz, countAll, check, conclusions, regen, fromKey,
     _UNITS: UNITS, // voor tests
   });
 })();

@@ -451,7 +451,23 @@
       return shuffle(questions);
     }
 
-    return { units, makeQuiz, check, countAll };
+    // foutgerichte toets: woord (unit:fr:richting) of grammatica-onderdeel (unit:prompt) opnieuw vragen
+    function fromKey(key, level) {
+      const i = key.indexOf(":"), u = units.find((x) => x.id === key.slice(0, i));
+      if (!u) return null;
+      let q;
+      if (u.kind === "vocab") {
+        const rest = key.slice(i + 1), j = rest.lastIndexOf(":"), fr = rest.slice(0, j), dir = rest.slice(j + 1);
+        const item = u.items.find((x) => x.fr === fr);
+        if (!item) return null;
+        q = vocabQuestion(u, item, dir === "fr-nl" ? "fr-nl" : "nl-fr", level);
+      } else q = u.gen(u, level);
+      q.unitLabel = u.label; q.mission = u.mission;
+      if (q.mode === "mc" && (!q.options || q.options.length < 2)) q.mode = "text";
+      return q;
+    }
+
+    return { units, makeQuiz, check, countAll, fromKey };
   }
 
   // ---------- foutanalyse ----------
@@ -570,6 +586,7 @@
     tags: TAGS,
     makeQuiz: (s) => eng.makeQuiz(s).map(adapt),
     countAll: (s) => eng.countAll(s),
+    fromKey: (k, level) => { const q = eng.fromKey(k, level); return q ? adapt(q) : null; },
     check(given, q, level) {
       const r = check(given, q, level);
       if (r.status === "accent" && level === "hard") r.strictNote = "(op 'Moeilijk' telt een accentfout als fout)";

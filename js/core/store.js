@@ -80,7 +80,8 @@
       });
       const date = new Date().toISOString();
       p.sessions.push({
-        id: uid(), vak, date, level: settings.level, count: settings.count, isRetry: !!settings.isRetry,
+        id: uid(), vak, date, level: settings.level, count: settings.count, isRetry: !!settings.isRetry, mode: settings.mode || "",
+        desc: settings.desc || "", sel: Array.isArray(settings.units) ? settings.units.slice(0, 40) : [],
         total: results.length, points, pct: Math.round((points / results.length) * 100), units, tags,
         mistakes: results.filter((r) => r.status !== "correct").slice(0, MAX_MISTAKES)
           .map((r) => ({ unit: r.q.unit, tag: r.tag || r.status, item: (r.q.itemLabel ? strip(r.q.itemLabel) : strip(r.q.prompt)).slice(0, 120) })),
@@ -97,6 +98,15 @@
       const keys = Object.keys(items);
       if (keys.length > MAX_ITEMS) keys.sort((a, b) => (items[a].last < items[b].last ? -1 : 1)).slice(0, keys.length - MAX_ITEMS).forEach((k) => delete items[k]);
       save();
+    },
+
+    // alle bijgehouden vragen/woorden van een vak (voor de foutgerichte toets)
+    items(vak) { return Object.entries(P().items[vak] || {}).map(([key, v]) => ({ key, ...v })); },
+    // onderdelen waarin een bepaald fouttype voorkwam (uit de bewaarde fouten per toets)
+    unitsForTags(vak, tags) {
+      const out = {};
+      P().sessions.filter((s) => s.vak === vak).forEach((s) => (s.mistakes || []).forEach((m) => { if (tags.includes(m.tag)) out[m.unit] = (out[m.unit] || 0) + 1; }));
+      return out;
     },
 
     sessions(vak, level) {

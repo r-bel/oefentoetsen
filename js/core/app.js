@@ -190,8 +190,80 @@
     (vak.settings || []).filter((x) => x.type === "checkbox" && x.showIf).forEach((x) => $(`[data-cb="${x.key}"]`).classList.toggle("hidden", !x.showIf(s)));
     (vak.settings || []).filter((x) => x.type === "range").forEach((x) => $$(`[data-range="${x.key}"]`).forEach((b) => { const p = x.presets[+b.dataset.i].v; b.classList.toggle("on", p[0] === s[x.key][0] && p[1] === s[x.key][1]); }));
     const n = s.count === "all" ? vak.countAll(s) : s.count;
+    const plan = errorPlan(vak);
+    $("#errorQuizBtn").classList.toggle("hidden", !plan.items.length && !plan.units.length);
+    $("#errorQuizInfo").textContent = plan.items.length || plan.units.length ? `${plan.items.length} ${plan.items.length === 1 ? "vraag" : "vragen"} die eerder fout gingen` + (plan.units.length ? ` · ${plan.units.length} zwakke ${plan.units.length === 1 ? "onderdeel" : "onderdelen"}` : "") + (plan.recurring.length ? ` · terugkerend: ${plan.recurring.map((t) => vak.tags[t].short || vak.tags[t].title).join(", ")}` : "") : "";
     $("#setupMsg").textContent = !k ? "Kies minstens één onderdeel"
       : `${k} ${k === 1 ? "onderdeel" : "onderdelen"} gekozen · ${n} vragen` + (vak.describe ? " · " + vak.describe(s) : "");
+  }
+
+  // ============================================================
+  // INSTELLINGEN ALS LEESBARE TEKST (voor de geschiedenis)
+  // ============================================================
+  const plain = (h) => String(h ?? "").replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
+  function describeSettings(v, s, extra = {}) {
+    const parts = [];
+    const ids = s.units || [];
+    const labels = v.units.filter((u) => ids.includes(u.id)).map((u) => u.label);
+    if (extra.mode === "fouten") parts.push("Op basis van je fouten" + (extra.nItems ? ` (${extra.nItems} vragen die eerder fout gingen` + (extra.nUnits ? `, aangevuld uit ${extra.nUnits} zwakke onderdelen)` : ")") : ""));
+    else if (extra.retry) parts.push("Herhaling van fouten");
+    else if (ids.length >= v.units.length) parts.push("alle onderdelen");
+    else {
+      // hele groepen (missie/doel) samenvatten
+      const full = v.groups.filter((g) => { const us = v.units.filter((u) => u.group === g.id); return us.length && us.every((u) => ids.includes(u.id)); });
+      const rest = labels.filter((l) => !full.some((g) => v.units.some((u) => u.group === g.id && u.label === l)));
+      const txt = [...full.map((g) => g.titel), ...rest];
+      parts.push(txt.length <= 3 ? txt.join(", ") : `${txt.slice(0, 3).join(", ")} … (+${txt.length - 3})`);
+    }
+    (v.settings || []).forEach((x) => {
+      const val = s[x.key];
+      if (val === undefined) return;
+      if (x.type === "radio") { const o = x.options.find((o) => o.v === val); if (o) parts.push(plain(x.label).replace(/\s*\(.*\)$/, "") + ": " + plain(o.label)); }
+      else if (x.type === "range" && Array.isArray(val)) parts.push(`nr. ${val[0]}–${val[1]}`);
+      else if (x.type === "checkbox" && val && (!x.showIf || x.showIf(s)) && s.count === "all") parts.push(plain(x.label));
+    });
+    parts.push(s.count === "all" ? "eindtoets (alles)" : `${s.count} vragen`);
+    return parts.join(" · ");
+  }
+
+  // ============================================================
+  // FOUTGERICHTE TOETS: stelt een toets samen uit wat eerder fout ging
+  //   1. vragen/woorden die fout gingen (vooral recent en herhaaldelijk)
+  //   2. aangevuld met onderdelen met een lage score of terugkerende fouttypes
+  // ============================================================
+  function errorPlan(v) {
+    const items = Store.items(v.id).filter((i) => i.n > i.ok && (i.ok / i.n < 0.8 || i.lastOk === false));
+    items.forEach((i) => { const age = (Date.now() - new Date(i.last).getTime()) / 864e5; i.score = (i.n - i.ok) * 2 + (i.lastOk === false ? 3 : 0) - Math.min(age, 30) / 10; });
+    items.sort((a, b) => b.score - a.score);
+    const S = Store.summary(v.id, "all");
+    const weakUnits = Object.entries(S.units).filter(([, u]) => u.n >= 3 && u.pct < 75).map(([id]) => id);
+    const recurring = Object.entries(S.tags).filter(([t, x]) => t !== "fout" && x.sessions >= 2 && v.tags && v.tags[t]).map(([t]) => t);
+    const tagUnits = Object.keys(Store.unitsForTags(v.id, recurring));
+    const units = [...new Set([...weakUnits, ...tagUnits])].filter((id) => v.units.some((u) => u.id === id));
+    return { items, units, recurring };
+  }
+  function buildErrorQuiz(v, s) {
+    const N = s.count === "all" ? 30 : s.count;
+    const plan = errorPlan(v), out = [], keys = new Set();
+    if (v.fromKey) for (const it of plan.items) {
+      if (out.length >= N) break;
+      let q = null; try { q = v.fromKey(it.key, s.level, s); } catch (e) { q = null; }
+      if (q && !keys.has(q.key || it.key)) { keys.add(q.key || it.key); out.push(q); }
+    }
+    const nItems = out.length;
+    for (let t = 0; t < 4 && out.length < N && plan.units.length; t++) {
+      const extra = v.makeQuiz({ ...s, units: plan.units, count: N - out.length });
+      extra.forEach((q) => { if (out.length < N && !(q.key && keys.has(q.key))) { if (q.key) keys.add(q.key); out.push(q); } });
+    }
+    return { questions: out.sort(() => Math.random() - 0.5), nItems, nUnits: plan.units.length, plan };
+  }
+  function startErrorQuiz(v, s) {
+    vak = v; setTheme(v.theme);
+    const r = buildErrorQuiz(v, s);
+    if (!r.questions.length) { toast("Nog geen fouten om te herhalen. Maak eerst een paar gewone toetsen."); return; }
+    const settings = { ...s, mode: "fouten", units: [...new Set(r.questions.map((q) => q.unit))], count: r.questions.length };
+    settings.desc = describeSettings(v, settings, { mode: "fouten", nItems: r.nItems, nUnits: r.nItems < r.questions.length ? r.nUnits : 0 });
+    start(settings, r.questions, false, true);
   }
 
   // ============================================================
@@ -201,6 +273,7 @@
     questions = questions || vak.makeQuiz(settings);
     if (!questions.length) { $("#setupMsg").textContent = "Kies minstens één onderdeel"; return; }
     if (!isRetry && !keepPrefs) Store.setPrefs(vak.id, settings);
+    if (!settings.desc || isRetry) settings = { ...settings, desc: describeSettings(vak, settings, { retry: isRetry, mode: settings.mode }) };
     state = { settings: { ...settings, isRetry: !!isRetry }, questions, i: 0, results: [], answered: false, choice: null, clicks: [], isRetry: !!isRetry };
     show("screen-quiz");
     renderQuestion();
@@ -376,7 +449,7 @@
     Analytics.event(`klaar/${vak.id}/${state.settings.level}`);
     $("#progressBar").style.width = "100%";
     $("#scoreBadge").textContent = a.pct >= 90 ? "🏆 Super gedaan!" : a.pct >= 70 ? "👍 Goed bezig" : a.pct >= 50 ? "💪 Nog even oefenen" : "📖 Herhalen maar!";
-    $("#scoreBox").innerHTML = `<div class="big">${a.points} / ${a.total}</div><div class="sub">${a.pct}% juist · niveau ${LEVEL_NAME[state.settings.level]} · ${esc(Store.activeName())}</div>`;
+    $("#scoreBox").innerHTML = `<div class="big">${a.points} / ${a.total}</div><div class="sub">${a.pct}% juist · niveau ${LEVEL_NAME[state.settings.level]} · ${esc(Store.activeName())}</div><div class="sub small">${esc(state.settings.desc || "")}</div>`;
     const conc = vak.conclusions(state.results);
     $("#conclusions").innerHTML = conc.map((c) => `<li class="${c.type}">${c.text}</li>`).join("");
     $("#topicTable").innerHTML = `<table><thead><tr><th>Onderdeel</th><th>Score</th><th></th></tr></thead><tbody>` +
@@ -430,6 +503,12 @@
     show("screen-progress");
     Analytics.page("/voortgang", "Voortgang");
   }
+  // beschrijving voor oudere toetsen (van voor deze versie): afleiden uit de geoefende onderdelen
+  function histDesc(v, s) {
+    if (s.desc) return s.desc;
+    const ids = s.sel && s.sel.length ? s.sel : Object.keys(s.units || {});
+    return describeSettings(v, { units: ids, count: s.count }, { retry: s.isRetry }).replace(/ · (\d+) vragen$/, s.count === "all" ? "" : " · $1 vragen");
+  }
   function renderProgressBody(v) {
     const S = Store.summary(v.id, progLevel);
     const box = $("#progBody");
@@ -466,7 +545,17 @@
       ${recurring.length ? `<div class="card"><h2>🔁 Fouten die blijven terugkomen</h2><ul class="conclusions">${recurring.map(([t, x]) => { const g = v.tags[t]; return `<li class="${x.sessions >= 3 ? "bad" : "ok"}"><b>${esc(g.title)}</b> — ${x.count}× in ${x.sessions} toetsen. ${g.advice}${g.page ? ` <small>${pg(g.page)}</small>` : ""}</li>`; }).join("")}</ul></div>` : ""}
       ${S.hardItems.length ? `<div class="card"><h2>🧩 Blijft moeilijk</h2><p class="muted small">Vragen of woorden die meer dan eens fout gingen (alle niveaus samen).</p><ul class="itemlist">${S.hardItems.map((i) => `<li><span>${esc(i.label)}</span><small>${i.ok}/${i.n} juist${i.lastOk ? " · laatste keer wel juist ✓" : ""}</small></li>`).join("")}</ul></div>` : ""}
       ${strong.length ? `<div class="card"><h2>✅ Goed gekend</h2><p>${strong.map((u) => `${esc(u.label)} <small class="muted">(${u.pct}%)</small>`).join(" · ")}</p></div>` : ""}
-      <div class="card"><h2>📋 Geschiedenis</h2><table><thead><tr><th>Datum</th><th>Niveau</th><th>Score</th></tr></thead><tbody>${Store.sessions(v.id, progLevel).slice(-15).reverse().map((s) => `<tr><td>${fmtDate(s.date)}${s.isRetry ? " <small>(herhaling)</small>" : ""}${s.count === "all" ? " <small>(eindtoets)</small>" : ""}</td><td>${LEVEL_NAME[s.level]}</td><td>${s.points}/${s.total} (${s.pct}%)</td></tr>`).join("")}</tbody></table></div>`;
+      <div class="card"><h2>📋 Geschiedenis</h2><table class="history"><thead><tr><th>Datum</th><th>Toets</th><th>Niveau</th><th>Score</th></tr></thead><tbody>${Store.sessions(v.id, progLevel).slice(-20).reverse().map((s) => `<tr><td class="nowrap">${fmtDate(s.date)}</td><td class="desc">${esc(histDesc(v, s))}</td><td>${LEVEL_NAME[s.level]}</td><td class="nowrap">${s.points}/${s.total} <small>(${s.pct}%)</small></td></tr>`).join("")}</tbody></table></div>`;
+    const plan = errorPlan(v);
+    if (plan.items.length || plan.units.length) box.insertAdjacentHTML("afterbegin", `<div class="card errorcard"><h2>🎯 Toets op basis van je fouten</h2><p class="muted">${plan.items.length} vragen/woorden die eerder fout gingen${plan.units.length ? `, ${plan.units.length} zwakke onderdelen` : ""}${plan.recurring.length ? `. Terugkerend: ${plan.recurring.map((t) => esc(v.tags[t].title)).join(", ")}` : ""}.</p><button id="errorQuizProg" class="primary big">Start een foutgerichte toets (20 vragen)</button></div>`);
+    const eq = $("#errorQuizProg");
+    if (eq) eq.addEventListener("click", () => {
+      const base = Store.getPrefs(v.id) || {};
+      const s = { ...base, level: progLevel === "all" ? base.level || "normal" : progLevel, count: 20 };
+      (v.settings || []).forEach((x) => { if (s[x.key] === undefined) s[x.key] = x.default; });
+      history.replaceState(null, "", "#v/" + v.id);
+      startErrorQuiz(v, s);
+    });
     const pw = $("#practiceWeak");
     if (pw) pw.addEventListener("click", () => {
       const lvl = progLevel === "all" ? (Store.getPrefs(v.id) || {}).level || "normal" : progLevel;
@@ -505,12 +594,16 @@
   $("#startBtn").addEventListener("click", () => start(readSettings()));
   $("#nextBtn").addEventListener("click", submit);
   $("#stopBtn").addEventListener("click", () => { if (state.results.length) finish(); else openSetup(vak); });
-  $("#againBtn").addEventListener("click", () => start({ ...state.settings, isRetry: false }));
+  $("#againBtn").addEventListener("click", () => {
+    if (state.settings.mode === "fouten") return startErrorQuiz(vak, { ...state.settings, mode: "", desc: "", count: (Store.getPrefs(vak.id) || {}).count || 20 });
+    start({ ...state.settings, isRetry: false, desc: "" });
+  });
+  $("#errorQuizBtn").addEventListener("click", () => startErrorQuiz(vak, { ...readSettings() }));
   $("#homeBtn").addEventListener("click", () => openSetup(vak));
   $("#resultProgressBtn").addEventListener("click", () => { location.hash = "#voortgang/" + vak.id; });
   $("#retryMistakesBtn").addEventListener("click", () => {
     const qs = state.analysis.mistakes.map((r) => (vak.regen ? vak.regen(r.q, state.settings.level) : { ...r.q }));
-    start(state.settings, qs.sort(() => Math.random() - 0.5), true);
+    start({ ...state.settings, desc: "" }, qs.sort(() => Math.random() - 0.5), true);
   });
   document.addEventListener("keydown", (e) => {
     if (!$("#screen-quiz").classList.contains("active")) return;

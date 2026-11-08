@@ -327,3 +327,13 @@ a.chipbtn { text-decoration: none; color: var(--ink); display: inline-flex; gap:
 .chunk { padding: 10px 14px; border-radius: 12px; background: #273449; font-size: 1.02rem; }
 .chunk.on { background: var(--rose-soft); border-color: rgba(var(--acc-rgb), .5); }
 .prompt .icon { font-size: 2.2rem; display: block; line-height: 1.2; margin-bottom: 4px; }
+
+/* foutgerichte toets en geschiedenis */
+.errorbtn { background: transparent; border: 2px solid rgba(var(--acc-rgb), .6); margin-top: 14px; }
+.errorbtn:hover { background: var(--rose-soft); }
+.errorcard { border-color: rgba(var(--acc-rgb), .45); }
+table.history td.desc { font-size: .82rem; color: #cbd5e1; }
+.nowrap { white-space: nowrap; }
+.score .sub.small { font-size: .82rem; margin-top: 4px; }
+table.history td.desc { white-space: normal; font-weight: 500; text-align: left; min-width: 160px; }
+table.history td:nth-child(3) { font-weight: 500; }

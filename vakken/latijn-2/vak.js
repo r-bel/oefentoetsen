@@ -45,11 +45,22 @@
     });
     return uniq(out.filter(Boolean));
   }
+  // komma's, puntkomma's, schuine strepen en "of" tussen betekenissen zijn nooit verplicht:
+  // "bewaren redden" = "bewaren; redden"
   function checkNl(given, q) {
-    const parts = norm(given).split(/\s*[;,/]\s*|\s+of\s+/).map((x) => x.replace(/^(de|het|een)\s+/, "")).filter(Boolean);
-    if (!parts.length) return { status: "wrong", tag: "betekenis" };
-    if (parts.some((p) => q.accepted.includes(p))) return { status: "correct" };
-    if (parts.some((p) => q.accepted.some((a) => a.length > 4 && lev(a, p) <= 1))) return { status: "spelling", tag: "spelling" };
+    const clean = norm(given).replace(/[;,/]+/g, " ").replace(/\s+/g, " ").trim();
+    if (!clean) return { status: "wrong", tag: "betekenis" };
+    const ok = (seg) => q.accepted.includes(seg) || q.accepted.includes(seg.replace(/^(de|het|een)\s+/, ""));
+    // 1. elk expliciet gescheiden deel of het geheel
+    const parts = norm(given).split(/\s*[;,/]\s*|\s+of\s+/).map((x) => x.trim()).filter(Boolean);
+    if (ok(clean) || parts.some(ok)) return { status: "correct" };
+    // 2. zonder leestekens: kan de zin opgesplitst worden in aanvaarde betekenissen (eventueel met "of")?
+    const w = clean.split(" ").filter((x) => x !== "of");
+    const dp = [true];
+    for (let i = 1; i <= w.length; i++) { dp[i] = false; for (let j = 0; j < i && !dp[i]; j++) if (dp[j] && ok(w.slice(j, i).join(" "))) dp[i] = true; }
+    if (dp[w.length]) return { status: "correct" };
+    const cand = [...parts, clean];
+    if (cand.some((p) => q.accepted.some((a) => a.length > 4 && lev(a, p.replace(/^(de|het|een)\s+/, "")) <= 1))) return { status: "spelling", tag: "spelling" };
     return { status: "wrong", tag: "betekenis" };
   }
 
@@ -77,9 +88,11 @@
   }
   const tokens = (s) => String(s ?? "").toLowerCase().replace(/[~]/g, " ").replace(/[,;/]/g, " ").split(/\s+/).map((t) => t.replace(/^-+|\.+$/g, "")).filter(Boolean);
   // vergelijk één token met een verwachte vorm: "ok" | "macron" | "spelling" | null
+  // een gewone i (met punt) in plaats van ī telt altijd als juist, ook op moeilijk
+  const iEq = (x) => x.replace(/[īíìïî]/g, "i");
   function cmpTok(t, exp) {
     if (!t) return null;
-    exp = exp.toLowerCase();
+    t = iEq(t); exp = iEq(exp.toLowerCase());
     if (t === exp) return "ok";
     if (noMacron(t) === noMacron(exp)) return "macron";
     if (exp.length > 4 && lev(noMacron(t), noMacron(exp)) <= 1) return "spelling";
@@ -334,6 +347,18 @@
     return shuffle(out);
   }
   const countAll = (s) => UNITS.filter((u) => s.units.includes(u.id)).reduce((a, u) => a + items(u, s).length, 0);
+  // foutgerichte toets: vraag opnieuw maken op basis van de bewaarde sleutel (bv. "vertalen:352")
+  const KEY_UNIT = { vertalen: "vertalen", midden: "midden", herkennen: "herkennen", vv: "voorvoegsels", dekl: "verbuiging", gs: "geslacht", verv: "vervoeging", dat: "datief", sfx: "achtervoegsels" };
+  function fromKey(key, level, s = {}) {
+    const i = key.indexOf(":"), pre = key.slice(0, i), rest = key.slice(i + 1), u = UNITS.find((x) => x.id === KEY_UNIT[pre]);
+    if (!u) return null;
+    const all = { bereik: [MIN, MAX] };
+    if (pre === "sfx") { const it = SFX_ITEMS.find((x) => (x.t === "duidt" ? x.g.sfx : x.w[2]) === rest); return it ? u.gen(level, it, all) : null; }
+    const nr = +rest, r = s.bereik || [MIN, MAX];
+    if (nr < r[0] || nr > r[1]) return null; // buiten het gekozen bereik
+    const it = u.items({ bereik: [nr, nr] })[0];
+    return it ? u.gen(level, it, all) : null;
+  }
   function regen(q, level) {
     const u = UNITS.find((x) => x.id === q.unit);
     const it = q.nr ? u.items({ bereik: [q.nr, q.nr] })[0] : null;
@@ -401,7 +426,7 @@
     keyboard: ["ā", "ē", "ī", "ō", "ū", "~", ","], keyboardLabel: "Lengtetekens invoegen:",
     statusText: { lengteteken: "Bijna: let op de lengtetekens.", spelling: "Bijna: één letter fout.", partial: "Bijna!" },
     tags: TAGS,
-    makeQuiz, countAll, check, conclusions, regen,
+    makeQuiz, countAll, check, conclusions, regen, fromKey,
     _UNITS: UNITS, _norm: norm, // voor tests
   });
 })();

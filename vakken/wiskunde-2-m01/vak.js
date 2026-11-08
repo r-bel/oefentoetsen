@@ -592,6 +592,11 @@
   }
   // nieuwe vraag van hetzelfde soort (voor "oefen opnieuw")
   function regen(q, level) { const u = UNITS.find((x) => x.id === q.unit); return finalize(u, u.gen(level, q.caseIdx), q.caseIdx) || q; }
+  function fromKey(key, level) {
+    const [id, c] = key.split(":"), u = UNITS.find((x) => x.id === id), ci = +c;
+    if (!u || isNaN(ci) || ci >= caseCount(u, level)) return null;
+    return finalize(u, u.gen(level, ci), ci);
+  }
   const countAll = (s) => UNITS.filter((u) => s.units.includes(u.id)).reduce((a, u) => a + caseCount(u, s.level), 0);
 
   // ============================================================
@@ -674,7 +679,7 @@
     settings: [],
     levels: I.levels, allInfo: I.allInfo,
     tags: TAGS,
-    makeQuiz, countAll, check, conclusions, regen,
+    makeQuiz, countAll, check, conclusions, regen, fromKey,
     _UNITS: UNITS, norm, parseCoord, parseNum, // voor tests
   });
 })();

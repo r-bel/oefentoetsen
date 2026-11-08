@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=3">
+  <link rel="stylesheet" href="css/style.css?v=5">
 </head>
 <body data-theme="indigo">
   <header class="topbar">
@@ -56,6 +56,8 @@
         <div id="setupBody"></div>
         <button id="startBtn" class="primary big">Start de toets 🚀</button>
         <div id="setupMsg" class="msg"></div>
+        <button id="errorQuizBtn" class="big errorbtn hidden">🎯 Toets op basis van mijn fouten</button>
+        <div id="errorQuizInfo" class="msg"></div>
       </div>
     </section>
 
@@ -131,26 +133,26 @@
 
   <footer class="footer">
     <div id="extraLinks" class="extra"></div>
-    <div class="muted small">Proefversie · leerstof volgens de gebruikte handboeken · je voortgang blijft op dit toestel</div>
+    <div class="muted small">Proefversie · leerstof volgens de gebruikte handboeken · je voortgang blijft op dit toestel · anonieme bezoekersstatistieken zonder cookies (GoatCounter)</div>
   </footer>
   <div id="toast" class="toast"></div>
 
   <!-- kern -->
-  <script src="js/config.js?v=3"></script>
-  <script src="js/core/analytics.js?v=3"></script>
-  <script src="js/core/vakken.js?v=3"></script>
-  <script src="js/core/store.js?v=3"></script>
-  <script src="js/core/geo.js?v=3"></script>
+  <script src="js/config.js?v=5"></script>
+  <script src="js/core/analytics.js?v=5"></script>
+  <script src="js/core/vakken.js?v=5"></script>
+  <script src="js/core/store.js?v=5"></script>
+  <script src="js/core/geo.js?v=5"></script>
   <!-- vakken: per vak eerst de inhoud, dan de logica -->
-  <script src="vakken/frans-5a/inhoud.js?v=3"></script>
-  <script src="vakken/frans-5a/vak.js?v=3"></script>
-  <script src="vakken/frans-2-t2/inhoud.js?v=3"></script>
-  <script src="vakken/frans-2-t2/vak.js?v=3"></script>
-  <script src="vakken/wiskunde-2-m01/inhoud.js?v=3"></script>
-  <script src="vakken/wiskunde-2-m01/vak.js?v=3"></script>
-  <script src="vakken/latijn-2/inhoud.js?v=3"></script>
-  <script src="vakken/latijn-2/vak.js?v=3"></script>
+  <script src="vakken/frans-5a/inhoud.js?v=5"></script>
+  <script src="vakken/frans-5a/vak.js?v=5"></script>
+  <script src="vakken/frans-2-t2/inhoud.js?v=5"></script>
+  <script src="vakken/frans-2-t2/vak.js?v=5"></script>
+  <script src="vakken/wiskunde-2-m01/inhoud.js?v=5"></script>
+  <script src="vakken/wiskunde-2-m01/vak.js?v=5"></script>
+  <script src="vakken/latijn-2/inhoud.js?v=5"></script>
+  <script src="vakken/latijn-2/vak.js?v=5"></script>
   <!-- interface -->
-  <script src="js/core/app.js?v=3"></script>
+  <script src="js/core/app.js?v=5"></script>
 </body>
 </html>

@@ -11,5 +11,5 @@ window.APP_CONFIG = {
   // GoatCounter: maak een gratis account (bv. "oefentoetsen") en vul de code in.
   // Dan worden paginabezoeken en per vak het starten/afronden van een toets geteld
   // (geen namen, geen antwoorden, geen scores per leerling).
-  goatcounterCode: "",          // bv. "oefentoetsen" → https://oefentoetsen.goatcounter.com
+  goatcounterCode: "oefentoetsen", // statistieken: https://oefentoetsen.goatcounter.com (leeg = uit)
 };
