@@ -23,7 +23,7 @@ worker/                     Cloudflare Worker voor de synchronisatie + installat
 js/core/analytics.js        optionele, anonieme bezoekersstatistieken (GoatCounter), standaard UIT
 vakken/<id>/inhoud.js       de LEERSTOF van dat vak  → hier stuur je inhoud bij
 vakken/<id>/vak.js          de VRAAGTYPES + verbetering van dat vak → hier stuur je vragen/logica bij
-vakken/<id>/leerstof.json   (optioneel) samenvatting van de leerstof als context voor mens/AI – niet ingelezen
+vakken/<id>/bron/          (optioneel, enkel lokaal) bronmateriaal en samenvattingen als context – staat in .gitignore
 docs/VAK-TOEVOEGEN.md       hoe je een vak bijstuurt of een nieuw vak toevoegt
 ```
 De kern weet niets van Frans of wiskunde: alles wat vak-specifiek is (onderdelen, niveau-omschrijvingen,
