@@ -1,5 +1,5 @@
 // ============================================================
-// Vakkenregister. Elk vak (eigenlijk: vak + hoofdstuk/cahier) is een
+// Vakkenregister. Elk vak (eigenlijk: vak + hoofdstuk/deel) is een
 // zelfstandige module in vakken/<id>/ die zich hier registreert.
 //
 //   vakken/<id>/inhoud.js  → de leerstof (data; hier stuur je inhoud bij)
@@ -11,9 +11,9 @@
 //   vak       vaknaam voor het hoofdmenu ("Frans", "Wiskunde", …)
 //   icon      emoji voor de kaart
 //   theme     kleurthema: "rose" | "blue" | "green" | "amber"
-//   titel     titel van het hoofdstuk/cahier
+//   titel     titel van het hoofdstuk/deel
 //   klas      leerjaar, bv. "5de leerjaar" of "2de middelbaar"
-//   bron      handboek/cursus
+//   bron      korte omschrijving van de leerstof (geen namen van uitgevers of methodes)
 //   groups    [{ id, short, titel, p }]  – missies, doelen, hoofdstukken
 //   units     [{ id, group, label, page, kind?, defaultOn? }] – selecteerbare onderdelen
 //   kinds     optioneel { kind: "Kop" } – subkoppen binnen een groep
@@ -43,7 +43,9 @@
       if (list.some((v) => v.id === mod.id)) throw new Error("Vak bestaat al: " + mod.id);
       list.push(mod);
     },
-    get: (id) => list.find((v) => v.id === id),
+    // oude codes (links en bladwijzers van vroeger) blijven werken
+    aliases: { "frans-2-t2": "frans-2", "wiskunde-5-kaap2": "wiskunde-5" },
+    get: (id) => { id = window.Vakken.aliases[id] || id; return list.find((v) => v.id === id); },
     // inhoud.js-bestanden registreren hun leerstof hier; vak.js haalt ze op
     setInhoud(id, data) { inhoud[id] = data; },
     inhoud: (id) => inhoud[id],

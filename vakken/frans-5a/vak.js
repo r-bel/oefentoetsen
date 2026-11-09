@@ -1,5 +1,5 @@
 // ============================================================
-// VAK – Frans 5de leerjaar, Cahier A
+// VAK – Frans 5de leerjaar, deel A
 // Vraagtypes, verbetering en foutanalyse. De leerstof zelf staat in inhoud.js.
 //   - woordenschat: vertalen NL↔FR (meerkeuze of typen)
 //   - grammatica: generatoren genXxx() per onderdeel (zie "units" hieronder)
@@ -167,7 +167,7 @@
     addGram("M3", "g-aimer", "Vervoeging aimer", genAimer, rule("M3", "aimer"));
     addGram("M3", "g-er", "Werkwoorden op -ER", genER, { p: 34, regel: "Stam (knip -ER weg) + uitgang: je -e, tu -es, il/elle -e, nous -ons, vous -ez, ils/elles -ent. je wordt j' voor een klinker." });
 
-    // ---- Destination A ----
+    // ---- herhaling deel A ----
     const da = M.DA.faits_divers;
     addVocab("DA", "da-prov", "Provincies (cultuur, p.38)", da.provincies.map((x) => ({ ...x, p: 38 })), { page: 38, defaultOn: false });
     addVocab("DA", "da-steden", "Vlaamse steden in het Frans (p.38)", da.steden.map((x) => ({ ...x, p: 38 })), { page: 38, defaultOn: false });
@@ -531,7 +531,7 @@
   const eng = build(course);
   const GROUPS = course.missions.map((m) => ({
     id: m.id, short: m.id,
-    titel: m.id.startsWith("M") ? `Mission ${m.id.slice(1)} – ${m.titel}` : m.titel,
+    titel: m.id.startsWith("M") ? `Thema ${m.id.slice(1)} – ${m.titel}` : m.titel,
     p: m.paginas || "",
   }));
   const missionTitle = Object.fromEntries(course.missions.map((m) => [m.id, m.titel]));
@@ -554,7 +554,7 @@
     article: { title: "Lidwoord / geslacht", short: "lidwoord", advice: "Leer elk naamwoord samen met un/une: dan ken je ook het geslacht.", page: "19" },
     spelling: { title: "Bijna juist (één letter)", short: "spelling", advice: "Schrijf deze woorden een paar keer over.", page: "" },
     werkwoord: { title: "Werkwoordsvormen", short: "werkwoord", advice: "Stam + uitgang (-e, -es, -e, -ons, -ez, -ent). être is onregelmatig: suis, es, est, sommes, êtes, sont.", page: "8, 34" },
-    vertaling: { title: "Woordenschat", short: "woord", advice: "Herhaal de woordenlijst van deze mission: lees, dek af, schrijf.", page: "" },
+    vertaling: { title: "Woordenschat", short: "woord", advice: "Herhaal de woordenlijst van dit thema: lees, dek af, schrijf.", page: "" },
     fout: { title: "Fout", short: "fout", advice: "", page: "" },
   };
 
@@ -575,7 +575,7 @@
 
   Vakken.register({
     id: "frans-5a", vak: "Frans", icon: "🇫🇷", theme: "rose",
-    titel: "Cahier A – Missions 1-3 + Destination A", klas: "5de leerjaar", bron: course.cursus.replace(/\s*\(.*\)$/, ""),
+    titel: "Deel A – thema 1-3 + herhaling", klas: "5de leerjaar", bron: course.cursus.replace(/\s*\(.*\)$/, ""),
     groups: GROUPS,
     units: eng.units.map((u) => ({ id: u.id, group: u.mission, label: u.label, page: u.page, kind: u.kind, defaultOn: u.defaultOn })),
     kinds: { vocab: "Woordenschat", gram: "Grammatica" },

@@ -1,11 +1,11 @@
 // ============================================================
-// INHOUD – Wiskunde 5de leerjaar · Kadet 5 – Kaap 2 (les 1 t/m 12)
-// Bron: herhalingsbundel (kopieerbladen 10A–10G) ter voorbereiding van de toets.
+// INHOUD – Wiskunde 5de leerjaar · herhaling les 1 t/m 12
+// Bron: herhalingsbladen 10A–10G ter voorbereiding van de toets.
 //
 // De oefeningen zelf worden telkens nieuw berekend in vak.js (andere getallen elke keer).
 // Hier stuur je bij: de onderdelen (naam, uitleg bij een fout), de begrippen voor de
 // flashcards, de fouttypes met tips en de moeilijkheidsgraden.
-// Uitleg in eigen woorden, volgens de werkwijze van de bundel (V–B–A bij vraagstukken,
+// Uitleg in eigen woorden (V–B–A bij vraagstukken,
 // "Ik schat" bij cijferen, VM/NM bij de klok).
 // ============================================================
 (function () {
@@ -16,7 +16,7 @@
     { id: "M", titel: "Meten: klok en winst/verlies", short: "meten", p: "10F-10G" },
   ];
 
-  // onderdelen: naam, kopieerblad, uitleg die verschijnt bij een fout
+  // onderdelen: naam, blad, uitleg die verschijnt bij een fout
   const UNITS = {
     gehelen: { group: "G", label: "Onechte breuk → gehelen en een breuk", page: "10A oef 1",
       rule: "Hoeveel keer past de noemer in de teller? Dat zijn de gehelen; wat overblijft is de nieuwe teller. 12/5 → 5 past 2 keer in 12, rest 2 → 2 en 2/5." },
@@ -115,16 +115,16 @@
     fout: { title: "Fout", short: "fout", advice: "", page: "" },
   };
 
-  Vakken.setInhoud("wiskunde-5-kaap2", {
+  Vakken.setInhoud("wiskunde-5", {
     vak: "Wiskunde", icon: "🧮", theme: "green",
-    titel: "Kaap 2 – breuken, cijferen, klok en winst", klas: "5de leerjaar",
-    bron: "Kadet 5 – Kaap 2, les 1-12 (herhalingsbundel)",
+    titel: "Breuken, cijferen, klok en winst", klas: "5de leerjaar",
+    bron: "herhaling les 1-12",
     levels: {
       easy: { title: "🙂 Makkelijk", desc: "veel meerkeuze, kleinere getallen" },
       normal: { title: "💪 Normaal", desc: "meerkeuze + zelf invullen; niet vereenvoudigd telt nog als goed" },
       hard: { title: "🔥 Moeilijk", desc: "alles zelf invullen, uitkomst altijd vereenvoudigen" },
     },
-    allInfo: "<b>Eindtoets-modus:</b> elk soort oefening uit de gekozen onderdelen komt aan bod, zoals in de herhalingsbundel.",
+    allInfo: "<b>Eindtoets-modus:</b> elk soort oefening uit de gekozen onderdelen komt aan bod, zoals op de herhalingsbladen.",
     GROUPS, UNITS, BEGRIPPEN, UUR_WOORDEN, GETAL_WOORD, WINKELS, TAGS,
   });
 })();

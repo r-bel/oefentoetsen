@@ -1,5 +1,5 @@
 // ============================================================
-// INHOUD – Frans 2de middelbaar · Trajet 2 · 1 (p.101-108)
+// INHOUD – Frans 2de middelbaar · Le temps et les vacances (p.101-108)
 // "À retenir": On se rappelle ? / On découvre ! / Actes de parole + oefeningen 26-27
 // Er komt later meer: voeg nieuwe lessen toe als extra blok in LESSEN (zelfde opbouw).
 //
@@ -11,7 +11,7 @@
 // ============================================================
 (function () {
   const LES1 = {
-    id: "t2-1", titel: "Trajet 2 · 1 – Le temps et les vacances", p: "101-108",
+    id: "t2-1", titel: "Le temps et les vacances", p: "101-108",
 
     // ---------- On se rappelle ? (p.102) ----------
     rappelle: [
@@ -244,9 +244,9 @@
     fout: { title: "Fout", short: "fout", advice: "" },
   };
 
-  Vakken.setInhoud("frans-2-t2", {
+  Vakken.setInhoud("frans-2", {
     vak: "Frans", icon: "🇫🇷", theme: "rose", klas: "2de middelbaar",
-    titel: "Trajet 2 · 1 – Le temps et les vacances", bron: "À retenir p.101-108 (wordt aangevuld)",
+    titel: "Le temps et les vacances", bron: "leerstof p.101-108 (wordt aangevuld)",
     LESSEN: [LES1], TAGS,
   });
 })();

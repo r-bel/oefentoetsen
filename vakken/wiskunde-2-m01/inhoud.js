@@ -1,6 +1,6 @@
 // ============================================================
-// INHOUD – Wiskunde 2de middelbaar, Nando 2 – Meetkunde module 01
-// Transformaties van het vlak en symmetrie (die Keure)
+// INHOUD – Wiskunde 2de middelbaar, meetkunde module 1
+// Transformaties van het vlak en symmetrie
 //
 // Hier stuur je de leerstof bij ZONDER aan de vraaglogica (vak.js) te komen:
 //   - onderdelen: naam, pagina's en de uitleg ("rule") die bij een fout verschijnt
@@ -183,7 +183,7 @@
   Vakken.setInhoud("wiskunde-2-m01", {
     vak: "Wiskunde", icon: "📐", theme: "blue",
     titel: "Transformaties van het vlak en symmetrie", klas: "2de middelbaar",
-    bron: "Nando 2 – Meetkunde module 01 (die Keure)",
+    bron: "meetkunde, module 1",
     levels: {
       easy: { title: "🙂 Makkelijk", desc: "alles meerkeuze" },
       normal: { title: "💪 Normaal", desc: "meerkeuze + zelf invullen en aanklikken" },

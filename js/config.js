@@ -28,6 +28,6 @@ window.APP_CONFIG = {
   syncUrl: "https://oefentoetsen-sync.dirkdhaenens.workers.dev",
 
   // "eigen" = enkel voor het eigen gezin; "gedeeld" = de site wordt breder gedeeld.
-  // Vanaf fase 2 (leerkaarten) bepaalt dit of uitleg dicht bij het handboek mag blijven.
+  // Vanaf fase 2 (leerkaarten) bepaalt dit hoe dicht uitleg bij het lesmateriaal mag blijven.
   gebruik: "eigen",
 };

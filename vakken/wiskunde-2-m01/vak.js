@@ -1,5 +1,5 @@
 // ============================================================
-// VAK – Wiskunde 2de middelbaar, Nando 2 – Meetkunde module 01
+// VAK – Wiskunde 2de middelbaar, meetkunde module 1
 // Vraaggeneratoren, verbetering en foutanalyse.
 // Alle vragen worden telkens opnieuw berekend (geen vaste lijst).
 // De teksten en lijsten (begrippen, stellingen, figuren, uitleg, fouttypes)

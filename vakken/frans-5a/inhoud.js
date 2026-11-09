@@ -1,5 +1,5 @@
 // ============================================================
-// INHOUD – Frans 5de leerjaar, Cahier A (Missions 1-3 + Destination A)
+// INHOUD – Frans 5de leerjaar, deel A (thema 1-3 + herhaling)
 // Dit is de leerstof die de app gebruikt. Bijsturen = hier aanpassen:
 //   woorden toevoegen/verbeteren, hints (hint_nl / hint_fr), paginanummers (p),
 //   zinnen, getallen, steden, grammaticaregels (regel).
@@ -14,7 +14,7 @@ Vakken.setInhoud("frans-5a", {
       "1",
       "2"
     ],
-    "opmerking": "p.1-2 = start Mission 1 (Départ). Op p.3 staat 'Kijk nog eens terug naar de tip op p. 1'. p.43 is een lege notitiepagina."
+    "opmerking": "p.1-2 = start thema 1 (Départ). Op p.3 staat 'Kijk nog eens terug naar de tip op p. 1'. p.43 is een lege notitiepagina."
   },
   "missions": [
     {
@@ -1060,9 +1060,9 @@ Vakken.setInhoud("frans-5a", {
     },
     {
       "id": "DA",
-      "titel": "Destination A",
+      "titel": "Herhaling deel A",
       "paginas": "38-42",
-      "inhoud": "Faits divers (cultuur, niet toetsstof), chanson 'Bonjour! Salut!', Révision Missions 1-3.",
+      "inhoud": "Faits divers (cultuur, niet toetsstof), chanson 'Bonjour! Salut!', herhaling thema 1-3.",
       "faits_divers": {
         "provincies": [
           {

@@ -35,7 +35,7 @@
   //    reservekopie gemaakt (BACKUP_PREFIX + datum, de laatste 3 blijven bewaard).
   // ------------------------------------------------------------
   const KEY = "oefentoetsen-v1";             // naam is historisch; NIET wijzigen
-  const VERSION = 3;                          // huidige structuurversie
+  const VERSION = 4;                          // huidige structuurversie
   const ROLLING = "oefentoetsen-reserve";     // kopie van de vorige toestand (na elke toets bijgewerkt)
   const BACKUP_PREFIX = "oefentoetsen-backup-";
   const MAX_SESSIONS = 300, MAX_ITEMS = 800, MAX_MISTAKES = 25;
@@ -55,6 +55,17 @@
     },
     // 2 → 3: studiemodule (toetsen plannen, kaarten met herhaalschema)
     2: (d) => { Object.values(d.profiles || {}).forEach(ensure); return d; },
+    // 3 → 4: vakken kregen een neutrale code (zonder namen van lesmethodes)
+    3: (d) => {
+      const MAP = { "frans-2-t2": "frans-2", "wiskunde-5-kaap2": "wiskunde-5" };
+      const ren = (o) => { if (!o) return o; Object.entries(MAP).forEach(([a, b]) => { if (o[a] !== undefined) { o[b] = o[b] ? { ...o[a], ...o[b] } : o[a]; delete o[a]; } }); return o; };
+      Object.values(d.profiles || {}).forEach((p) => {
+        ensure(p); ren(p.prefs); ren(p.items); ren(p.studie.kaarten); ren(p.studie.recent);
+        p.sessions.forEach((s) => { if (MAP[s.vak]) s.vak = MAP[s.vak]; });
+        p.studie.toetsen.forEach((t) => { if (MAP[t.vak]) t.vak = MAP[t.vak]; });
+      });
+      return d;
+    },
   };
   function ensure(p) {
     p.prefs = p.prefs || {}; p.items = p.items || {}; p.sessions = p.sessions || [];

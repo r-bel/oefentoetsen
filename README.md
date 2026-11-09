@@ -23,7 +23,7 @@ worker/                     Cloudflare Worker voor de synchronisatie + installat
 js/core/analytics.js        optionele, anonieme bezoekersstatistieken (GoatCounter), standaard UIT
 vakken/<id>/inhoud.js       de LEERSTOF van dat vak  → hier stuur je inhoud bij
 vakken/<id>/vak.js          de VRAAGTYPES + verbetering van dat vak → hier stuur je vragen/logica bij
-vakken/<id>/leerstof.json   (optioneel) samenvatting van het handboek als context voor mens/AI – niet ingelezen
+vakken/<id>/leerstof.json   (optioneel) samenvatting van de leerstof als context voor mens/AI – niet ingelezen
 docs/VAK-TOEVOEGEN.md       hoe je een vak bijstuurt of een nieuw vak toevoegt
 ```
 De kern weet niets van Frans of wiskunde: alles wat vak-specifiek is (onderdelen, niveau-omschrijvingen,
@@ -33,11 +33,11 @@ Een vak bijsturen raakt dus nooit een ander vak.
 ## Vakken
 | id | vak | inhoud | vraagtypes |
 |---|---|---|---|
-| `frans-5a` | Frans 5de leerjaar – Cahier A (Missions 1-3 + Destination A) | woordenlijsten, zinnen, grammaticaregels | vertalen NL↔FR, vervoegen, lidwoorden, meervoud, … |
-| `wiskunde-2-m01` | Wiskunde 2de middelbaar – Nando 2, Meetkunde module 01 | begrippen, stellingen, figuren, uitleg, fouttypes | notaties, rooster, coördinaten, rotatiehoeken, klik-constructies, symmetrie |
-| `frans-2-t2` | Frans 2de middelbaar – Trajet 2 · 1 (p.101-108) | woordenschat met geslacht en voorbeeldzinnen, weer, seizoenen, activiteiten, windrichtingen, actes de parole, oef. 26-27 | in boekstijl: vocabulaire NL↔FR, Complète la phrase, Quel mot cherchons-nous ?, Fais des phrases (zinsbouw), lidwoorden, du/de la/au, en/au, il va + infinitief, il fait/c'est chaud, actes de parole |
-| `latijn-2` | Latijn 2de middelbaar – genummerde woordenlijst (nu 344–408) + woordvorming | woordenlijst (eerste kolom, middenkolom, vertaling), woordvormingskaders | enkel Latijn → Nederlands, middenkolom (genitief/geslacht, vormen, stamtijden), vorm herkennen, woordvorming, verbuiging, geslacht, vervoeging, + datief; keuze "van nr. … tot nr. …" |
-| `wiskunde-5-kaap2` | Wiskunde 5de leerjaar – Kadet 5, Kaap 2 (les 1-12, herhalingsbundel 10A–10G) | onderdelen + uitleg, begrippen, fouttypes; oefeningen telkens nieuw berekend | breuken (gehelen, omzetten, vereenvoudigen, ordenen, gelijkwaardig, getallenas), breuken optellen/aftrekken, breuk van een getal, cijferen met kommagetallen (+ − × en : met q en r), schatten, klok (VM/NM, tijdsverschil, wijzers, uur in woorden), winst/verlies |
+| `frans-5a` | Frans 5de leerjaar – deel A (thema 1-3 + herhaling) | woordenlijsten, zinnen, grammaticaregels | vertalen NL↔FR, vervoegen, lidwoorden, meervoud, … |
+| `wiskunde-2-m01` | Wiskunde 2de middelbaar – meetkunde module 1 (transformaties en symmetrie) | begrippen, stellingen, figuren, uitleg, fouttypes | notaties, rooster, coördinaten, rotatiehoeken, klik-constructies, symmetrie |
+| `frans-2` | Frans 2de middelbaar – Le temps et les vacances (p.101-108) | woordenschat met geslacht en voorbeeldzinnen, weer, seizoenen, activiteiten, windrichtingen, actes de parole, oef. 26-27 | in boekstijl: vocabulaire NL↔FR, Complète la phrase, Quel mot cherchons-nous ?, Fais des phrases (zinsbouw), lidwoorden, du/de la/au, en/au, il va + infinitief, il fait/c'est chaud, actes de parole |
+| `latijn-2` | Latijn 2de middelbaar – genummerde woordenlijst (nrs. 1–833, caput 1-8) + woordvorming | woordenlijst (eerste kolom, middenkolom, vertaling), woordvormingskaders | enkel Latijn → Nederlands, middenkolom (genitief/geslacht, vormen, stamtijden), vorm herkennen, woordvorming, verbuiging, geslacht, vervoeging, + datief; keuze "van nr. … tot nr. …" |
+| `wiskunde-5` | Wiskunde 5de leerjaar – herhaling les 1-12 (bladen 10A–10G) | onderdelen + uitleg, begrippen, fouttypes; oefeningen telkens nieuw berekend | breuken (gehelen, omzetten, vereenvoudigen, ordenen, gelijkwaardig, getallenas), breuken optellen/aftrekken, breuk van een getal, cijferen met kommagetallen (+ − × en : met q en r), schatten, klok (VM/NM, tijdsverschil, wijzers, uur in woorden), winst/verlies |
 | `clil-geschiedenis-2` | Geschiedenis in het Frans (CLIL) 2de middelbaar – p.37-42 | vocabulaire, Crète ↔ Mycènes (tabel + woordenlijst), chronologie, kaarten, Indo-Européens, Leçon 6 (Hellas, la Grèce, polis, acropole) | vragen in het Frans: vocabulaire FR↔NL, « Cherche le mot », Crète ou Mycènes ?, tableau invullen, dates, carte, peuples indo-européens, « Fais la bonne combinaison » |
 
 ## Voortgang (lokaal, geen server)
@@ -79,7 +79,7 @@ welk vak geopend, toets gestart/afgerond per vak en niveau. Geen namen, antwoord
    Volgende fases: leerdoelen + leerkaarten (begrijpen), stappenplannen/uitspraak per vak, reflectie en AI-hulp.
 3. Meer vakken/hoofdstukken (zie `docs/VAK-TOEVOEGEN.md`).
 4. Semi-commercieel: koffieknop (klaar, staat uit), suggestiemail, eigen domein.
-   Let op auteursrecht: inhoud komt uit uitgeverscursussen – voor publiek gebruik eerst nagaan wat mag.
+   Let op auteursrecht: geen namen van uitgevers of methodes en geen letterlijke teksten of afbeeldingen uit lesmateriaal op de site; bronmateriaal blijft lokaal in `vakken/*/bron/` (niet online).
 
 ## Publiceren op GitHub Pages
 1. Nieuwe repo `oefentoetsen`, inhoud van deze map in de root.

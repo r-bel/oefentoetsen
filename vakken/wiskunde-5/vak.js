@@ -1,14 +1,14 @@
 // ============================================================
-// VAK – Wiskunde 5de leerjaar · Kadet 5 – Kaap 2 (les 1-12)
+// VAK – Wiskunde 5de leerjaar · herhaling les 1-12
 // Alle oefeningen worden telkens opnieuw berekend, in de stijl van de
-// herhalingsbundel (kopieerbladen 10A–10G). Teksten en uitleg: inhoud.js.
+// herhalingsbladen 10A–10G. Teksten en uitleg: inhoud.js.
 // Elk onderdeel = unit({ id, cases, gen(level, c) }); c = het soort oefening
 // (in de eindtoets komt elk soort één keer aan bod).
 // Een vraag kan een eigen controle hebben: q.chk(given, level) → { status, tag?, note?, points? }.
 // ============================================================
 (function () {
   "use strict";
-  const I = Vakken.inhoud("wiskunde-5-kaap2");
+  const I = Vakken.inhoud("wiskunde-5");
   const { GROUPS, BEGRIPPEN, UUR_WOORDEN, GETAL_WOORD, WINKELS, TAGS } = I;
 
   // ---------- hulpfuncties ----------
@@ -471,9 +471,9 @@
     GROUPS.forEach((gr) => {
       const s = byGroup[gr.id]; if (!s) return;
       const p = Math.round((s.ok / s.n) * 100), type = p >= 85 ? "good" : p >= 60 ? "ok" : "bad";
-      out.push({ type, text: `<b>${gr.titel}</b>: ${s.ok}/${s.n} (${p}%) — ${type === "good" ? "goed gekend" : type === "ok" ? "nog even herhalen" : "herhaal de uitleg in de bundel"} <small>kopieerblad ${gr.p}</small>` });
+      out.push({ type, text: `<b>${gr.titel}</b>: ${s.ok}/${s.n} (${p}%) — ${type === "good" ? "goed gekend" : type === "ok" ? "nog even herhalen" : "herhaal de uitleg"} <small>blad ${gr.p}</small>` });
     });
-    Object.entries(tags).sort((a, b) => b[1] - a[1]).forEach(([t, n]) => { const g = TAGS[t]; out.push({ type: n >= 2 ? "bad" : "ok", text: `<b>${g.title}</b> (${n}×): ${g.advice}${g.page ? ` <small>kopieerblad ${g.page}</small>` : ""}` }); });
+    Object.entries(tags).sort((a, b) => b[1] - a[1]).forEach(([t, n]) => { const g = TAGS[t]; out.push({ type: n >= 2 ? "bad" : "ok", text: `<b>${g.title}</b> (${n}×): ${g.advice}${g.page ? ` <small>blad ${g.page}</small>` : ""}` }); });
     if (results.length && results.every((r) => r.status === "correct")) out.unshift({ type: "good", text: "Foutloos! 🎉" });
     return out;
   }
@@ -487,7 +487,7 @@
   }
 
   Vakken.register({
-    id: "wiskunde-5-kaap2", vak: I.vak, icon: I.icon, theme: I.theme, titel: I.titel, klas: I.klas, bron: I.bron,
+    id: "wiskunde-5", vak: I.vak, icon: I.icon, theme: I.theme, titel: I.titel, klas: I.klas, bron: I.bron,
     groups: GROUPS.map((g) => ({ id: g.id, short: g.short, titel: g.titel, p: g.p })),
     units: UNITS.map((u) => ({ id: u.id, group: u.group, label: u.label, page: u.page })),
     quick: [

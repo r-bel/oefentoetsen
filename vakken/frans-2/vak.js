@@ -1,5 +1,5 @@
 // ============================================================
-// VAK – Frans 2de middelbaar · Trajet 2 · 1 (Le temps et les vacances)
+// VAK – Frans 2de middelbaar · Le temps et les vacances
 // Oefeningen zoveel mogelijk in de stijl van het boek:
 //   - Vocabulaire NL ↔ FR (met lidwoord), Il fait quel temps ?, On va …, seizoenen, windrichtingen
 //   - Complète la phrase (voorbeeldzinnen uit de woordenlijst)
@@ -11,7 +11,7 @@
 // ============================================================
 (function () {
   "use strict";
-  const I = Vakken.inhoud("frans-2-t2");
+  const I = Vakken.inhoud("frans-2");
   const TAGS = I.TAGS;
   const L = I.LESSEN.reduce((acc, les) => { Object.keys(les).forEach((k) => { if (Array.isArray(les[k])) acc[k] = (acc[k] || []).concat(les[k].map((x) => (typeof x === "object" && !Array.isArray(x) ? { ...x, les: les.id } : x))); }); return acc; }, {});
 
@@ -331,7 +331,7 @@
   // Aansluiting op de gedeelde app
   // ============================================================
   Vakken.register({
-    id: "frans-2-t2", vak: I.vak, icon: I.icon, theme: I.theme, titel: I.titel, klas: I.klas, bron: I.bron,
+    id: "frans-2", vak: I.vak, icon: I.icon, theme: I.theme, titel: I.titel, klas: I.klas, bron: I.bron,
     groups: [
       { id: "V", short: "vocabulaire", titel: "Vocabulaire", p: "102-108" },
       { id: "E", short: "oefeningen", titel: "Oefeningen zoals in het boek", p: "101-106" },

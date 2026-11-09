@@ -1,6 +1,6 @@
 // ============================================================
 // INHOUD – Latijn 2de middelbaar: woordenschat (genummerd) + woordvorming
-// Bron: Pegasus Novus 2 (2025) – woordenlijst, caput 1-8 (nrs. 1–833), uitgelezen uit het digiboek.
+// Bron: woordenlijst 2de jaar, caput 1-8 (nrs. 1–833), digitaal ingelezen.
 //   - nrs. 344–408 werden eerder met de hand uit foto's ingevoerd en nagekeken (die regels blijven zo)
 //   - de overige woorden zijn automatisch ingelezen: woordsoort, geslacht, verbuiging en vervoeging
 //     zijn afgeleid uit de middenkolom (controleer bij twijfel in het boek)
@@ -964,7 +964,7 @@
 
   Vakken.setInhoud("latijn-2", {
     vak: "Latijn", icon: "🏛️", theme: "amber", klas: "2de middelbaar",
-    titel: "Woordenschat & woordvorming", bron: "Pegasus Novus 2 – woordenlijst caput 1-8",
+    titel: "Woordenschat & woordvorming", bron: "woordenlijst caput 1-8 (nrs. 1–833)",
     CAPITA: { 1: "Oraculum", 2: "Troia", 3: "Itinera", 4: "Roma antiqua", 5: "Etrusci", 6: "Res coquinaria", 7: "Res militaris", 8: "Princeps" },
     WOORDEN, ACHTERVOEGSELS, VOORVOEGSELS, DEKL_NAAM, DEKL_REGEL, VERV_NAAM, GS_NAAM, TAGS,
   });

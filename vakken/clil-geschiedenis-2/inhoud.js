@@ -1,6 +1,6 @@
 // ============================================================
 // INHOUD – CLIL Geschiedenis in het Frans (2de middelbaar)
-// Bron: cursus CLIL Histoire (Mme Huysman & Mme Van Belleghem), p.37-42:
+// Bron: cursus geschiedenis in het Frans, p.37-42:
 //   p.37  Mycènes sombre (guerres et migrations)
 //   p.38-41 Quiz « L'arrivée des Grecs »: carte, Indo-Européens, vocabulaire (photos),
 //           Crète ↔ Mycènes (tableau + images + mots à employer)
@@ -119,7 +119,7 @@
   Vakken.setInhoud("clil-geschiedenis-2", {
     vak: "Geschiedenis (CLIL)", icon: "🏺", theme: "amber",
     titel: "L'arrivée des Grecs – Crète et Mycènes", klas: "2de middelbaar",
-    bron: "CLIL Histoire (in het Frans) – p.37-42",
+    bron: "cursus geschiedenis in het Frans – p.37-42",
     VOCAB, CM, MOTS, TABLEAU, CHRONO, GEO, INDO, PAS_INDO, DEFS, TAGS,
   });
 })();
