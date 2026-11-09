@@ -340,13 +340,22 @@
         <div class="clickinfo"><span class="muted small">Tik de stukken in de juiste volgorde. Tik opnieuw om terug te zetten.</span><button type="button" id="clearOrder" class="small">Wis</button></div>`;
       state.order = [];
       const draw = () => {
-        $("#orderLine").innerHTML = state.order.length ? state.order.map((k, i) => `<button type="button" class="chunk on" data-pos="${i}">${esc(q.chunks[k])}</button>`).join("") : `<span class="muted small">… jouw zin …</span>`;
-        $("#orderPool").innerHTML = q.chunks.map((c, k) => state.order.includes(k) ? "" : `<button type="button" class="chunk" data-k="${k}">${esc(c)}</button>`).join("");
+        const ch = (c) => (q.chunkHtml ? q.chunkHtml(c) : esc(c));
+        $("#orderLine").innerHTML = state.order.length ? state.order.map((k, i) => `<button type="button" class="chunk on" data-pos="${i}">${ch(q.chunks[k])}</button>`).join("") : `<span class="muted small">${esc(q.orderPh || "… jouw zin …")}</span>`;
+        $("#orderPool").innerHTML = q.chunks.map((c, k) => state.order.includes(k) ? "" : `<button type="button" class="chunk" data-k="${k}">${ch(c)}</button>`).join("");
         $$("#orderPool .chunk").forEach((b) => b.addEventListener("click", () => { if (state.answered) return; state.order.push(+b.dataset.k); draw(); }));
         $$("#orderLine .chunk").forEach((b) => b.addEventListener("click", () => { if (state.answered) return; state.order.splice(+b.dataset.pos, 1); draw(); }));
       };
       $("#clearOrder").addEventListener("click", () => { if (!state.answered) { state.order = []; draw(); } });
       draw();
+    } else if (q.mode === "fields") {
+      // meerdere invulvakjes (bv. quotiënt en rest, VM en NM, uur-min-s)
+      area.innerHTML = `<div class="fields">${q.fields.map((f, i) => `<label class="fld">${f.label ? `<span class="fldlbl">${f.label}</span>` : ""}<input id="fld${i}" class="answer ${f.short ? "shortans" : ""}" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" inputmode="${f.num ? "decimal" : "text"}" placeholder="${esc(f.ph || "")}">${f.suffix ? `<span class="suffix">${esc(f.suffix)}</span>` : ""}</label>`).join("")}</div>`;
+      q.fields.forEach((f, i) => $(`#fld${i}`).addEventListener("keydown", (e) => {
+        const nxt = $(`#fld${i + 1}`);
+        if (e.key === "Enter" && nxt && !nxt.value) { e.preventDefault(); e.stopPropagation(); nxt.focus(); }
+      }));
+      setTimeout(() => $("#fld0") && $("#fld0").focus(), 30);
     } else if (q.mode === "click") {
       area.innerHTML = `<div class="clickinfo"><span id="clickStatus"></span><button type="button" id="clearClicks" class="small">Wis</button></div>`;
       $("#clearClicks").addEventListener("click", () => { if (!state.answered) { state.clicks = []; drawClicks(); } });
@@ -367,6 +376,7 @@
     if (state.answered) return;
     const p = svgPoint(e, svg), d = svg.dataset;
     if (p[0] < +d.xmin || p[0] > +d.xmax || p[1] < +d.ymin || p[1] > +d.ymax) return;
+    if (q.snapY) p[1] = 0; // getallenas: enkel de x telt
     const k = state.clicks.findIndex((c) => c[0] === p[0] && c[1] === p[1]);
     if (k >= 0) state.clicks.splice(k, 1);
     else { state.clicks.push(p); if (state.clicks.length > q.nPts) state.clicks.shift(); }
@@ -380,8 +390,8 @@
     const [X, Y] = svgXY(svg);
     svg.querySelector(".g-marks").innerHTML = state.clicks.map((p, i) => `<circle class="g-mark" cx="${X(p[0])}" cy="${Y(p[1])}" r="6"/><text class="g-marklbl" x="${X(p[0]) + 8}" y="${Y(p[1]) - 8}">${q.names[i]}</text>`).join("");
     $("#clickStatus").innerHTML = state.clicks.length
-      ? state.clicks.map((p, i) => `<b>${q.names[i]}(${fmtN(p[0])}, ${fmtN(p[1])})</b>`).join(" · ") + (state.clicks.length < q.nPts ? ` — nog ${q.nPts - state.clicks.length} punt(en)` : "")
-      : `Tik op een roosterpunt om ${q.nPts === 1 ? "het beeldpunt" : "de " + q.nPts + " beeldpunten"} aan te duiden.`;
+      ? state.clicks.map((p, i) => `<b>${q.pointLabel ? q.pointLabel(p) : `${q.names[i]}(${fmtN(p[0])}, ${fmtN(p[1])})`}</b>`).join(" · ") + (state.clicks.length < q.nPts ? ` — nog ${q.nPts - state.clicks.length} punt(en)` : "")
+      : q.clickInfo || `Tik op een roosterpunt om ${q.nPts === 1 ? "het beeldpunt" : "de " + q.nPts + " beeldpunten"} aan te duiden.`;
   }
   function drawGiven(svg, pts) {
     const [X, Y] = svgXY(svg);
@@ -393,11 +403,14 @@
     if (q.mode === "mc") return state.choice;
     if (q.mode === "coord") { const x = $("#cx").value.trim(), y = $("#cy").value.trim(); return x && y ? `${x};${y}` : ""; }
     if (q.mode === "click") return state.clicks.length === q.nPts ? state.clicks.map((p) => [...p]) : null;
+    if (q.mode === "fields") { const v = q.fields.map((f, i) => $(`#fld${i}`).value.trim()); return v.every((x, i) => x || q.fields[i].optional) ? v : null; }
     if (q.mode === "order") return state.order.length === q.chunks.length ? state.order.map((k) => q.chunks[k]).join(" ") : null;
     return $("#answer").value;
   }
   function givenText(q, g) {
     if (q.mode === "mc") { const o = q.options.find((x) => x.v === g); return o ? o.html : "—"; }
+    if (q.givenFmt) return q.givenFmt(g);
+    if (q.mode === "fields") return (g || []).map((x, i) => `${q.fields[i].label || ""} ${esc(x)}${q.fields[i].suffix ? " " + esc(q.fields[i].suffix) : ""}`.trim()).join(" · ");
     if (q.mode === "click") return (g || []).map((p, i) => `${q.names[i]}(${fmtN(p[0])}, ${fmtN(p[1])})`).join(" ");
     if (q.mode === "coord") return g ? `(${esc(g.replace(";", ", "))})` : "—";
     return esc(g || "—");
@@ -409,7 +422,7 @@
     const given = readGiven(q);
     if (given == null || given === "" || (typeof given === "string" && !given.trim())) {
       $("#qFeedback").className = "feedback warn";
-      $("#qFeedback").textContent = q.mode === "order" ? "Gebruik alle stukken om de zin te maken." : q.mode === "click" ? `Duid eerst ${q.nPts} punt(en) aan.` : q.mode === "coord" ? "Vul beide coördinaten in." : "Geef eerst een antwoord.";
+      $("#qFeedback").textContent = q.mode === "fields" ? "Vul alle vakjes in." : q.mode === "order" ? "Gebruik alle stukken om de zin te maken." : q.mode === "click" ? `Duid eerst ${q.nPts} punt(en) aan.` : q.mode === "coord" ? "Vul beide coördinaten in." : "Geef eerst een antwoord.";
       return;
     }
     const r = vak.check(given, q, state.settings.level);

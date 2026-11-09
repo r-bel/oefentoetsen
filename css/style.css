@@ -447,3 +447,22 @@ input[type="date"], input[type="time"] { color-scheme: dark; }
 .sycode { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 1.05rem; letter-spacing: .06em; }
 @media (max-width: 560px) { .syncbox { grid-template-columns: 1fr; } .syqr { max-width: 200px; margin: 0 auto; } }
 .logo { flex: none; }
+/* wiskunde 5de leerjaar: breuken, klokken, invulvakjes */
+.fr { display: inline-flex; flex-direction: column; align-items: center; vertical-align: middle; line-height: 1.1; margin: 0 .12em; font-size: .92em; }
+.fr > span:first-child { border-bottom: 2px solid currentColor; padding: 0 .2em; }
+.fr > span:last-child { padding: 0 .2em; }
+.prompt:empty { display: none; }
+.prompt.storyp { font-size: 1.02rem; font-weight: 600; line-height: 1.5; }
+.fields { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+.fld { display: flex; align-items: center; gap: 8px; font-weight: 700; }
+.fld .answer { width: 150px; }
+.fld .answer.shortans { width: 90px; }
+.fldlbl { min-width: 2.2em; }
+.clockwrap { display: flex; justify-content: center; margin-bottom: 8px; }
+.clockrow { display: flex; justify-content: center; gap: 24px; flex-wrap: wrap; margin-bottom: 8px; text-align: center; }
+.clockrow > div { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 1.3rem; }
+.clockrow small { font-size: .78rem; color: var(--muted); }
+.option.clockopt { justify-content: center; }
+.options:has(.clockopt) { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
+.numline { color: var(--ink); }
+.mistake .thumb .numline { max-width: 360px; }
