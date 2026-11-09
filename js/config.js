@@ -25,7 +25,7 @@ window.APP_CONFIG = {
   },
   // Synchronisatie tussen toestellen (synccode, zonder account). Adres van de Cloudflare Worker
   // uit de map worker/ (zie worker/SYNC-INSTALLATIE.md). Leeg = synchronisatie verborgen.
-  syncUrl: "",
+  syncUrl: "https://oefentoetsen-sync.dirkdhaenens.workers.dev",
 
   // "eigen" = enkel voor het eigen gezin; "gedeeld" = de site wordt breder gedeeld.
   // Vanaf fase 2 (leerkaarten) bepaalt dit of uitleg dicht bij het handboek mag blijven.
