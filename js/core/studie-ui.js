@@ -189,6 +189,8 @@
       const nw = cards.filter((x) => !store[x.key] && unlocked(x)).slice(0, c.blok);
       const rest = cards.filter((x) => store[x.key] && store[x.key].d > day && store[x.key].l !== day && store[x.key].b < Studie.MAXB).sort((a, b) => store[a.key].b - store[b.key].b);
       queue = [...due, ...nw, ...rest].slice(0, c.blok * (extra === "vrij" ? 2 : 1)).map((x) => x.key);
+      // vrij oefenen en alles al gezien vandaag (bv. net een toets gemaakt): toch een blok met de laagste dozen
+      if (!queue.length && extra === "vrij") queue = cards.filter((x) => store[x.key] && store[x.key].b < Studie.MAXB).sort((a, b) => store[a.key].b - store[b.key].b).slice(0, c.blok).map((x) => x.key);
     }
     api.setVak(v); api.setTheme(v.theme);
     document.title = title;
