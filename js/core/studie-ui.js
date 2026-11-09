@@ -429,6 +429,7 @@
         <p class="muted small">De pincode beschermt de planning en deze instellingen tegen per ongeluk wijzigen. Het is geen echte beveiliging: alles staat enkel op dit toestel.</p></div>
       <div class="section-label">Toestel</div><label class="check"><input type="checkbox" id="cfgWho" ${Store.meta("vraagWie") ? "checked" : ""}> Gedeeld toestel: bij het openen vragen wie er oefent</label>
       <div class="section-label">Studiemoment in de agenda (.ics)</div><input id="cfgUur" type="time" class="answer shortans" value="${esc(c.studieUur)}">
+      <div id="syncPanel"></div>
       <div class="card inner mt"><b>Wat de app zelf meet</b><p class="muted small">Tempo: ${Store.secPerKaart() ? `±${Math.round(Store.secPerKaart())} seconden per kaart` : "nog niet gemeten"} (bepaalt hoeveel kaarten in je tijd passen).<br>
         ${acc.length ? acc.map(([v, a]) => `${v.icon} ${esc(v.vak)} ${esc(v.klas)}: ${Math.round(a * 100)}% gekend bij de laatste kaarten${a < 0.6 ? " → trager tempo met nieuwe kaarten" : a > 0.85 ? " → sneller tempo met nieuwe kaarten" : ""}`).join("<br>") : "Trefzekerheid: nog te weinig kaarten."}</p></div>
       <div class="actions"><button type="button" id="cfgReset" class="small ghost">Standaardwaarden herstellen</button><a class="btnlink small" href="#/">✓ Klaar</a></div>`;
@@ -448,8 +449,34 @@
     $("#cfgUur").addEventListener("change", (e) => save({ studieUur: e.target.value || "17:00" }));
     $("#cfgReset").addEventListener("click", () => { Store.setStudieCfg({ minuten: undefined, blok: undefined, dagen: undefined, proef: undefined, proefDagen: undefined, proefVragen: undefined, oefenReeks: undefined, wiePlant: undefined, pin: undefined, studieUur: undefined }); renderSettings(); api.toast("Standaardwaarden hersteld."); });
     $("#cfgName").textContent = Store.activeName();
+    if (window.Sync) Sync.renderPanel($("#syncPanel"), { esc, toast: api.toast, afterLink: () => { api.renderProfile(); api.toast("Gekoppeld: de gegevens van de toestellen zijn samengevoegd."); renderSettings(); } });
     api.show("screen-studiecfg");
     Analytics.page("/instellingen", "Studie-instellingen");
+  }
+
+  // ============================================================
+  // KOPPELEN via link (#koppel/<code>) – de code verdwijnt meteen uit de adresbalk
+  // ============================================================
+  let joinCode = null;
+  function openJoin(raw) {
+    if (raw) { joinCode = window.Sync ? Sync.normCode(raw) : null; history.replaceState(null, "", "#koppel"); }
+    api.setTheme("indigo"); document.title = "Toestel koppelen";
+    const box = $("#koppelBody");
+    if (!window.Sync || !Sync.enabled()) box.innerHTML = `<p class="muted">Synchroniseren is op deze site (nog) niet actief, of deze browser ondersteunt het niet.</p><a class="btnlink" href="#/">Terug</a>`;
+    else if (!joinCode) box.innerHTML = `<p class="muted">Deze link bevat geen geldige synccode. Geef de code in via ⚙️ Instellingen › Toestellen koppelen.</p><a class="btnlink" href="#instellingen">Naar de instellingen</a>`;
+    else {
+      const other = Sync.linked();
+      box.innerHTML = `<p class="lead">De voortgang, de planning en de kaarten van dit toestel worden samengevoegd met die van je andere toestellen. Leerlingen met dezelfde naam worden één leerling.</p>
+        ${other ? `<p class="warnline small">Dit toestel is al gekoppeld met een andere code. Koppelen vervangt die koppeling (de gegevens op dit toestel blijven).</p>` : ""}
+        <p class="sycode">code eindigt op <b>${esc(joinCode.slice(-4))}</b></p>
+        <div class="actions"><button type="button" class="primary" id="joinGo">☁️ Koppel dit toestel</button><a class="btnlink ghost" href="#/">Annuleer</a></div><p id="joinMsg" class="muted small"></p>`;
+      $("#joinGo").addEventListener("click", async (e) => {
+        e.currentTarget.disabled = true; $("#joinMsg").textContent = "Bezig met koppelen…";
+        try { const r = await Sync.link(joinCode); joinCode = null; api.renderProfile(); api.toast(r.newer ? "Gekoppeld, maar een ander toestel gebruikt een nieuwere versie: herlaad de pagina." : "Gekoppeld! Alles is samengevoegd."); location.hash = "#/"; }
+        catch (err) { $("#joinMsg").textContent = "Koppelen mislukt: " + err.message; e.currentTarget.disabled = false; }
+      });
+    }
+    api.show("screen-koppel");
   }
 
   // ============================================================
@@ -460,6 +487,7 @@
     if (parts[0] === "plan") { openPlan(parts[1]); return true; }
     if (parts[0] === "studie") { openSession(parts[1], parts[2]); return true; }
     if (parts[0] === "instellingen") { openSettings(); return true; }
+    if (parts[0] === "koppel") { openJoin(parts[1]); return true; }
     return false;
   }
   function init(a) {

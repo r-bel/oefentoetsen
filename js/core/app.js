@@ -646,6 +646,13 @@
     show, setTheme, start, startErrorQuiz, errorPlan, describeSettings, readSettings, toast, esc, pg, route, renderProfile,
     setVak: (v) => { vak = v; }, getVak: () => vak,
   });
+  // synchronisatie: gegevens van een ander toestel zijn binnengekomen → scherm bijwerken (niet midden in een toets)
+  window.addEventListener("oefentoetsen-sync", () => {
+    renderProfile();
+    const cur = ($(".screen.active") || {}).id;
+    if (["screen-home", "screen-plan", "screen-progress"].includes(cur)) route();
+  });
+  if (window.Sync) Sync.init();
   renderProfile();
   route();
 })();

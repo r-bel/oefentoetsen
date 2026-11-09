@@ -118,11 +118,85 @@
   function save(rolling = false) {
     const json = JSON.stringify(mem);
     if (rolling) { const prev = ls.get(KEY); if (prev && hasData(parse(prev))) ls.set(ROLLING, prev); }
-    if (ls.set(KEY, json)) return true;
+    if (ls.set(KEY, json)) { notify(); return true; }
     // vol? oudste toetsen inkorten en opnieuw proberen (gegevens van andere profielen blijven)
     Object.values(mem.profiles).forEach((p) => { if (p.sessions.length > 100) p.sessions.splice(0, p.sessions.length - 100); p.sessions.forEach((s) => (s.mistakes = (s.mistakes || []).slice(0, 10))); });
     ls.del(ROLLING);
-    return ls.set(KEY, JSON.stringify(mem));
+    const ok = ls.set(KEY, JSON.stringify(mem)); notify(); return ok;
+  }
+  // luisteraars (synchronisatie): na elke bewaring
+  const listeners = [];
+  function notify() { listeners.forEach((f) => { try { f(); } catch (e) {} }); }
+
+  // ============================================================
+  // SAMENVOEGEN (synchronisatie tussen toestellen)
+  // Elk toestel houdt alles lokaal bij; bij het synchroniseren worden twee versies
+  // samengevoegd zonder iets te verliezen. Volgorde maakt niet uit (a+b = b+a), dus
+  // toestellen die afwisselend offline zijn, komen vanzelf op hetzelfde uit.
+  //  - toetsen (sessies): unie op id          - kaarten en items: de laatst gebruikte versie
+  //  - geplande toetsen: laatste wijziging     - verwijderd/gewist: via tijdstempels ("tombstones")
+  // ============================================================
+  const pick = (x, y) => (x === undefined ? y : y === undefined ? x : canonical(x) >= canonical(y) ? x : y); // vaste keuze, onafhankelijk van de volgorde
+  const later = (a, b) => ((a || "") >= (b || "") ? a : b);
+  const byLater = (x, y, f) => (!x ? y : !y ? x : (x[f] || "") > (y[f] || "") ? x : (x[f] || "") < (y[f] || "") ? y : JSON.stringify(x) >= JSON.stringify(y) ? x : y);
+  function mergeProfile(a, b) {
+    a = ensure(JSON.parse(JSON.stringify(a))); b = ensure(JSON.parse(JSON.stringify(b)));
+    const cleared = later(a.clearedAt, b.clearedAt) || "";
+    const p = {};
+    [...new Set([...Object.keys(a), ...Object.keys(b)])].forEach((k) => (p[k] = pick(a[k], b[k])));
+    if ((b.nameT || "") > (a.nameT || "")) { p.name = b.name; p.nameT = b.nameT; }
+    p.created = [a.created, b.created].filter(Boolean).sort()[0];
+    if (cleared) p.clearedAt = cleared;
+    p.prefs = {};
+    [...new Set([...Object.keys(a.prefs), ...Object.keys(b.prefs)])].sort().forEach((k) => (p.prefs[k] = pick(a.prefs[k], b.prefs[k])));
+    if (a.name !== b.name && (a.nameT || "") === (b.nameT || "")) p.name = pick(a.name, b.name);
+    const ses = {};
+    [...b.sessions, ...a.sessions].forEach((x) => { if (!cleared || x.date > cleared) ses[x.id] = x; });
+    p.sessions = Object.values(ses).sort((x, y) => (x.date + x.id < y.date + y.id ? -1 : 1)).slice(-MAX_SESSIONS);
+    p.items = {};
+    [...new Set([...Object.keys(a.items), ...Object.keys(b.items)])].sort().forEach((vak) => {
+      const A = a.items[vak] || {}, B = b.items[vak] || {}, out = {};
+      [...new Set([...Object.keys(A), ...Object.keys(B)])].sort().forEach((k) => { const e = byLater(A[k], B[k], "last"); if (!cleared || (e.last || "") > cleared) out[k] = e; });
+      p.items[vak] = out;
+    });
+    const sa = a.studie, sb = b.studie, st = (p.studie = {});
+    st.cfg = (sb.cfg._t || "") > (sa.cfg._t || "") ? sb.cfg : (sa.cfg._t || "") > (sb.cfg._t || "") ? sa.cfg : pick(sa.cfg, sb.cfg);
+    st.del = { ...(sb.del || {}), ...(sa.del || {}) };
+    Object.keys(sb.del || {}).forEach((k) => (st.del[k] = later(st.del[k], sb.del[k])));
+    const tt = {};
+    [...sb.toetsen, ...sa.toetsen].forEach((t) => { const e = byLater(tt[t.id], t, "upd"); tt[t.id] = e; });
+    st.toetsen = Object.values(tt).filter((t) => !st.del[t.id]).sort((x, y) => (x.datum + x.id < y.datum + y.id ? -1 : 1));
+    const cday = cleared ? cleared.slice(0, 10) : "";
+    st.kaarten = {};
+    [...new Set([...Object.keys(sa.kaarten), ...Object.keys(sb.kaarten)])].sort().forEach((vak) => {
+      const A = sa.kaarten[vak] || {}, B = sb.kaarten[vak] || {}, out = {};
+      [...new Set([...Object.keys(A), ...Object.keys(B)])].sort().forEach((k) => {
+        let e = byLater(A[k], B[k], "l");
+        if (A[k] && B[k] && A[k].l === B[k].l && (A[k].n || 0) !== (B[k].n || 0)) e = (A[k].n || 0) > (B[k].n || 0) ? A[k] : B[k];
+        if (!cleared || (e.t ? e.t > cleared : (e.l || "") > cday)) out[k] = e;
+      });
+      st.kaarten[vak] = out;
+    });
+    st.log = {};
+    [...new Set([...Object.keys(sa.log), ...Object.keys(sb.log)])].sort().forEach((d) => {
+      const A = sa.log[d] || {}, B = sb.log[d] || {}, o = {};
+      [...new Set([...Object.keys(A), ...Object.keys(B)])].forEach((f) => (o[f] = Math.max(A[f] || 0, B[f] || 0)));
+      st.log[d] = o;
+    });
+    st.recent = {};
+    [...new Set([...Object.keys(sa.recent), ...Object.keys(sb.recent)])].sort().forEach((k) => (st.recent[k] = pick(sa.recent[k], sb.recent[k])));
+    if (sa.sec || sb.sec) st.sec = pick(sa.sec, sb.sec);
+    const da = (sa.dt || {}).day || "", db = (sb.dt || {}).day || "";
+    const dt = da === db ? pick(sa.dt, sb.dt) : da > db ? sa.dt : sb.dt;
+    if (dt) st.dt = dt;
+    return p;
+  }
+  const isEmptyProfile = (p) => !(p.sessions || []).length && !((p.studie || {}).toetsen || []).length && !Object.values((p.studie || {}).kaarten || {}).some((x) => Object.keys(x).length);
+  // canonieke JSON (sleutels gesorteerd) om twee versies te vergelijken
+  function canonical(o) {
+    if (Array.isArray(o)) return "[" + o.map(canonical).join(",") + "]";
+    if (o && typeof o === "object") return "{" + Object.keys(o).filter((k) => o[k] !== undefined).sort().map((k) => JSON.stringify(k) + ":" + canonical(o[k])).join(",") + "}";
+    return JSON.stringify(o);
   }
   // vraag de browser om de gegevens niet zomaar op te ruimen (Chrome/Firefox/Edge; Safari beperkt)
   try { if (navigator.storage && navigator.storage.persist) navigator.storage.persisted().then((p) => { if (!p) navigator.storage.persist(); }); } catch (e) {}
@@ -137,9 +211,10 @@
     activeName: () => P().name,
     setActive(id) { if (load().profiles[id]) { mem.active = id; save(); } },
     addProfile(name) { const id = uid(); load().profiles[id] = newProfile(name.trim() || "Leerling"); mem.active = id; save(); return id; },
-    renameProfile(id, name) { const p = load().profiles[id]; if (p && name.trim()) { p.name = name.trim(); save(); } },
+    renameProfile(id, name) { const p = load().profiles[id]; if (p && name.trim()) { p.name = name.trim(); p.nameT = new Date().toISOString(); save(); } },
     deleteProfile(id) {
       const d = load(); backup(ls.get(KEY), "voor-verwijderen"); ls.del(ROLLING); delete d.profiles[id];
+      d.tomb = d.tomb || {}; d.tomb[id] = new Date().toISOString(); // ook op gekoppelde toestellen verwijderen
       if (!Object.keys(d.profiles).length) { const n = uid(); d.profiles[n] = newProfile("Ik"); }
       if (!d.profiles[d.active]) d.active = Object.keys(d.profiles)[0];
       save();
@@ -237,23 +312,24 @@
       const id = uid(); load().profiles[id] = ensure(w.profiles.x); mem.active = id; save(); return id;
     },
     lastExport: () => (load().meta || {}).lastExport || null,
-    clearProgress() { backup(ls.get(KEY), "voor-wissen"); const p = P(); p.sessions = []; p.items = {}; p.studie.kaarten = {}; p.studie.log = {}; p.studie.recent = {}; save(); ls.del(ROLLING); },
+    clearProgress() { backup(ls.get(KEY), "voor-wissen"); const p = P(); p.sessions = []; p.items = {}; p.studie.kaarten = {}; p.studie.log = {}; p.studie.recent = {}; p.clearedAt = new Date().toISOString(); save(); ls.del(ROLLING); },
 
     // ---------- studiemodule ----------
     studieCfg: () => S().cfg,
-    setStudieCfg(c) { S().cfg = { ...S().cfg, ...c }; save(); },
+    setStudieCfg(c) { S().cfg = { ...S().cfg, ...c, _t: new Date().toISOString() }; save(); },
     toetsen: () => S().toetsen.slice().sort((a, b) => (a.datum < b.datum ? -1 : 1)),
     toets: (id) => S().toetsen.find((t) => t.id === id) || null,
     saveToets(t) {
       const list = S().toetsen, i = list.findIndex((x) => x.id === t.id);
-      if (i >= 0) list[i] = { ...list[i], ...t }; else list.push({ id: uid(), created: new Date().toISOString(), ...t });
+      const upd = new Date().toISOString();
+      if (i >= 0) list[i] = { ...list[i], ...t, upd }; else list.push({ id: uid(), created: upd, ...t, upd });
       save(true); return i >= 0 ? t.id : list[list.length - 1].id;
     },
-    deleteToets(id) { backup(ls.get(KEY), "voor-toets-verwijderen"); S().toetsen = S().toetsen.filter((t) => t.id !== id); save(); },
+    deleteToets(id) { backup(ls.get(KEY), "voor-toets-verwijderen"); const st = S(); st.toetsen = st.toetsen.filter((t) => t.id !== id); (st.del = st.del || {})[id] = new Date().toISOString(); save(); },
     kaarten: (vak) => (S().kaarten[vak] = S().kaarten[vak] || {}),
     // e = nieuwe toestand van een kaart; ok = beoordeling juist (voor de trefzekerheid)
     setKaart(vak, key, e, ok, sec) {
-      const st = S(); (st.kaarten[vak] = st.kaarten[vak] || {})[key] = e;
+      const st = S(); (st.kaarten[vak] = st.kaarten[vak] || {})[key] = { ...e, t: new Date().toISOString() };
       if (ok !== undefined) { const r = (st.recent[vak] = st.recent[vak] || []); r.push(ok ? 1 : 0); if (r.length > 40) r.splice(0, r.length - 40); }
       if (sec) st.sec = st.sec ? Math.round((st.sec * 0.85 + Math.min(60, sec) * 0.15) * 10) / 10 : Math.min(60, sec);
       save();
@@ -266,6 +342,42 @@
     dayTarget(day, tid, val) { const st = S(); if (!st.dt || st.dt.day !== day) st.dt = { day, t: {} }; if (val === undefined) return st.dt.t[tid]; st.dt.t[tid] = val; save(); },
     meta(k, v) { const d = load(); d.meta = d.meta || {}; if (v === undefined) return d.meta[k]; d.meta[k] = v; save(); },
     commit: () => save(true), // na een studiesessie: reservekopie bijwerken
+
+    // ---------- synchronisatie ----------
+    onSave(f) { listeners.push(f); },
+    canonical,
+    // wat er gedeeld wordt tussen toestellen (niet: actieve leerling, toestelinstellingen)
+    syncPayload() { const d = load(); return { app: "oefentoetsen", version: VERSION, profiles: d.profiles, tomb: d.tomb || {} }; },
+    // gegevens van een ander toestel samenvoegen. join = eerste koppeling: leerlingen met dezelfde naam
+    // worden één leerling, en een leeg standaardprofiel ("Ik") verdwijnt. Geeft { changed, newer } terug.
+    mergeRemote(remote, join) {
+      if (!remote || !remote.profiles) return { changed: false };
+      if ((remote.version || 1) > VERSION) return { changed: false, newer: true }; // ander toestel heeft een nieuwere app-versie
+      let r = JSON.parse(JSON.stringify(remote));
+      for (let x = r.version || 1; x < VERSION; x++) if (MIGRATIONS[x]) r = MIGRATIONS[x](r);
+      const d = load(), before = canonical(Store.syncPayload());
+      const tomb = { ...(r.tomb || {}), ...(d.tomb || {}) };
+      Object.keys(r.tomb || {}).forEach((k) => (tomb[k] = later(tomb[k], r.tomb[k])));
+      const local = d.profiles, out = {};
+      Object.entries(r.profiles).forEach(([id, p]) => { if (!tomb[id]) out[id] = ensure(p); });
+      Object.entries(local).forEach(([id, p]) => {
+        if (tomb[id]) return;
+        if (out[id]) { out[id] = mergeProfile(p, out[id]); return; }
+        if (join) {
+          const same = Object.keys(out).find((k) => (out[k].name || "").trim().toLowerCase() === (p.name || "").trim().toLowerCase());
+          if (same) { out[same] = mergeProfile(p, out[same]); if (d.active === id) d.active = same; return; }
+          if (isEmptyProfile(p) && Object.keys(out).length) { if (d.active === id) d.active = null; return; }
+        }
+        out[id] = p;
+      });
+      if (!Object.keys(out).length) { const n = uid(); out[n] = newProfile("Ik"); }
+      const changed = canonical({ app: "oefentoetsen", version: VERSION, profiles: out, tomb }) !== before;
+      if (changed) { if (join) backup(ls.get(KEY), "voor-koppelen"); else ls.set("oefentoetsen-voor-sync", ls.get(KEY) || ""); d.profiles = out; d.tomb = tomb; }
+      if (!d.active || !d.profiles[d.active]) d.active = Object.keys(d.profiles)[0];
+      if (changed) save(false);
+      return { changed };
+    },
+    _mergeProfile: mergeProfile, // voor tests
     strip,
   };
   window.Store = Store;

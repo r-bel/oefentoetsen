@@ -438,3 +438,12 @@ input[type="date"], input[type="time"] { color-scheme: dark; }
 .seg2 { grid-template-columns: repeat(2, 1fr); }
 .card h2.mt { margin-top: 20px; }
 #todayBox:empty { display: none; }
+/* synchronisatie */
+#syncBadge { padding: 6px 10px; font-size: .85rem; }
+.syncbox { display: grid; grid-template-columns: 150px 1fr; gap: 16px; align-items: start; padding: 14px; border-radius: 14px; background: var(--inner); border: 1px solid var(--line); }
+.syqr { background: #fff; border-radius: 10px; padding: 6px; aspect-ratio: 1; }
+.syqr svg { width: 100%; height: auto; display: block; }
+.syinfo p { margin: 0 0 8px; }
+.sycode { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 1.05rem; letter-spacing: .06em; }
+@media (max-width: 560px) { .syncbox { grid-template-columns: 1fr; } .syqr { max-width: 200px; margin: 0 auto; } }
+.logo { flex: none; }

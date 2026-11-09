@@ -1,0 +1,11 @@
+name = "oefentoetsen-sync"
+main = "worker.js"
+compatibility_date = "2025-01-01"
+
+[vars]
+# sites die de synchronisatie mogen gebruiken (komma-gescheiden)
+ORIGINS = "https://www.dirkdhaenens.com,https://r-bel.github.io"
+
+[[kv_namespaces]]
+binding = "SYNC"
+id = "VUL-IN-NA-STAP-3"

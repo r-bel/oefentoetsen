@@ -23,6 +23,10 @@ window.APP_CONFIG = {
     proefDagen: 3,        // eerste proeftoets zoveel dagen voor de toets
     wiePlant: "iedereen", // "iedereen" of "ouder" (planning en instellingen achter een pincode)
   },
+  // Synchronisatie tussen toestellen (synccode, zonder account). Adres van de Cloudflare Worker
+  // uit de map worker/ (zie worker/SYNC-INSTALLATIE.md). Leeg = synchronisatie verborgen.
+  syncUrl: "",
+
   // "eigen" = enkel voor het eigen gezin; "gedeeld" = de site wordt breder gedeeld.
   // Vanaf fase 2 (leerkaarten) bepaalt dit of uitleg dicht bij het handboek mag blijven.
   gebruik: "eigen",

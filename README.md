@@ -17,6 +17,9 @@ js/core/app.js              gedeelde interface: menu, instellingen, antwoordmodi
 js/core/geo.js              SVG-tekenhulp (roosters, assenstelsels, figuren) – herbruikbaar voor elk meetkundevak
 js/core/studie.js           studiemodule: herhaalschema (Leitner) + adaptieve dagplanning (pure logica, testbaar)
 js/core/studie-ui.js        studiemodule: Vandaag oefenen, Mijn toetsen, flashcards, studie-instellingen
+js/core/sync.js             synchronisatie tussen toestellen met een synccode (versleuteld, zonder account)
+js/lib/qrcode.js            QR-code voor het koppelen (qrcode-generator, MIT), enkel geladen wanneer nodig
+worker/                     Cloudflare Worker voor de synchronisatie + installatie (worker/SYNC-INSTALLATIE.md)
 js/core/analytics.js        optionele, anonieme bezoekersstatistieken (GoatCounter), standaard UIT
 vakken/<id>/inhoud.js       de LEERSTOF van dat vak  → hier stuur je inhoud bij
 vakken/<id>/vak.js          de VRAAGTYPES + verbetering van dat vak → hier stuur je vragen/logica bij
@@ -50,6 +53,12 @@ Een vak bijsturen raakt dus nooit een ander vak.
 - **Nieuwe versies wissen de voortgang niet**: versiebeheer met migraties, automatische reservekopieën en herstel
   (zie `docs/VAK-TOEVOEGEN.md`, "Voortgang bewaren"). Wissen van browsergegevens of Safari na 7 dagen niet-gebruik
   kan de site niet tegenhouden: daarvoor dient de reservekopie.
+
+## Meerdere toestellen (synchronisatie)
+Elk toestel bewaart alles lokaal. Met een **synccode** (⚙️ Instellingen › Toestellen koppelen) worden toestellen
+gekoppeld: na elke oefensessie en bij het openen worden de gegevens samengevoegd (`Store.mergeRemote`: niets gaat
+verloren, ook niet bij offline werken; verwijderen en wissen werken door). De server (Cloudflare Worker, gratis) krijgt
+enkel een versleuteld pakket. Zolang `syncUrl` in `js/config.js` leeg is, is de functie verborgen.
 
 ## Bezoekersstatistieken
 Actief via GoatCounter (account `oefentoetsen`, dashboard: https://oefentoetsen.goatcounter.com), zonder cookies.

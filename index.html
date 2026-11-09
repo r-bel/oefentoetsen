@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=8">
+  <link rel="stylesheet" href="css/style.css?v=9">
 </head>
 <body data-theme="indigo">
   <header class="topbar">
@@ -21,6 +21,7 @@
     </a>
     <div class="topright">
       <a id="homeLink" class="small btnlink ghost hidden" href="#/">☰<span class="lbl"> Vakken</span></a>
+      <a id="syncBadge" class="small btnlink ghost hidden" href="#instellingen">☁️</a>
       <label class="profile" title="Wie oefent er?">👤 <select id="profileSel" aria-label="Leerling"></select></label>
       <button id="stopBtn" class="small hidden">Stop toets</button>
     </div>
@@ -173,6 +174,15 @@
       <div class="card hidden" id="stEnd"></div>
     </section>
 
+    <!-- 8. TOESTEL KOPPELEN (#koppel/<code>) -->
+    <section id="screen-koppel" class="screen">
+      <div class="card hero center">
+        <span class="badge">☁️ Toestel koppelen</span>
+        <h1>Dit toestel koppelen?</h1>
+        <div id="koppelBody"></div>
+      </div>
+    </section>
+
     <!-- 7. STUDIE-INSTELLINGEN -->
     <section id="screen-studiecfg" class="screen">
       <div class="card hero">
@@ -200,23 +210,24 @@
   <div id="toast" class="toast"></div>
 
   <!-- kern -->
-  <script src="js/config.js?v=8"></script>
-  <script src="js/core/analytics.js?v=8"></script>
-  <script src="js/core/vakken.js?v=8"></script>
-  <script src="js/core/store.js?v=8"></script>
-  <script src="js/core/geo.js?v=8"></script>
-  <script src="js/core/studie.js?v=8"></script>
+  <script src="js/config.js?v=9"></script>
+  <script src="js/core/analytics.js?v=9"></script>
+  <script src="js/core/vakken.js?v=9"></script>
+  <script src="js/core/store.js?v=9"></script>
+  <script src="js/core/sync.js?v=9"></script>
+  <script src="js/core/geo.js?v=9"></script>
+  <script src="js/core/studie.js?v=9"></script>
   <!-- vakken: per vak eerst de inhoud, dan de logica -->
-  <script src="vakken/frans-5a/inhoud.js?v=8"></script>
-  <script src="vakken/frans-5a/vak.js?v=8"></script>
-  <script src="vakken/frans-2-t2/inhoud.js?v=8"></script>
-  <script src="vakken/frans-2-t2/vak.js?v=8"></script>
-  <script src="vakken/wiskunde-2-m01/inhoud.js?v=8"></script>
-  <script src="vakken/wiskunde-2-m01/vak.js?v=8"></script>
-  <script src="vakken/latijn-2/inhoud.js?v=8"></script>
-  <script src="vakken/latijn-2/vak.js?v=8"></script>
+  <script src="vakken/frans-5a/inhoud.js?v=9"></script>
+  <script src="vakken/frans-5a/vak.js?v=9"></script>
+  <script src="vakken/frans-2-t2/inhoud.js?v=9"></script>
+  <script src="vakken/frans-2-t2/vak.js?v=9"></script>
+  <script src="vakken/wiskunde-2-m01/inhoud.js?v=9"></script>
+  <script src="vakken/wiskunde-2-m01/vak.js?v=9"></script>
+  <script src="vakken/latijn-2/inhoud.js?v=9"></script>
+  <script src="vakken/latijn-2/vak.js?v=9"></script>
   <!-- interface -->
-  <script src="js/core/studie-ui.js?v=8"></script>
-  <script src="js/core/app.js?v=8"></script>
+  <script src="js/core/studie-ui.js?v=9"></script>
+  <script src="js/core/app.js?v=9"></script>
 </body>
 </html>
