@@ -10,7 +10,7 @@
 (function () {
   "use strict";
   const I = Vakken.inhoud("latijn-2");
-  const { WOORDEN, ACHTERVOEGSELS, VOORVOEGSELS, DEKL_NAAM, DEKL_REGEL, VERV_NAAM, GS_NAAM, TAGS } = I;
+  const { WOORDEN, ACHTERVOEGSELS, VOORVOEGSELS, DEKL_NAAM, DEKL_REGEL, VERV_NAAM, GS_NAAM, TAGS, CAPITA } = I;
 
   // ---------- hulpfuncties ----------
   const rnd = (n) => Math.floor(Math.random() * n);
@@ -33,7 +33,9 @@
   const NUMS = WOORDEN.map((w) => w.nr);
   const MIN = Math.min(...NUMS), MAX = Math.max(...NUMS);
   const SECTIES = uniq(WOORDEN.map((w) => w.sec)).map((sec) => { const n = WOORDEN.filter((w) => w.sec === sec).map((w) => w.nr); return { sec, v: [Math.min(...n), Math.max(...n)] }; });
-  const inRange = (s) => { const r = s.bereik || [MIN, MAX]; return WOORDEN.filter((w) => w.nr >= r[0] && w.nr <= r[1]); };
+  // snelkeuzes per caput (de paragrafen kan je met de nummers kiezen)
+  const CAPS = uniq(WOORDEN.map((w) => w.sec.split(".")[0])).map((c) => { const n = WOORDEN.filter((w) => w.sec.split(".")[0] === c).map((w) => w.nr); return { c, naam: (CAPITA || {})[c] || "", v: [Math.min(...n), Math.max(...n)] }; });
+  const inRange = (s) => { const r = s.bereik || [MIN, MAX]; return WOORDEN.filter((w) => w.nr >= r[0] && w.nr <= r[1] && (s.welke !== "vet" || w.vet)); };
   const show = (w) => `${esc(w.la)}${w.mid ? `<span class="midcol">${esc(w.mid)}</span>` : ""}`;
 
   // ---------- vertaling Latijn → Nederlands ----------
@@ -41,6 +43,9 @@
     const out = [];
     nl.split(/;|,/).map((x) => x.trim()).filter(Boolean).forEach((p) => {
       const forms = p.includes("(") ? [p.replace(/\(([^)]*)\)/g, "$1"), p.replace(/\s*\([^)]*\)\s*/g, " ")] : [p];
+      // "zegt hij/zij" → ook "zegt hij", "zegt zij"
+      const sl = []; forms.forEach((f) => { const m = f.match(/^(.*?)(\S+)\/(\S+)(.*)$/); if (m) sl.push(m[1] + m[2] + m[4], m[1] + m[3] + m[4], f.replace("/", " ")); });
+      forms.push(...sl);
       forms.forEach((f) => { f = norm(f); out.push(f, f.replace(/^(de|het|een)\s+/, ""), f.replace(/^zich\s+/, "")); });
     });
     return uniq(out.filter(Boolean));
@@ -71,15 +76,20 @@
     if (!m || /^\(/.test(m)) return null;
     if (w.soort === "nw") {
       const [gen, gsRaw] = m.split(",").map((x) => x.trim());
-      const spec = { kind: "nw", gen, gs: gsRaw ? gsRaw.replace(".", "") : null };
+      const g = gsRaw && gsRaw.match(/^(m|v|o)\./);
+      if (/geen/.test(gen)) return null;
+      const spec = { kind: "nw", gen, gs: g ? g[1] : null };
       spec.prompt = `Geef de genitief${w.mv ? " (meervoud)" : ""}${spec.gs ? " én het geslacht (m., v. of o.)" : ""}`;
       return spec;
     }
     if (w.soort === "bn") {
-      if (m.includes(";")) return { kind: "bn3", gen: m.split(";")[1].trim(), prompt: "Geef de genitief (m., v. en o. zijn in de nominatief gelijk)" };
-      const stem = w.la.replace(/us$/, "");
+      if (/;\s*\S/.test(m)) return { kind: "bn3", gen: m.split(";")[1].trim(), prompt: "Geef de genitief (m., v. en o. zijn in de nominatief gelijk)" };
+      if (/^~ae, ~a$/.test(m)) { const st = head(w.la).replace(/ī$/, ""); return { kind: "bn", f: st + "ae", n: st + "a", sf: "ae", sn: "a", prompt: "Geef de vrouwelijke en onzijdige vorm (meervoud, middenkolom)" }; }
+      if (!m.startsWith("~")) { const [f, n] = m.split(",").map((x) => x.trim().replace(/;$/, "")); return { kind: "bn", f, n, prompt: "Geef de vrouwelijke en onzijdige vorm (middenkolom)" }; }
+      const stem = head(w.la).replace(/us$/, "");
       return { kind: "bn", f: stem + "a", n: stem + "um", prompt: "Geef de vrouwelijke en onzijdige vorm (middenkolom)" };
     }
+    if (w.soort === "ww" && /\bsum$/.test(m)) return { kind: "dep", perf: m, prompt: "Geef het perfectum (middenkolom)" };
     if (w.soort === "ww") {
       const [perf, sup] = m.split(",").map((x) => x.trim());
       return { kind: "ww", perf, sup: sup === "-" ? null : sup, prompt: "Geef het perfectum en het supinum (middenkolom)" };
@@ -114,8 +124,12 @@
         if (!gs) partial = "Genitief juist, maar het geslacht ontbreekt.";
       }
     } else if (sp.kind === "bn") {
-      const ok = (a, b) => worst([cmpTok(a, sp.f) || cmpTok(a, "a"), cmpTok(b, sp.n) || cmpTok(b, "um")]);
+      const ok = (a, b) => worst([cmpTok(a, sp.f) || cmpTok(a, sp.sf || "a"), cmpTok(b, sp.n) || cmpTok(b, sp.sn || "um")]);
       res = ok(t[0], t[1]);
+      if (!res) return { status: "wrong", tag: "middenkolom" };
+    } else if (sp.kind === "dep") {
+      const exp = tokens(sp.perf);
+      res = worst(exp.map((e, i) => cmpTok(t[i], e)));
       if (!res) return { status: "wrong", tag: "middenkolom" };
     } else if (sp.kind === "bn3") {
       res = cmpTok(t[t.length - 1], sp.gen);
@@ -143,6 +157,7 @@
       if (sp.gs) ["m", "v", "o"].filter((g) => g !== sp.gs).forEach((g) => out.push(`${sp.gen}, ${g}.`));
     } else if (sp.kind === "bn") out.push("~is, ~e", "~a, ~ō", "~ī, ~ae", "~ae, ~ī");
     else if (sp.kind === "bn3") out.push("~, ~; fēlīcī", "~a, ~um", "~, ~; fēlīcae");
+    else if (sp.kind === "dep") { const st = sp.perf.replace(/(ātus|itus|tus|sus|us) sum$/, ""); out.push(st + "ātus sum", st + "itus sum", st + "sus sum", st + "tus est"); out.push(...shuffle(WOORDEN.filter((x) => x.dep && x.mid && x !== w)).slice(0, 2).map((x) => x.mid)); }
     else {
       const stem = head(w.la).replace(/(āre|ēre|ere|īre|esse|re)$/, "");
       ["āvī, ātum", "uī, itum", "sī, sum", "xī, ctum"].forEach((e) => out.push(stem + e.split(", ")[0] + ", " + stem + e.split(", ")[1]));
@@ -159,6 +174,7 @@
     if (!sp) return [];
     if (sp.kind === "nw") return noMacron(sp.gen) !== noMacron(head(w.la)) ? [{ f: sp.gen, wat: w.mv ? "de genitief meervoud" : "de genitief" }] : [];
     if (sp.kind === "ww") return [{ f: sp.perf, wat: "het perfectum" }, ...(sp.sup ? [{ f: sp.sup, wat: "het supinum" }] : [])];
+    if (sp.kind === "dep") return [{ f: sp.perf, wat: "het perfectum" }];
     return [];
   }
 
@@ -192,7 +208,7 @@
   unit({
     id: "midden", group: "W", label: "Middenkolom: genitief, vormen, stamtijden", page: "woordenlijst",
     rule: "Naamwoord: genitief (+ geslacht bij de 3e verbuiging). Bijvoeglijk naamwoord: vrouwelijke en onzijdige vorm. Werkwoord: perfectum en supinum. Onveranderlijk woord: de woordsoort.",
-    items: (s) => inRange(s).filter((w) => w.mid),
+    items: (s) => inRange(s).filter((w) => w.mid && (/^\(/.test(w.mid) || midSpec(w))),
     gen(level, w) {
       const common = { prompt: show({ la: w.la }), promptClass: "latin", page: `§${w.sec} · nr. ${w.nr}`, key: `midden:${w.nr}`, itemLabel: `${w.nr}. ${w.la} – ${w.mid}`, nr: w.nr };
       if (/^\(/.test(w.mid)) { // onveranderlijk woord: woordsoort
@@ -275,11 +291,11 @@
   // 6. verbuiging herkennen
   unit({
     id: "verbuiging", group: "G", label: "Verbuiging herkennen (via de genitief)", page: "woordenlijst",
-    rule: Object.entries(DEKL_REGEL).slice(0, 4).map(([k, v]) => `${DEKL_NAAM[k]}: ${v}`).join(" · "),
+    rule: Object.entries(DEKL_REGEL).map(([k, v]) => `${DEKL_NAAM[k]}: ${v}`).join(" · "),
     items: (s) => inRange(s).filter((w) => w.soort === "nw" && w.dekl),
     gen(level, w) {
       const gen = w.mid.split(",")[0];
-      const opts = [1, 2, 3, 4].map((k) => ({ v: String(k), html: esc(DEKL_NAAM[k]) }));
+      const opts = [1, 2, 3, 4, 5].map((k) => ({ v: String(k), html: esc(DEKL_NAAM[k]) }));
       return base(this, { mode: "mc", instruction: "Tot welke verbuiging behoort dit woord?", prompt: `${esc(w.la)}, ${esc(gen)}`, promptClass: "latin", page: `§${w.sec} · nr. ${w.nr}`,
         options: level === "easy" ? shuffle(opts.filter((o) => o.v === String(w.dekl)).concat(shuffle(opts.filter((o) => o.v !== String(w.dekl))).slice(0, 2))) : opts,
         answer: String(w.dekl), answerShown: `${esc(DEKL_NAAM[w.dekl])} (${esc(DEKL_REGEL[w.dekl])})`, tag: "verbuiging", key: `dekl:${w.nr}`, itemLabel: `${w.nr}. ${w.la}: verbuiging`, nr: w.nr });
@@ -438,10 +454,12 @@
     ],
     settings: [
       { key: "bereik", type: "range", label: "Welke woorden? <span class=\"muted\">(nummers uit de woordenlijst)</span>", min: MIN, max: MAX, default: [MIN, MAX],
-        presets: [{ label: "Alles", v: [MIN, MAX] }, ...SECTIES.map((x) => ({ label: x.sec, v: x.v }))],
-        hint: "Geldt voor alle vragen over woorden (ook grammatica). De kaders 'woordvorming: achtervoegsels' hebben geen nummers en komen altijd aan bod als je ze aanvinkt." },
+        presets: [{ label: "Alles", v: [MIN, MAX] }, ...CAPS.map((x) => ({ label: `${x.c} ${x.naam}`, v: x.v }))],
+        hint: "Geldt voor alle vragen over woorden (ook grammatica). Een paragraaf kiezen? Typ de nummers (bv. 344 tot 358 = §3.3). De kaders 'woordvorming: achtervoegsels' hebben geen nummers en komen altijd aan bod als je ze aanvinkt." },
+      { key: "welke", type: "radio", label: "Welke woorden in dat bereik?", default: "alle",
+        options: [{ v: "alle", label: "Alle woorden" }, { v: "vet", label: "Enkel vetgedrukte <small>(750 meest frequente)</small>" }] },
     ],
-    describe: (s) => `woorden ${s.bereik[0]}–${s.bereik[1]} (${inRange(s).length})`,
+    describe: (s) => `woorden ${s.bereik[0]}–${s.bereik[1]}${s.welke === "vet" ? " (enkel vetgedrukt)" : ""} (${inRange(s).length})`,
     levels: {
       easy: { title: "🙂 Makkelijk", desc: "alles meerkeuze" },
       normal: { title: "💪 Normaal", desc: "meerkeuze + typen; lengtetekens (ā, ē…) hoeven niet" },
