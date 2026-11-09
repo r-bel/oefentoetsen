@@ -32,7 +32,14 @@
   function setTheme(theme) { document.body.dataset.theme = theme || "indigo"; }
   function route() {
     const h = decodeURIComponent(location.hash.replace(/^#\/?/, ""));
-    if (h.startsWith("v/") && Vakken.get(h.slice(2))) return openSetup(Vakken.get(h.slice(2)));
+    const parts = h.split("/");
+    if (parts[0] === "v" && Vakken.get(parts[1])) {
+      const v = Vakken.get(parts[1]);
+      // #v/<id>/plan[/<toetsId>]: instellingen met het planformulier open
+      if (parts[2] === "plan") { const t = parts[3] && Store.toets(parts[3]); openSetup(v, t ? t.sel : null); return window.StudieUI && StudieUI.openPlanForm(v, t); }
+      return openSetup(v);
+    }
+    if (window.StudieUI && StudieUI.route(h)) return;
     if (h.startsWith("voortgang")) return openProgress(h.split("/")[1]);
     openHome();
   }
@@ -90,6 +97,7 @@
           <span class="vakgo">›</span></a>`;
       }).join("") + `</div></div>`).join("");
     $("#homeProgressBtn").classList.toggle("hidden", !Store.sessions().length);
+    if (window.StudieUI) StudieUI.renderToday();
     show("screen-home");
     Analytics.page("/", "Menu");
   }
@@ -145,6 +153,7 @@
       $$(".unit-cb").forEach((cb) => (cb.checked = q ? !!q.select(v.units.find((u) => u.id === cb.value)) : false));
       sync();
     }));
+    $("#planForm").classList.add("hidden");
     applySettings(preset || Store.getPrefs(v.id));
     sync();
     show("screen-setup");
@@ -193,6 +202,7 @@
     const plan = errorPlan(vak);
     $("#errorQuizBtn").classList.toggle("hidden", !plan.items.length && !plan.units.length);
     $("#errorQuizInfo").textContent = plan.items.length || plan.units.length ? `${plan.items.length} ${plan.items.length === 1 ? "vraag" : "vragen"} die eerder fout gingen` + (plan.units.length ? ` · ${plan.units.length} zwakke ${plan.units.length === 1 ? "onderdeel" : "onderdelen"}` : "") + (plan.recurring.length ? ` · terugkerend: ${plan.recurring.map((t) => vak.tags[t].short || vak.tags[t].title).join(", ")}` : "") : "";
+    if (window.StudieUI) StudieUI.syncSetup(vak, s);
     $("#setupMsg").textContent = !k ? "Kies minstens één onderdeel"
       : `${k} ${k === 1 ? "onderdeel" : "onderdelen"} gekozen · ${n} vragen` + (vak.describe ? " · " + vak.describe(s) : "");
   }
@@ -231,20 +241,21 @@
   //   1. vragen/woorden die fout gingen (vooral recent en herhaaldelijk)
   //   2. aangevuld met onderdelen met een lage score of terugkerende fouttypes
   // ============================================================
-  function errorPlan(v) {
-    const items = Store.items(v.id).filter((i) => i.n > i.ok && (i.ok / i.n < 0.8 || i.lastOk === false));
+  // only = optioneel: enkel deze onderdelen (bv. de leerstof van een geplande toets)
+  function errorPlan(v, only) {
+    const items = Store.items(v.id).filter((i) => i.n > i.ok && (i.ok / i.n < 0.8 || i.lastOk === false) && (!only || only.includes(i.unit)));
     items.forEach((i) => { const age = (Date.now() - new Date(i.last).getTime()) / 864e5; i.score = (i.n - i.ok) * 2 + (i.lastOk === false ? 3 : 0) - Math.min(age, 30) / 10; });
     items.sort((a, b) => b.score - a.score);
     const S = Store.summary(v.id, "all");
     const weakUnits = Object.entries(S.units).filter(([, u]) => u.n >= 3 && u.pct < 75).map(([id]) => id);
     const recurring = Object.entries(S.tags).filter(([t, x]) => t !== "fout" && x.sessions >= 2 && v.tags && v.tags[t]).map(([t]) => t);
     const tagUnits = Object.keys(Store.unitsForTags(v.id, recurring));
-    const units = [...new Set([...weakUnits, ...tagUnits])].filter((id) => v.units.some((u) => u.id === id));
+    const units = [...new Set([...weakUnits, ...tagUnits])].filter((id) => v.units.some((u) => u.id === id) && (!only || only.includes(id)));
     return { items, units, recurring };
   }
   function buildErrorQuiz(v, s) {
     const N = s.count === "all" ? 30 : s.count;
-    const plan = errorPlan(v), out = [], keys = new Set();
+    const plan = errorPlan(v, s.plan ? s.units : null), out = [], keys = new Set();
     if (v.fromKey) for (const it of plan.items) {
       if (out.length >= N) break;
       let q = null; try { q = v.fromKey(it.key, s.level, s); } catch (e) { q = null; }
@@ -262,7 +273,7 @@
     const r = buildErrorQuiz(v, s);
     if (!r.questions.length) { toast("Nog geen fouten om te herhalen. Maak eerst een paar gewone toetsen."); return; }
     const settings = { ...s, mode: "fouten", units: [...new Set(r.questions.map((q) => q.unit))], count: r.questions.length };
-    settings.desc = describeSettings(v, settings, { mode: "fouten", nItems: r.nItems, nUnits: r.nItems < r.questions.length ? r.nUnits : 0 });
+    settings.desc = (s.descPrefix || "") + describeSettings(v, settings, { mode: "fouten", nItems: r.nItems, nUnits: r.nItems < r.questions.length ? r.nUnits : 0 });
     start(settings, r.questions, false, true);
   }
 
@@ -446,6 +457,8 @@
     const a = analyse(state.results);
     state.analysis = a;
     Store.record(vak.id, state.settings, state.results);
+    if (window.StudieUI) StudieUI.afterQuiz(vak, state.settings, state.results);
+    $("#todayBtn").classList.toggle("hidden", !state.settings.plan);
     Analytics.event(`klaar/${vak.id}/${state.settings.level}`);
     $("#progressBar").style.width = "100%";
     $("#scoreBadge").textContent = a.pct >= 90 ? "🏆 Super gedaan!" : a.pct >= 70 ? "👍 Goed bezig" : a.pct >= 50 ? "💪 Nog even oefenen" : "📖 Herhalen maar!";
@@ -628,6 +641,11 @@
   const cb = $("#coffeeBtn");
   if (cb) cb.addEventListener("click", () => toast("Bedankt! ☕ De koffiepagina komt binnenkort online."));
 
+  // studiemodule aansluiten (core/studie-ui.js)
+  if (window.StudieUI) StudieUI.init({
+    show, setTheme, start, startErrorQuiz, errorPlan, describeSettings, readSettings, toast, esc, pg, route, renderProfile,
+    setVak: (v) => { vak = v; }, getVak: () => vak,
+  });
   renderProfile();
   route();
 })();

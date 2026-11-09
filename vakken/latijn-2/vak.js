@@ -399,6 +399,31 @@
   }
 
   // ============================================================
+  // KAARTEN (studiemodule): eerst de betekenis, pas daarna de middenkolom
+  //   na: "vertalen:<nr>" → de middenkolomkaart komt pas als de betekenis zit
+  // ============================================================
+  const SOORT_NAAM = { nw: "zelfst. naamwoord", bn: "bijv. naamwoord", ww: "werkwoord", bw: "bijwoord", vw: "voegwoord" };
+  const wordInfo = (w) => [
+    w.soort === "nw" && w.gs ? `${GS_NAAM[w.gs]}${w.dekl ? " · " + DEKL_NAAM[w.dekl] : ""}` : w.soort === "ww" && w.verv ? VERV_NAAM[w.verv] : SOORT_NAAM[w.soort] || "",
+    w.naamval ? "+ " + w.naamval : "",
+  ].filter(Boolean).join(" · ");
+  const KAART_UNITS = ["vertalen", "midden"];
+  function kaarten(s) {
+    const sel = s && Array.isArray(s.units) ? s.units : KAART_UNITS;
+    const words = s ? inRange(s) : WOORDEN;
+    const out = [];
+    words.forEach((w) => {
+      const page = `§${w.sec} · nr. ${w.nr}`;
+      if (sel.includes("vertalen")) out.push({ key: `vertalen:${w.nr}`, unit: "vertalen", soort: "Betekenis", ask: "Wat betekent dit woord?",
+        front: esc(w.la), frontCls: "latin", back: esc(w.nl), info: (w.mid ? `<span class="latin">${esc(w.mid)}</span> · ` : "") + esc(wordInfo(w)),
+        tip: w.afl ? `denk aan: ${esc(w.afl)}` : "", page, label: `${w.nr}. ${w.la} → ${w.nl}` });
+      if (sel.includes("midden") && w.mid) out.push({ key: `midden:${w.nr}`, unit: "midden", soort: "Middenkolom", ask: "Wat staat er in de middenkolom?",
+        front: esc(w.la), frontCls: "latin", back: esc(w.mid), backCls: "latin", info: esc(w.nl), page, label: `${w.nr}. ${w.la} – ${w.mid}`, na: `vertalen:${w.nr}` });
+    });
+    return out;
+  }
+
+  // ============================================================
   // Aansluiting op de gedeelde app
   // ============================================================
   Vakken.register({
@@ -427,6 +452,7 @@
     statusText: { spelling: "Bijna: één letter fout.", partial: "Bijna!" },
     tags: TAGS,
     makeQuiz, countAll, check, conclusions, regen, fromKey,
+    kaarten, kaartUnits: KAART_UNITS,
     _UNITS: UNITS, _norm: norm, // voor tests
   });
 })();

@@ -668,6 +668,17 @@
   // ============================================================
   // Aansluiting op de gedeelde app (zie js/core/vakken.js)
   // ============================================================
+  // KAARTEN (studiemodule): begrippen – de zin met het ontbrekende woord, achterkant het begrip
+  const KAART_UNITS = ["begrippen", "sym_begrippen"];
+  function kaarten(s) {
+    const sel = s && Array.isArray(s.units) ? s.units : KAART_UNITS;
+    const out = [];
+    const add = (uid, bank) => { if (!sel.includes(uid)) return; const u = UNITS.find((x) => x.id === uid);
+      bank.forEach((b, c) => out.push({ key: `${uid}:${c}`, unit: uid, soort: "Begrip", ask: "Welk woord hoort op de puntjes?", front: b.q.replace(/…/g, "<b>…</b>"), back: b.show || b.a[0], page: b.p || u.page, label: `${b.q.replace(/<[^>]+>/g, "")} → ${b.show || b.a[0]}` })); };
+    add("begrippen", BEGRIPPEN); add("sym_begrippen", SYM_BEGR);
+    return out;
+  }
+
   Vakken.register({
     id: "wiskunde-2-m01", vak: I.vak, icon: I.icon, theme: I.theme, titel: I.titel, klas: I.klas, bron: I.bron,
     groups: DOELEN.map((d) => ({ id: d.id, short: d.id, titel: d.titel, p: d.p })),
@@ -680,6 +691,7 @@
     levels: I.levels, allInfo: I.allInfo,
     tags: TAGS,
     makeQuiz, countAll, check, conclusions, regen, fromKey,
+    kaarten, kaartUnits: KAART_UNITS,
     _UNITS: UNITS, norm, parseCoord, parseNum, // voor tests
   });
 })();

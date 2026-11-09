@@ -558,6 +558,21 @@
     fout: { title: "Fout", short: "fout", advice: "", page: "" },
   };
 
+  // KAARTEN (studiemodule): per woord eerst FR → NL, dan NL → FR
+  const g5 = (fr) => (/^(un|le)\s/i.test(fr) ? "m" : /^(une|la)\s/i.test(fr) ? "f" : "");
+  function kaarten(s) {
+    const sel = s && Array.isArray(s.units) ? s.units : null;
+    const dir = (s && s.dir) || "both", dirs = dir === "both" ? ["fr-nl", "nl-fr"] : [dir];
+    const out = [];
+    eng.units.filter((u) => u.kind === "vocab" && (sel ? sel.includes(u.id) : true)).forEach((u) => u.items.forEach((it) => {
+      const g = it.soort === "nw" ? g5(it.fr) : "", k = u.id + ":" + it.fr + ":";
+      dirs.forEach((d) => out.push(d === "fr-nl"
+        ? { key: k + "fr-nl", unit: u.id, soort: "FR ➔ NL", ask: "Wat betekent dit?", front: esc(it.fr), g, back: esc(it.nl), tip: it.hint_fr ? esc(it.hint_fr) : "", page: it.p || u.page, label: `${it.fr} = ${it.nl}`, lang: "fr" }
+        : { key: k + "nl-fr", unit: u.id, soort: "NL ➔ FR", ask: it.soort === "nw" ? "Hoe zeg je dit in het Frans (met un/une)?" : "Hoe zeg je dit in het Frans?", front: esc(it.nl), back: esc(it.fr), backG: g, tip: it.hint_nl ? esc(it.hint_nl) : "", page: it.p || u.page, label: `${it.nl} = ${it.fr}`, lang: "fr", na: dirs.length > 1 ? k + "fr-nl" : undefined }));
+    }));
+    return out;
+  }
+
   Vakken.register({
     id: "frans-5a", vak: "Frans", icon: "🇫🇷", theme: "rose",
     titel: "Cahier A – Missions 1-3 + Destination A", klas: "5de leerjaar", bron: course.cursus.replace(/\s*\(.*\)$/, ""),
@@ -587,6 +602,7 @@
     makeQuiz: (s) => eng.makeQuiz(s).map(adapt),
     countAll: (s) => eng.countAll(s),
     fromKey: (k, level) => { const q = eng.fromKey(k, level); return q ? adapt(q) : null; },
+    kaarten, kaartUnits: eng.units.filter((u) => u.kind === "vocab").map((u) => u.id),
     check(given, q, level) {
       const r = check(given, q, level);
       if (r.status === "accent" && level === "hard") r.strictNote = "(op 'Moeilijk' telt een accentfout als fout)";

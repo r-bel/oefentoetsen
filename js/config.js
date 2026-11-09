@@ -12,4 +12,18 @@ window.APP_CONFIG = {
   // Dan worden paginabezoeken en per vak het starten/afronden van een toets geteld
   // (geen namen, geen antwoorden, geen scores per leerling).
   goatcounterCode: "oefentoetsen", // statistieken: https://oefentoetsen.goatcounter.com (leeg = uit)
+
+  // Studiemodule: standaardwaarden voor elke leerling (een leerling/ouder kan ze
+  // wijzigen via "Studie-instellingen"). Volledige lijst en uitleg: js/core/studie.js (DEFAULTS).
+  studie: {
+    minuten: 20,          // studietijd per dag, alle toetsen samen
+    blok: 10,             // kaarten per blokje
+    dagen: [1, 2, 3, 4, 5, 6, 0], // studiedagen: 1 = maandag … 6 = zaterdag, 0 = zondag
+    proef: true,          // proeftoetsen in de laatste dagen opnemen
+    proefDagen: 3,        // eerste proeftoets zoveel dagen voor de toets
+    wiePlant: "iedereen", // "iedereen" of "ouder" (planning en instellingen achter een pincode)
+  },
+  // "eigen" = enkel voor het eigen gezin; "gedeeld" = de site wordt breder gedeeld.
+  // Vanaf fase 2 (leerkaarten) bepaalt dit of uitleg dicht bij het handboek mag blijven.
+  gebruik: "eigen",
 };

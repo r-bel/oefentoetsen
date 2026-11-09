@@ -52,6 +52,18 @@ Extra instellingen per vak (`settings`): `radio` (bv. vertaalrichting), `checkbo
 `check(given, q, level)` geeft `{ status, points, tag }` terug; `tag` is het fouttype (moet in `tags` staan om
 een tip te tonen en in de voortgang mee te tellen).
 
+### Kaarten voor de studiemodule (flashcards)
+Een vak levert optioneel `kaarten(instellingen)` en `kaartUnits` (de onderdelen die kaarten hebben).
+`kaarten(null)` geeft alle kaarten van het vak; met instellingen enkel die van de keuze (onderdelen, bereik, richting).
+Een kaart: `{ key, unit, soort, ask, front, back, info?, tip?, page?, label, frontCls?, backCls?, g?/backG? (m|f: kleur
+van het geslacht), lang? ("fr" = uitspraakknop), na? }`.
+- **`key` = dezelfde sleutel als de toetsvraag** (bv. `vertalen:351`): dan verplaatst een juist/fout antwoord in een
+  toets ook de kaart in de herhaaldozen.
+- **`na`**: de kaart komt pas als de genoemde kaart zit (doos 2+), bv. eerst de betekenis, dan de middenkolom;
+  eerst FR → NL, dan NL → FR.
+- Onderdelen zonder kaarten (grammatica, figuren) krijgen in de planning automatisch dagelijkse oefenreeksen,
+  waarvan het niveau stijgt zodra het zit.
+
 ## 4. Werkwijze met Claude (van foto's naar toets)
 1. Foto's van de cursus in een map (bv. `261107 Briek Wiskunde 2de latijn`).
 2. Laat Claude de leerstof uitlezen naar `leerstof.json` (context) en `inhoud.js` (wat de app gebruikt).
@@ -66,7 +78,9 @@ De voortgang staat in de browser van de leerling (localStorage, sleutel `oefento
 de site raakt die gegevens niet, zolang je deze regels volgt:
 - **Adres niet wijzigen.** De gegevens horen bij het adres (`www.dirkdhaenens.com`). Een ander domein of een andere
   repo-naam = een lege voortgang (dan via *Reservekopie maken* / *terugzetten* overzetten).
-- **Sleutel niet wijzigen.** `KEY` in `js/core/store.js` blijft `oefentoetsen-v1`, ook al heet de structuur nu versie 2.
+- **Sleutel niet wijzigen.** `KEY` in `js/core/store.js` blijft `oefentoetsen-v1`, ook al heet de structuur nu versie 3.
+- **Kaartsleutels niet hernummeren.** De herhaaldozen hangen aan de `key` van elke kaart (bv. `vertalen:351`,
+  `rappelle:3:fr-nl`). Nieuwe woorden achteraan of met een nieuw nummer toevoegen; bestaande sleutels laten staan.
 - **Structuur aanpassen = migratie.** Verhoog `VERSION` en voeg in `MIGRATIONS` een stap toe die oude gegevens omzet
   en aanvult. Nooit velden verwijderen of de gegevens leegmaken. Vóór elke migratie wordt automatisch een
   reservekopie gemaakt (`oefentoetsen-backup-…`, de laatste 3 blijven).

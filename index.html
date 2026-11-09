@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=7">
+  <link rel="stylesheet" href="css/style.css?v=8">
 </head>
 <body data-theme="indigo">
   <header class="topbar">
@@ -35,6 +35,7 @@
   <main>
     <!-- 0. HOOFDMENU -->
     <section id="screen-home" class="screen">
+      <div id="todayBox"></div>
       <div class="card hero">
         <span class="badge">✨ Oefen op jouw maat</span>
         <h1>Kies een vak</h1>
@@ -56,6 +57,18 @@
         <div id="setupBody"></div>
         <button id="startBtn" class="primary big">Start de toets 🚀</button>
         <div id="setupMsg" class="msg"></div>
+        <div class="studyrow">
+          <button id="flashBtn" type="button" class="hidden">🃏 Flashcards</button>
+          <button id="planBtn" type="button">📅 Plan een toets met deze keuze</button>
+        </div>
+        <form id="planForm" class="planform hidden">
+          <div class="section-label">📅 Toets plannen</div>
+          <label>Naam van de toets <input id="planNaam" class="answer" maxlength="80" autocomplete="off" placeholder="bv. Woorden 3.3–3.6 (leeg = automatisch)"></label>
+          <label>Datum van de toets <input id="planDatum" class="answer" type="date"></label>
+          <div id="planInfo" class="muted small"></div>
+          <p class="muted small">De leerstof is de keuze hierboven (onderdelen<span class="nowrap">, bereik, richting</span>). De app verdeelt de kaarten over de dagen tot de toets en plant proeftoetsen in de laatste dagen.</p>
+          <div class="actions left"><button type="submit" id="planSave" class="primary">📅 Bewaar in mijn planning</button><button type="button" id="planCancel" class="ghost small">Annuleer</button></div>
+        </form>
         <button id="errorQuizBtn" class="big errorbtn hidden">🎯 Toets op basis van mijn fouten</button>
         <div id="errorQuizInfo" class="msg"></div>
       </div>
@@ -105,6 +118,7 @@
         <div id="mistakeList"></div>
       </div>
       <div class="actions">
+        <button id="todayBtn" class="primary hidden">📅 Terug naar Vandaag</button>
         <button id="retryMistakesBtn" class="primary">🔁 Oefen opnieuw</button>
         <button id="againBtn">Nieuwe toets, zelfde instellingen</button>
         <button id="resultProgressBtn">📈 Mijn voortgang</button>
@@ -130,7 +144,54 @@
         <button id="clearBtn" class="small ghost">Wis voortgang</button>
       </div>
     </section>
+
+    <!-- 5. MIJN TOETSEN (planning) -->
+    <section id="screen-plan" class="screen">
+      <div class="card hero">
+        <span class="badge">📅 Mijn toetsen</span>
+        <h1 id="planName"></h1>
+        <p class="lead small">Plan een toets: de app verdeelt het studeren over de dagen ervoor, met flashcards, herhaling op het juiste moment en proeftoetsen op het einde.</p>
+        <div class="actions"><button id="planNew" class="primary">+ Nieuwe toets plannen</button><button id="icsBtn" class="small">🗓️ In mijn agenda (.ics)</button><a class="btnlink small ghost" href="#instellingen">⚙️ Instellingen</a></div>
+      </div>
+      <div id="planBody"></div>
+    </section>
+
+    <!-- 6. FLASHCARDS -->
+    <section id="screen-study" class="screen">
+      <div class="card status">
+        <div><div id="stCounter" class="counter"></div><div class="muted" id="stTitle"></div></div>
+        <div class="progress"><div id="stBar" class="pbar"></div></div>
+        <button id="stStop" type="button" class="small ghost">Stop</button>
+      </div>
+      <div class="card flash" id="stCard">
+        <div id="stSoort" class="fsoort"></div>
+        <div id="stAsk" class="fask"></div>
+        <div id="stFront" class="ffront"></div>
+        <div id="stBack" class="fback hidden"></div>
+        <div id="stBtns" class="fbtns"></div>
+      </div>
+      <div class="card hidden" id="stEnd"></div>
+    </section>
+
+    <!-- 7. STUDIE-INSTELLINGEN -->
+    <section id="screen-studiecfg" class="screen">
+      <div class="card hero">
+        <span class="badge">⚙️ Studie-instellingen</span>
+        <h1 id="cfgName"></h1>
+        <p class="lead small">Geldt voor deze leerling op dit toestel. De planning past zich meteen aan.</p>
+        <div id="cfgBody"></div>
+      </div>
+    </section>
   </main>
+
+  <form id="pinBox" class="pinbox hidden">
+    <div class="card">
+      <h2>🔒 Pincode van de ouder</h2>
+      <input id="pinInput" class="answer" type="password" inputmode="numeric" maxlength="4" autocomplete="off">
+      <div id="pinMsg" class="msg"></div>
+      <div class="actions"><button type="submit" class="primary">OK</button><button type="button" id="pinCancel" class="ghost">Annuleer</button></div>
+    </div>
+  </form>
 
   <footer class="footer">
     <div id="extraLinks" class="extra"></div>
@@ -139,21 +200,23 @@
   <div id="toast" class="toast"></div>
 
   <!-- kern -->
-  <script src="js/config.js?v=7"></script>
-  <script src="js/core/analytics.js?v=7"></script>
-  <script src="js/core/vakken.js?v=7"></script>
-  <script src="js/core/store.js?v=7"></script>
-  <script src="js/core/geo.js?v=7"></script>
+  <script src="js/config.js?v=8"></script>
+  <script src="js/core/analytics.js?v=8"></script>
+  <script src="js/core/vakken.js?v=8"></script>
+  <script src="js/core/store.js?v=8"></script>
+  <script src="js/core/geo.js?v=8"></script>
+  <script src="js/core/studie.js?v=8"></script>
   <!-- vakken: per vak eerst de inhoud, dan de logica -->
-  <script src="vakken/frans-5a/inhoud.js?v=7"></script>
-  <script src="vakken/frans-5a/vak.js?v=7"></script>
-  <script src="vakken/frans-2-t2/inhoud.js?v=7"></script>
-  <script src="vakken/frans-2-t2/vak.js?v=7"></script>
-  <script src="vakken/wiskunde-2-m01/inhoud.js?v=7"></script>
-  <script src="vakken/wiskunde-2-m01/vak.js?v=7"></script>
-  <script src="vakken/latijn-2/inhoud.js?v=7"></script>
-  <script src="vakken/latijn-2/vak.js?v=7"></script>
+  <script src="vakken/frans-5a/inhoud.js?v=8"></script>
+  <script src="vakken/frans-5a/vak.js?v=8"></script>
+  <script src="vakken/frans-2-t2/inhoud.js?v=8"></script>
+  <script src="vakken/frans-2-t2/vak.js?v=8"></script>
+  <script src="vakken/wiskunde-2-m01/inhoud.js?v=8"></script>
+  <script src="vakken/wiskunde-2-m01/vak.js?v=8"></script>
+  <script src="vakken/latijn-2/inhoud.js?v=8"></script>
+  <script src="vakken/latijn-2/vak.js?v=8"></script>
   <!-- interface -->
-  <script src="js/core/app.js?v=7"></script>
+  <script src="js/core/studie-ui.js?v=8"></script>
+  <script src="js/core/app.js?v=8"></script>
 </body>
 </html>

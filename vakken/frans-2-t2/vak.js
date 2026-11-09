@@ -307,6 +307,27 @@
   }
 
   // ============================================================
+  // KAARTEN (studiemodule): per woord eerst herkennen (FR → NL), dan zelf schrijven (NL → FR)
+  // ============================================================
+  const gOf = (w) => (w.g === "m" || w.g === "f" ? w.g : "");
+  function kaarten(s) {
+    const sel = s && Array.isArray(s.units) ? s.units : null;
+    const dir = (s && s.dir) || "both";
+    const dirs = dir === "both" ? ["fr-nl", "nl-fr"] : [dir];
+    const out = [];
+    UNITS.filter((u) => u.vocab && (!sel || sel.includes(u.id))).forEach((u) => u.cases().forEach(({ w, i }) => {
+      const page = w.p || u.page, zin = w.zin ? esc(w.zin.replace(/\[([^\]]+)\]/, "$1")) : "", g = gOf(w);
+      const gl = g && /^(l'|les )/i.test(w.fr) ? ` <small>(${g})</small>` : "";
+      const icon = w.icon ? `<span class="icon">${w.icon}</span>` : "";
+      dirs.forEach((d) => out.push(d === "fr-nl"
+        ? { key: `${u.id}:${i}:fr-nl`, unit: u.id, soort: "FR ➔ NL", ask: "Wat betekent dit?", front: esc(w.fr) + gl, g, back: icon + esc(w.nl), info: zin ? `<i>${zin}</i>` : "", page, label: `${w.fr} = ${w.nl}`, lang: "fr" }
+        : { key: `${u.id}:${i}:nl-fr`, unit: u.id, soort: "NL ➔ FR", ask: g ? "Hoe zeg je dit in het Frans (met lidwoord)?" : "Hoe zeg je dit in het Frans?", front: icon + esc(w.nl), back: esc(w.fr) + gl, backG: g, info: zin ? `<i>${zin}</i>` : "", tip: w.hint_nl ? esc(w.hint_nl) : "", page, label: `${w.nl} = ${w.fr}`, lang: "fr",
+            na: dirs.length > 1 ? `${u.id}:${i}:fr-nl` : undefined }));
+    }));
+    return out;
+  }
+
+  // ============================================================
   // Aansluiting op de gedeelde app
   // ============================================================
   Vakken.register({
@@ -338,6 +359,7 @@
     statusText: { accent: "Bijna: let op het accent.", article: "Het woord is juist, maar het lidwoord niet.", spelling: "Bijna: één letter fout." },
     tags: TAGS,
     makeQuiz, countAll, check, conclusions, regen, fromKey,
+    kaarten, kaartUnits: UNITS.filter((u) => u.vocab).map((u) => u.id),
     _UNITS: UNITS, // voor tests
   });
 })();

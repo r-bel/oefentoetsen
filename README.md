@@ -15,6 +15,8 @@ js/core/vakken.js           vakkenregister + beschrijving van de vak-interface
 js/core/store.js            voortgang in de browser (localStorage), per leerling-profiel
 js/core/app.js              gedeelde interface: menu, instellingen, antwoordmodi, verbetering, resultaat, voortgang
 js/core/geo.js              SVG-tekenhulp (roosters, assenstelsels, figuren) – herbruikbaar voor elk meetkundevak
+js/core/studie.js           studiemodule: herhaalschema (Leitner) + adaptieve dagplanning (pure logica, testbaar)
+js/core/studie-ui.js        studiemodule: Vandaag oefenen, Mijn toetsen, flashcards, studie-instellingen
 js/core/analytics.js        optionele, anonieme bezoekersstatistieken (GoatCounter), standaard UIT
 vakken/<id>/inhoud.js       de LEERSTOF van dat vak  → hier stuur je inhoud bij
 vakken/<id>/vak.js          de VRAAGTYPES + verbetering van dat vak → hier stuur je vragen/logica bij
@@ -59,7 +61,11 @@ welk vak geopend, toets gestart/afgerond per vak en niveau. Geen namen, antwoord
    (werkpunten, terugkerende fouttypes, moeilijke items, trend). Die kan later naar een AI gestuurd worden voor
    persoonlijke tips of een gerichte oefenreeks. Opties: (a) de leerling/ouder kopieert de samenvatting naar een
    AI-assistent, (b) een kleine serverless functie met eigen API-sleutel (de sleutel mag niet in de publieke site).
-2. Spaced repetition: woorden/vragen uit "Blijft moeilijk" vaker laten terugkomen.
+2. Studiemodule (plan: zie het document "Plan: studiemodule Oefentoetsen").
+   **Fase 1 is klaar**: toets plannen met datum, "Vandaag oefenen" over alle vakken, flashcards met
+   Leitner-dozen, adaptieve dagplanning, proeftoetsen in de laatste dagen, agendabestand (.ics),
+   studie-instellingen per leerling (tijd per dag, studiedagen, pincode voor de ouder, gedeeld toestel).
+   Volgende fases: leerdoelen + leerkaarten (begrijpen), stappenplannen/uitspraak per vak, reflectie en AI-hulp.
 3. Meer vakken/hoofdstukken (zie `docs/VAK-TOEVOEGEN.md`).
 4. Semi-commercieel: koffieknop (klaar, staat uit), suggestiemail, eigen domein.
    Let op auteursrecht: inhoud komt uit uitgeverscursussen – voor publiek gebruik eerst nagaan wat mag.

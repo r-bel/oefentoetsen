@@ -2,7 +2,7 @@
 // Store: voortgang lokaal in de browser (localStorage).
 // Geen server, geen login. Per toestel/browser, per leerling-profiel.
 //
-// Structuur (versie 2; versie 1 had nog geen desc/mode/sel/meta):
+// Structuur (versie 3; v1 had nog geen desc/mode/sel/meta, v2 nog geen studie):
 // {
 //   version: 1, active: "<profielId>",
 //   profiles: {
@@ -13,6 +13,11 @@
 //                     units: { unitId: [ok, n] }, tags: { tag: n },
 //                     mistakes: [ { unit, tag, item } ] } ],
 //       items:    { "<vakId>": { "<key>": { ok, n, last, label, unit } } }
+//       studie:   { cfg: { instellingen per leerling (zie core/studie.js DEFAULTS) },
+//                   toetsen: [ { id, vak, naam, datum "JJJJ-MM-DD", sel: instellingen, created } ],
+//                   kaarten: { "<vakId>": { "<key>": { b doos, d volgende, f eerst, l laatst, n, ok } } },
+//                   log:     { "JJJJ-MM-DD": { n kaarten, sec, ok } },
+//                   recent:  { "<vakId>": [1,0,1,…] laatste beoordelingen }, sec: gemeten s/kaart }
 //     }
 //   }
 // }
@@ -30,7 +35,7 @@
   //    reservekopie gemaakt (BACKUP_PREFIX + datum, de laatste 3 blijven bewaard).
   // ------------------------------------------------------------
   const KEY = "oefentoetsen-v1";             // naam is historisch; NIET wijzigen
-  const VERSION = 2;                          // huidige structuurversie
+  const VERSION = 3;                          // huidige structuurversie
   const ROLLING = "oefentoetsen-reserve";     // kopie van de vorige toestand (na elke toets bijgewerkt)
   const BACKUP_PREFIX = "oefentoetsen-backup-";
   const MAX_SESSIONS = 300, MAX_ITEMS = 800, MAX_MISTAKES = 25;
@@ -48,7 +53,15 @@
       d.meta = d.meta || { created: new Date().toISOString(), lastExport: null };
       return d;
     },
+    // 2 → 3: studiemodule (toetsen plannen, kaarten met herhaalschema)
+    2: (d) => { Object.values(d.profiles || {}).forEach(ensure); return d; },
   };
+  function ensure(p) {
+    p.prefs = p.prefs || {}; p.items = p.items || {}; p.sessions = p.sessions || [];
+    const s = (p.studie = p.studie || {});
+    s.cfg = s.cfg || {}; s.toetsen = s.toetsen || []; s.kaarten = s.kaarten || {}; s.log = s.log || {}; s.recent = s.recent || {};
+    return p;
+  }
 
   const ls = {
     get: (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } },
@@ -62,7 +75,7 @@
     ls.keys().filter((k) => k.startsWith(BACKUP_PREFIX)).sort().slice(0, -3).forEach(ls.del); // laatste 3 houden
   }
   const parse = (raw) => { try { const d = JSON.parse(raw); return d && typeof d === "object" && d.profiles ? d : null; } catch (e) { return null; } };
-  const hasData = (d) => d && Object.values(d.profiles || {}).some((p) => (p.sessions || []).length);
+  const hasData = (d) => d && Object.values(d.profiles || {}).some((p) => (p.sessions || []).length || (p.studie && ((p.studie.toetsen || []).length || Object.keys(p.studie.kaarten || {}).length)));
 
   let mem = null; // werkt ook als localStorage geblokkeerd is (dan enkel tijdens dit bezoek)
   function load() {
@@ -113,8 +126,9 @@
   }
   // vraag de browser om de gegevens niet zomaar op te ruimen (Chrome/Firefox/Edge; Safari beperkt)
   try { if (navigator.storage && navigator.storage.persist) navigator.storage.persisted().then((p) => { if (!p) navigator.storage.persist(); }); } catch (e) {}
-  function newProfile(name) { return { name, created: new Date().toISOString(), prefs: {}, sessions: [], items: {} }; }
-  const P = () => { const d = load(); if (!d.profiles[d.active]) d.active = Object.keys(d.profiles)[0]; return d.profiles[d.active]; };
+  function newProfile(name) { return ensure({ name, created: new Date().toISOString(), prefs: {}, sessions: [], items: {} }); }
+  const P = () => { const d = load(); if (!d.profiles[d.active]) d.active = Object.keys(d.profiles)[0]; return ensure(d.profiles[d.active]); };
+  const S = () => P().studie;
 
   const Store = {
     // ---------- profielen ----------
@@ -148,7 +162,7 @@
       });
       const date = new Date().toISOString();
       p.sessions.push({
-        id: uid(), vak, date, level: settings.level, count: settings.count, isRetry: !!settings.isRetry, mode: settings.mode || "",
+        id: uid(), vak, date, level: settings.level, count: settings.count, isRetry: !!settings.isRetry, mode: settings.mode || "", plan: settings.plan || "",
         desc: settings.desc || "", sel: Array.isArray(settings.units) ? settings.units.slice(0, 40) : [],
         total: results.length, points, pct: Math.round((points / results.length) * 100), units, tags,
         mistakes: results.filter((r) => r.status !== "correct").slice(0, MAX_MISTAKES)
@@ -214,16 +228,44 @@
         // alle leerlingen terugzetten: toevoegen naast wat er al is (niets overschrijven)
         backup(ls.get(KEY), "voor-import");
         let d = obj.data; for (let x = d.version || 1; x < VERSION; x++) if (MIGRATIONS[x]) d = MIGRATIONS[x](d);
-        Object.values(d.profiles).forEach((p) => { load().profiles[uid()] = p; });
+        Object.values(d.profiles).forEach((p) => { load().profiles[uid()] = ensure(p); });
         save(); return mem.active;
       }
       if (!obj || obj.app !== "oefentoetsen" || !obj.profile || !Array.isArray(obj.profile.sessions)) throw new Error("Geen geldig voortgangsbestand.");
-      let p = obj.profile;
-      if ((obj.version || 1) < VERSION) p = MIGRATIONS[1]({ profiles: { x: p } }).profiles.x;
-      const id = uid(); load().profiles[id] = p; mem.active = id; save(); return id;
+      let w = { profiles: { x: obj.profile } };
+      for (let x = obj.version || 1; x < VERSION; x++) if (MIGRATIONS[x]) w = MIGRATIONS[x](w);
+      const id = uid(); load().profiles[id] = ensure(w.profiles.x); mem.active = id; save(); return id;
     },
     lastExport: () => (load().meta || {}).lastExport || null,
-    clearProgress() { backup(ls.get(KEY), "voor-wissen"); const p = P(); p.sessions = []; p.items = {}; save(); ls.del(ROLLING); },
+    clearProgress() { backup(ls.get(KEY), "voor-wissen"); const p = P(); p.sessions = []; p.items = {}; p.studie.kaarten = {}; p.studie.log = {}; p.studie.recent = {}; save(); ls.del(ROLLING); },
+
+    // ---------- studiemodule ----------
+    studieCfg: () => S().cfg,
+    setStudieCfg(c) { S().cfg = { ...S().cfg, ...c }; save(); },
+    toetsen: () => S().toetsen.slice().sort((a, b) => (a.datum < b.datum ? -1 : 1)),
+    toets: (id) => S().toetsen.find((t) => t.id === id) || null,
+    saveToets(t) {
+      const list = S().toetsen, i = list.findIndex((x) => x.id === t.id);
+      if (i >= 0) list[i] = { ...list[i], ...t }; else list.push({ id: uid(), created: new Date().toISOString(), ...t });
+      save(true); return i >= 0 ? t.id : list[list.length - 1].id;
+    },
+    deleteToets(id) { backup(ls.get(KEY), "voor-toets-verwijderen"); S().toetsen = S().toetsen.filter((t) => t.id !== id); save(); },
+    kaarten: (vak) => (S().kaarten[vak] = S().kaarten[vak] || {}),
+    // e = nieuwe toestand van een kaart; ok = beoordeling juist (voor de trefzekerheid)
+    setKaart(vak, key, e, ok, sec) {
+      const st = S(); (st.kaarten[vak] = st.kaarten[vak] || {})[key] = e;
+      if (ok !== undefined) { const r = (st.recent[vak] = st.recent[vak] || []); r.push(ok ? 1 : 0); if (r.length > 40) r.splice(0, r.length - 40); }
+      if (sec) st.sec = st.sec ? Math.round((st.sec * 0.85 + Math.min(60, sec) * 0.15) * 10) / 10 : Math.min(60, sec);
+      save();
+    },
+    recentAcc(vak) { const r = S().recent[vak] || []; return r.length >= 8 ? r.reduce((a, b) => a + b, 0) / r.length : null; },
+    secPerKaart: () => S().sec || null,
+    logDay(day, add) { const l = (S().log[day] = S().log[day] || { n: 0, sec: 0, ok: 0 }); Object.entries(add).forEach(([k, v]) => (l[k] = (l[k] || 0) + v)); save(); },
+    log: () => S().log,
+    // dagdoel nieuwe kaarten per toets: één keer per dag vastgelegd, zodat het niet verschuift tijdens het oefenen
+    dayTarget(day, tid, val) { const st = S(); if (!st.dt || st.dt.day !== day) st.dt = { day, t: {} }; if (val === undefined) return st.dt.t[tid]; st.dt.t[tid] = val; save(); },
+    meta(k, v) { const d = load(); d.meta = d.meta || {}; if (v === undefined) return d.meta[k]; d.meta[k] = v; save(); },
+    commit: () => save(true), // na een studiesessie: reservekopie bijwerken
     strip,
   };
   window.Store = Store;
