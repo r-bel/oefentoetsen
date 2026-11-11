@@ -461,7 +461,7 @@
     W(415, "3.9", "pervenīre, ~iō", "pervēnī, perventum", "aankomen", "ww", { verv: 4, vet: true }),
     W(416, "3.9", "fierī, fīō", "factus sum", "worden; gebeuren; gemaakt worden", "ww", { verv: "onr", dep: true, afl: "Eng. the fact" }),
     // ---------- 4.2 (Roma antiqua) ----------
-    W(417, "4.2", "ager", "agri", "het veld", "nw", { gs: "m", dekl: 2, vet: true }),
+    W(417, "4.2", "ager", "agrī", "het veld", "nw", { gs: "m", dekl: 2, vet: true }),
     W(418, "4.2", "minister", "ministrī", "de dienaar", "nw", { gs: "m", dekl: 2 }),
     W(419, "4.2", "aqua", "aquae", "het water", "nw", { gs: "v", dekl: 1, vet: true }),
     W(420, "4.2", "lingua", "linguae", "de tong; de taal", "nw", { gs: "v", dekl: 1 }),
@@ -942,7 +942,8 @@
   };
 
   // ---------- namen van verbuigingen en vervoegingen (pas aan aan de termen van de klas) ----------
-  const DEKL_NAAM = { 1: "1e verbuiging", 2: "2e verbuiging", 3: "3e verbuiging", 4: "4e verbuiging", 5: "5e verbuiging" };
+  // de klas spreekt van "klassen": 1e klasse (avus, rosa, dōnum), 2e klasse (dux, māter, corpus), 3e klasse (fructus, rēs)
+  const DEKL_NAAM = { 1: "1e klasse (rosa)", 2: "1e klasse (avus / dōnum)", 3: "2e klasse (dux / corpus)", 4: "3e klasse (fructus)", 5: "3e klasse (rēs)" };
   const DEKL_REGEL = { 1: "genitief op -ae", 2: "genitief op -ī", 3: "genitief op -is", 4: "genitief op -ūs", 5: "genitief op -eī" };
   const VERV_NAAM = { 1: "1e vervoeging (-āre)", 2: "2e vervoeging (-ēre, ~eō)", 3: "3e vervoeging (-ere, ~ō)", "3io": "3e vervoeging op -iō (-ere, ~iō)", 4: "4e vervoeging (-īre, ~iō)", onr: "onregelmatig (esse, īre, ferre …)" };
   const GS_NAAM = { m: "mannelijk", v: "vrouwelijk", o: "onzijdig" };
@@ -954,7 +955,18 @@
     betekenis: { title: "Betekenis", short: "betekenis", advice: "Leer de woorden met afdekken: lees het Latijnse woord, zeg de vertaling, controleer.", page: "" },
     middenkolom: { title: "Middenkolom (genitief / stamtijden)", short: "middenkolom", advice: "Leer de middenkolom altijd mee: bij een naamwoord de genitief (en het geslacht), bij een werkwoord perfectum en supinum.", page: "" },
     geslacht: { title: "Geslacht vergeten of fout", short: "geslacht", advice: "Bij de 3e verbuiging staat het geslacht in de middenkolom (m., v., o.): leer het mee.", page: "" },
-    verbuiging: { title: "Verbuiging herkennen", short: "verbuiging", advice: "Kijk naar de genitief: -ae = 1e, -ī = 2e, -is = 3e, -ūs = 4e verbuiging.", page: "" },
+    verbuiging: { title: "Klasse en model herkennen", short: "klasse", advice: "Kijk naar de genitief in de woordenlijst: -ae / -ī = 1e klasse (rosa, avus, dōnum), -is = 2e klasse (dux, māter, corpus), -ūs / -eī = 3e klasse (fructus, rēs).", page: "" },
+    vormen: { title: "Vormen van substantieven", short: "vormen", advice: "Herhaal de modeltabellen (leerkaarten 'Tabel'): stam (= genitief zonder uitgang) + uitgang van het model.", page: "" },
+    bepalen: { title: "Naamval, genus en getal bepalen", short: "bepalen", advice: "Zoek eerst het model en het geslacht van het woord, vergelijk dan de uitgang met de tabel. Denk aan vormen die meer dan één naamval kunnen zijn.", page: "" },
+    congruentie: { title: "Congruentie in de naamwoordgroep", short: "congruentie", advice: "Bepaal naamval en getal van de hele groep (adjectief + substantief) en zoek de vorm die daarbij past.", page: "" },
+    adjectief: { title: "Adjectieven 2e klasse", short: "adjectief", advice: "Ken de drie groepen (fēlīx · fortis · ācer) en de uitgangen: abl. enk. -ī, gen. mv. -ium, nom./acc. mv. onzijdig -ia.", page: "" },
+    bepalen_ww: { title: "Werkwoordsvorm bepalen", short: "determineren", advice: "Gebruik de tempel: vorm – wijs – tijd – persoon – getal. -ba- = imperfectum; -b- + bindklinker of -ē-/-a- = futurum.", page: "" },
+    vormen_ww: { title: "Werkwoordsvormen maken", short: "vervoegen", advice: "Herhaal de tabellen per model (leerkaarten 'Tabel') en de onregelmatige werkwoorden.", page: "" },
+    splitsen: { title: "Futurum splitsen", short: "splitsen", advice: "amāre/monēre: stam + b + (bindklinker) + uitgang. tegere/audīre/capere: stam + ē (a in de 1ste p. enk.) + uitgang.", page: "" },
+    tijd: { title: "Tijden verwarren", short: "tijd", advice: "Let op de verwar-niet-paren: tegēs ↔ tegis, tegēris ↔ tegeris, monēs (praesens!), monēbit ↔ monēbat, erunt ↔ erant.", page: "" },
+    herkennen_ww: { title: "Werkwoord herkennen", short: "herkennen", advice: "Haal tijdkenmerk en uitgang weg en zoek de infinitief. Leer de onregelmatige futura: erō, poterō, ībō, fīam, feram, volam.", page: "" },
+    vertalen_ww: { title: "Werkwoordsvormen vertalen", short: "vertalen", advice: "praesens = tegenwoordige tijd, imperfectum = onvoltooid verleden tijd (hij beminde), futurum = onvoltooid toekomende tijd (hij zal beminnen). Passief met 'worden'.", page: "" },
+    regels: { title: "Regels en begrippen", short: "regels", advice: "Herhaal de leerkaarten 'Regel' in de studiemodule.", page: "" },
     vervoeging: { title: "Vervoeging herkennen", short: "vervoeging", advice: "Kijk naar de infinitief én de 1e persoon: -āre = 1e, -ēre/~eō = 2e, -ere/~ō = 3e, -ere/~iō = 3e op -iō, -īre/~iō = 4e. Samenstellingen van esse, īre, ferre zijn onregelmatig.", page: "" },
     woordvorming: { title: "Woordvorming", short: "woordvorming", advice: "-tor/-sor = de persoon die handelt, -or = de handeling, -ium = het resultaat. ad- = naar, (tot) bij; ab- = weg van; trā(ns)- = over.", page: "" },
     naamval: { title: "Werkwoorden met datief", short: "naamval", advice: "Let op '+ dat.' in de woordenlijst: crēdere, accēdere, adesse, placēre … worden met een datief gebruikt.", page: "" },
@@ -964,7 +976,7 @@
 
   Vakken.setInhoud("latijn-2", {
     vak: "Latijn", icon: "🏛️", theme: "amber", klas: "2de middelbaar",
-    titel: "Woordenschat & woordvorming", bron: "woordenlijst caput 1-8 (nrs. 1–833)",
+    titel: "Woordenschat & grammatica", bron: "woordenlijst caput 1-8 (nrs. 1–833) + grammatica (klassen, datief, tijden)",
     CAPITA: { 1: "Oraculum", 2: "Troia", 3: "Itinera", 4: "Roma antiqua", 5: "Etrusci", 6: "Res coquinaria", 7: "Res militaris", 8: "Princeps" },
     WOORDEN, ACHTERVOEGSELS, VOORVOEGSELS, DEKL_NAAM, DEKL_REGEL, VERV_NAAM, GS_NAAM, TAGS,
   });

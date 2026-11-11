@@ -326,6 +326,13 @@ a.chipbtn { text-decoration: none; color: var(--ink); display: inline-flex; gap:
 .orderpool { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
 .chunk { padding: 10px 14px; border-radius: 12px; background: #273449; font-size: 1.02rem; }
 .chunk.on { background: var(--rose-soft); border-color: rgba(var(--acc-rgb), .5); }
+/* bepalen: keuzerijen */
+.picks { display: grid; gap: 10px; }
+.pickrow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.picklbl { min-width: 6.5em; font-weight: 700; font-size: .92rem; color: #cbd5e1; }
+.pickopts { display: flex; flex-wrap: wrap; gap: 6px; }
+.pick { padding: 8px 12px; border-radius: 10px; background: var(--inner); font-size: .95rem; min-width: 44px; }
+.pick.on { background: var(--rose-soft); border-color: rgba(var(--acc-rgb), .7); font-weight: 700; }
 .prompt .icon { font-size: 2.2rem; display: block; line-height: 1.2; margin-bottom: 4px; }
 
 /* foutgerichte toets en geschiedenis */
@@ -466,3 +473,9 @@ input[type="date"], input[type="time"] { color-scheme: dark; }
 .options:has(.clockopt) { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
 .numline { color: var(--ink); }
 .mistake .thumb .numline { max-width: 360px; }
+
+/* grammaticatabellen op leerkaarten */
+table.ptab { border-collapse: collapse; margin: 6px auto; font-size: .95rem; }
+table.ptab th, table.ptab td { padding: 3px 10px; border-bottom: 1px solid var(--line); text-align: left; }
+table.ptab th { font-weight: 600; color: #cbd5e1; font-size: .82rem; }
+table.ptab td.latin { font-weight: 700; }

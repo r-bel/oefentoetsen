@@ -356,6 +356,16 @@
         if (e.key === "Enter" && nxt && !nxt.value) { e.preventDefault(); e.stopPropagation(); nxt.focus(); }
       }));
       setTimeout(() => $("#fld0") && $("#fld0").focus(), 30);
+    } else if (q.mode === "pick") {
+      // bepalen: per rij één keuze (bv. naamval · genus · getal, of vorm · tijd · persoon · getal)
+      state.picks = q.picks.map(() => null);
+      area.innerHTML = `<div class="picks">${q.picks.map((r, i) => `<div class="pickrow"><span class="picklbl">${esc(r.label)}</span><div class="pickopts">${r.opts.map((o) => `<button type="button" class="pick" data-r="${i}" data-v="${esc(o.v)}">${o.html || esc(o.v)}</button>`).join("")}</div></div>`).join("")}</div>`;
+      $$("#qAnswerArea .pick").forEach((b) => b.addEventListener("click", () => {
+        if (state.answered) return;
+        const r = +b.dataset.r;
+        state.picks[r] = b.dataset.v;
+        $$(`#qAnswerArea .pick[data-r="${r}"]`).forEach((x) => x.classList.toggle("on", x === b));
+      }));
     } else if (q.mode === "click") {
       area.innerHTML = `<div class="clickinfo"><span id="clickStatus"></span><button type="button" id="clearClicks" class="small">Wis</button></div>`;
       $("#clearClicks").addEventListener("click", () => { if (!state.answered) { state.clicks = []; drawClicks(); } });
@@ -404,6 +414,7 @@
     if (q.mode === "coord") { const x = $("#cx").value.trim(), y = $("#cy").value.trim(); return x && y ? `${x};${y}` : ""; }
     if (q.mode === "click") return state.clicks.length === q.nPts ? state.clicks.map((p) => [...p]) : null;
     if (q.mode === "fields") { const v = q.fields.map((f, i) => $(`#fld${i}`).value.trim()); return v.every((x, i) => x || q.fields[i].optional) ? v : null; }
+    if (q.mode === "pick") return state.picks.every((x) => x != null) ? state.picks.slice() : null;
     if (q.mode === "order") return state.order.length === q.chunks.length ? state.order.map((k) => q.chunks[k]).join(" ") : null;
     return $("#answer").value;
   }
@@ -411,6 +422,7 @@
     if (q.mode === "mc") { const o = q.options.find((x) => x.v === g); return o ? o.html : "—"; }
     if (q.givenFmt) return q.givenFmt(g);
     if (q.mode === "fields") return (g || []).map((x, i) => `${q.fields[i].label || ""} ${esc(x)}${q.fields[i].suffix ? " " + esc(q.fields[i].suffix) : ""}`.trim()).join(" · ");
+    if (q.mode === "pick") return (g || []).map((v, i) => { const o = q.picks[i].opts.find((x) => x.v === v); return o ? o.html || esc(o.v) : "—"; }).join(" · ");
     if (q.mode === "click") return (g || []).map((p, i) => `${q.names[i]}(${fmtN(p[0])}, ${fmtN(p[1])})`).join(" ");
     if (q.mode === "coord") return g ? `(${esc(g.replace(";", ", "))})` : "—";
     return esc(g || "—");
@@ -422,7 +434,7 @@
     const given = readGiven(q);
     if (given == null || given === "" || (typeof given === "string" && !given.trim())) {
       $("#qFeedback").className = "feedback warn";
-      $("#qFeedback").textContent = q.mode === "fields" ? "Vul alle vakjes in." : q.mode === "order" ? "Gebruik alle stukken om de zin te maken." : q.mode === "click" ? `Duid eerst ${q.nPts} punt(en) aan.` : q.mode === "coord" ? "Vul beide coördinaten in." : "Geef eerst een antwoord.";
+      $("#qFeedback").textContent = q.mode === "fields" ? "Vul alle vakjes in." : q.mode === "pick" ? "Maak in elke rij een keuze." : q.mode === "order" ? "Gebruik alle stukken om de zin te maken." : q.mode === "click" ? `Duid eerst ${q.nPts} punt(en) aan.` : q.mode === "coord" ? "Vul beide coördinaten in." : "Geef eerst een antwoord.";
       return;
     }
     const r = vak.check(given, q, state.settings.level);
@@ -443,7 +455,7 @@
       else if (b.classList.contains("selected")) b.classList.add("wrongopt");
       b.disabled = true;
     });
-    else { $$("#qAnswerArea input").forEach((i) => (i.readOnly = true)); $$("#qAnswerArea .chunk").forEach((b) => (b.disabled = true)); }
+    else { $$("#qAnswerArea input").forEach((i) => (i.readOnly = true)); $$("#qAnswerArea .chunk, #qAnswerArea .pick").forEach((b) => (b.disabled = true)); }
     if (q.solutionSvg && r.status !== "correct") {
       $("#qFigure").innerHTML = q.solutionSvg;
       if (q.mode === "click") drawGiven($("#qFigure svg"), given);
