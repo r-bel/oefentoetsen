@@ -136,12 +136,20 @@
     spelling: { title: "Spelling van telwoorden", short: "spelling", advice: "Tot twintig voluit (behalve bij l, kg …), breuk apart (twee derde), tweemaal aan elkaar behalve in formules, miljoen apart.", page: "60" },
     trema: { title: "Trema vergeten", short: "trema", advice: "tweeëntwintig, drieëntwintig: het trema toont dat een nieuwe lettergreep begint.", page: "60" },
     spatie: { title: "Spatie na duizend", short: "spatie", advice: "Na duizend komt een spatie: drieduizend vijfhonderdachtenveertig.", page: "60" },
+    reclame: { title: "Reclame", short: "reclame", advice: "Merk, medium, doelgroep; doel van reclame; slogans met wervende bijvoeglijke naamwoorden; reclame is vaak misleidend.", page: "24-29" },
+    layout: { title: "Lay-out", short: "lay-out", advice: "Structuur, tussentitels, beperkt kleur, weinig vet/cursief, info zichtbaar, witruimte, doelgroep.", page: "31" },
+    uitnodiging: { title: "De uitnodiging", short: "uitnodiging", advice: "Organisator, reden, datum, tijdstip, locatie, meebrengen, inschrijven. Topische vragen: wie, wat, waar, wanneer, waarom, hoe.", page: "36" },
+    woordvorming: { title: "Woordvorming", short: "woordvorming", advice: "Samenstelling = woorden aan elkaar; afleiding = woord + voor-/achtervoegsel (ook verkleinwoorden).", page: "40-43" },
+    trema: { title: "Trema", short: "trema", advice: "Trema bij klinkerbotsing in grondwoorden en afleidingen (reünie), telwoorden (tweeënzestig), verbuiging (industriële) en meervouden op -ie (allergieën). Niet bij oase, industrieel, museum, opticien.", page: "47-48" },
+    koppelteken: { title: "Koppelteken", short: "koppelteken", advice: "Koppelteken in samenstellingen met klinkerbotsing (zee-egel), bij letters/cijfers (cd-speler), aardrijkskundige namen, Sint-, ex-, gelijkwaardige delen, reeksen en om herhaling te vermijden.", page: "50" },
+    bijwoord: { title: "Het bijwoord", short: "bijwoord", advice: "Een bijwoord zegt iets over een werkwoord, bijvoeglijk naamwoord, ander bijwoord, telwoord of de hele zin – niet over een zelfstandig naamwoord.", page: "62" },
+    taalschat: { title: "Taalschat", short: "taalschat", advice: "Herhaal de synoniemen, de werkwoorden voor 'vragen' en de uitdrukkingen (leerkaarten).", page: "66-69" },
     fout: { title: "Fout", short: "fout", advice: "", page: "" },
   };
 
   Vakken.setInhoud("nederlands-2", {
     vak: "Nederlands", icon: "📝", theme: "indigo",
-    titel: "Vragende voornaamwoorden en het telwoord", klas: "2de middelbaar", bron: "les 6-7 (p.53-60)",
+    titel: "Deel 1 – Een warm welkom", klas: "2de middelbaar", bron: "deel 1, les 1-8 + taalschat (p. 23-74)",
     VVN_INVUL, VVN_HERKEN, VVN_VRAAG, TELWOORD_ZINNEN, SOORT_NAAM, SPELLING, BEGRIPPEN, TAGS,
   });
 })();

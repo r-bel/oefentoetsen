@@ -130,8 +130,8 @@
     (v.settings || []).forEach((s) => {
       if (s.type === "radio") html += sec(s.label, `<div class="seg seg${s.options.length}">${s.options.map((o) => `<label><input type="radio" name="x-${s.key}" value="${o.v}" ${o.v === s.default ? "checked" : ""}><span>${o.label}</span></label>`).join("")}</div>`);
       // bereik: "van nr. … tot nr. …" met snelkeuzes (bv. per paragraaf)
-      if (s.type === "range") html += sec(s.label, `<div class="rangebox"><label>van nr. <input type="number" id="x-${s.key}-from" class="answer rangeinp" min="${s.min}" max="${s.max}" value="${s.default[0]}" inputmode="numeric"></label>
-        <label>tot nr. <input type="number" id="x-${s.key}-to" class="answer rangeinp" min="${s.min}" max="${s.max}" value="${s.default[1]}" inputmode="numeric"></label></div>` +
+      if (s.type === "range") html += sec(s.label, `<div class="rangebox"><label>van ${s.word || "nr."} <input type="number" id="x-${s.key}-from" class="answer rangeinp" min="${s.min}" max="${s.max}" value="${s.default[0]}" inputmode="numeric"></label>
+        <label>tot ${s.word || "nr."} <input type="number" id="x-${s.key}-to" class="answer rangeinp" min="${s.min}" max="${s.max}" value="${s.default[1]}" inputmode="numeric"></label></div>` +
         (s.presets ? `<div class="quick rangepresets">${s.presets.map((p, i) => `<button type="button" class="chipbtn" data-range="${s.key}" data-i="${i}">${p.label} <small>${p.v[0]}–${p.v[1]}</small></button>`).join("")}</div>` : "") +
         (s.hint ? `<div class="muted small">${s.hint}</div>` : ""));
     });
@@ -229,7 +229,7 @@
       const val = s[x.key];
       if (val === undefined) return;
       if (x.type === "radio") { const o = x.options.find((o) => o.v === val); if (o) parts.push(plain(x.label).replace(/\s*\(.*\)$/, "") + ": " + plain(o.label)); }
-      else if (x.type === "range" && Array.isArray(val)) parts.push(`nr. ${val[0]}–${val[1]}`);
+      else if (x.type === "range" && Array.isArray(val)) parts.push(`${x.word || "nr."} ${val[0]}–${val[1]}`);
       else if (x.type === "checkbox" && val && (!x.showIf || x.showIf(s)) && s.count === "all") parts.push(plain(x.label));
     });
     parts.push(s.count === "all" ? "eindtoets (alles)" : `${s.count} vragen`);
