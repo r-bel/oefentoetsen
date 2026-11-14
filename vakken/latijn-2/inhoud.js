@@ -966,6 +966,9 @@
     tijd: { title: "Tijden verwarren", short: "tijd", advice: "Let op de verwar-niet-paren: tegēs ↔ tegis, tegēris ↔ tegeris, monēs (praesens!), monēbit ↔ monēbat, erunt ↔ erant.", page: "" },
     herkennen_ww: { title: "Werkwoord herkennen", short: "herkennen", advice: "Haal tijdkenmerk en uitgang weg en zoek de infinitief. Leer de onregelmatige futura: erō, poterō, ībō, fīam, feram, volam.", page: "" },
     vertalen_ww: { title: "Werkwoordsvormen vertalen", short: "vertalen", advice: "praesens = tegenwoordige tijd, imperfectum = onvoltooid verleden tijd (hij beminde), futurum = onvoltooid toekomende tijd (hij zal beminnen). Passief met 'worden'.", page: "" },
+    functies: { title: "Naamvallen en functies", short: "functies", advice: "nom. = O/NWD · acc. = LV (met voorzetsel: BWB) · gen. = BVB (van) · dat. = MV (aan/voor) · abl. = BWB (middel, tijd, plaats, wijze, oorzaak) of HV na ā/ab · voc. = aanspreking.", page: "" },
+    voorzetsels: { title: "Voorzetsels", short: "voorzetsels", advice: "+ acc.: ad, ante, apud, circum, inter, ob, per, post, praeter, trāns · + abl.: ā/ab, cum, dē, ē/ex, prō, sine · in/sub: acc. = richting, abl. = plaats.", page: "" },
+    voornaamwoorden: { title: "Voornaamwoorden", short: "voornaamwoorden", advice: "Herhaal de tabellen (leerkaarten 'Tabel') en let op reflexief (sē, suus = verwijst naar het onderwerp) of niet (eum, eius).", page: "" },
     regels: { title: "Regels en begrippen", short: "regels", advice: "Herhaal de leerkaarten 'Regel' in de studiemodule.", page: "" },
     vervoeging: { title: "Vervoeging herkennen", short: "vervoeging", advice: "Kijk naar de infinitief én de 1e persoon: -āre = 1e, -ēre/~eō = 2e, -ere/~ō = 3e, -ere/~iō = 3e op -iō, -īre/~iō = 4e. Samenstellingen van esse, īre, ferre zijn onregelmatig.", page: "" },
     woordvorming: { title: "Woordvorming", short: "woordvorming", advice: "-tor/-sor = de persoon die handelt, -or = de handeling, -ium = het resultaat. ad- = naar, (tot) bij; ab- = weg van; trā(ns)- = over.", page: "" },
@@ -976,7 +979,7 @@
 
   Vakken.setInhoud("latijn-2", {
     vak: "Latijn", icon: "🏛️", theme: "amber", klas: "2de middelbaar",
-    titel: "Woordenschat & grammatica", bron: "woordenlijst caput 1-8 (nrs. 1–833) + grammatica (klassen, datief, tijden)",
+    titel: "Woordenschat & grammatica", bron: "woordenlijst caput 1-8 (nrs. 1–833) · caput 1-3 per caput: woordenschat en grammatica · grammatica alle capita",
     CAPITA: { 1: "Oraculum", 2: "Troia", 3: "Itinera", 4: "Roma antiqua", 5: "Etrusci", 6: "Res coquinaria", 7: "Res militaris", 8: "Princeps" },
     WOORDEN, ACHTERVOEGSELS, VOORVOEGSELS, DEKL_NAAM, DEKL_REGEL, VERV_NAAM, GS_NAAM, TAGS,
   });

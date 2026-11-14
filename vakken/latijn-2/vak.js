@@ -352,7 +352,6 @@
   const rangeOr = (s, all, min = 4) => { const r = inRange(s).filter((w) => all.includes(w)); return r.length >= min ? r : all; };
   const genOf = (w) => (w.mid || "").split(",")[0].trim();
   const klOk = (s, w) => !s || !s.nwKlasse || s.nwKlasse === "alle" || (w.soort === "nw" ? nf(w) && String(G.modelKlasse(nf(w).model)) === s.nwKlasse : G.adjInfo(w) && String(G.adjInfo(w).klasse) === s.nwKlasse);
-  const tijdOf = (s) => (s && s.wwTijd && s.wwTijd !== "alle" ? s.wwTijd : null);
   const nounShow = (w) => `${esc(head(w.la))}, ${esc(w.mid)}`;
   // cellen met een vorm (vocatief minder vaak)
   function cellsOf(forms, opts = {}) {
@@ -560,63 +559,93 @@
   // ============================================================
   // WERKWOORDEN
   // ============================================================
-  const WIJSL = { ind: "ind.", imp: "imp." };
-  const TIJDL = { praes: "praes.", imperf: "imperf.", fut: "fut. s." };
+  const TIJDL = { praes: "praes.", imperf: "imperf.", fut: "fut. s.", perf: "perf.", plqpf: "plqpf.", futex: "fut. ex." };
   const persL = (p) => `${p}${p === "1" ? "ste" : "de"} p.`;
   // "act. ind. fut. s. 3de p. mv." (zoals in de klas)
-  const wwTxt = (k) => { const x = G.keyParts(k); return x.tijd === "imp" ? `${x.vorm}. imp. praes. ${persL(x.p)} ${GTL[x.g]}` : `${x.vorm}. ind. ${TIJDL[x.tijd]} ${persL(x.p)} ${GTL[x.g]}`; };
-  const wwLang = (k) => { const x = G.keyParts(k); return x.tijd === "imp" ? `imperatief ${x.g === "mv" ? "meervoud" : "enkelvoud"}` : `${G.VORM_NAAM[x.vorm]} · ${G.TIJD_NAAM[x.tijd]} · ${persL(x.p)} ${x.g === "mv" ? "meervoud" : "enkelvoud"}`; };
-  const anWW = (k) => { const x = G.keyParts(k); return x.tijd === "imp" ? `${x.vorm}|imp|praes|${x.p}|${x.g}` : `${x.vorm}|ind|${x.tijd}|${x.p}|${x.g}`; };
-  const PICK_WW = [
-    { label: "vorm", opts: [{ v: "act", html: "act." }, { v: "pass", html: "pass." }] },
-    { label: "wijs", opts: [{ v: "ind", html: "ind." }, { v: "imp", html: "imp." }] },
-    { label: "tijd", opts: [{ v: "praes", html: "praes." }, { v: "imperf", html: "imperf." }, { v: "fut", html: "fut. s." }] },
-    { label: "persoon", opts: G.PERS.map((p) => ({ v: p, html: persL(p) })) },
-    { label: "getal", opts: G.GETAL.map((g) => ({ v: g, html: GTL[g] })) },
-  ];
+  const wwTxt = (k) => {
+    const x = G.keyParts(k);
+    if (x.tijd === "inf") return `${x.vorm}. inf. praes.`;
+    if (x.tijd === "imp") return `${x.vorm}. imp. praes. ${persL(x.p)} ${GTL[x.g]}`;
+    return `${x.vorm}. ind. ${TIJDL[x.tijd]} ${persL(x.p)} ${GTL[x.g]}`;
+  };
+  const wwLang = (k) => {
+    const x = G.keyParts(k);
+    if (x.tijd === "inf") return `${G.VORM_NAAM[x.vorm]}e infinitief praesens`.replace("actiefe", "actieve").replace("passiefe", "passieve");
+    if (x.tijd === "imp") return `imperatief ${x.g === "mv" ? "meervoud" : "enkelvoud"}`;
+    return `${G.VORM_NAAM[x.vorm]} · ${G.TIJD_NAAM[x.tijd]} · ${persL(x.p)} ${x.g === "mv" ? "meervoud" : "enkelvoud"}`;
+  };
+  const anWW = (k) => {
+    const x = G.keyParts(k);
+    if (x.tijd === "inf") return `${x.vorm}|inf|praes|-|-`;
+    if (x.tijd === "imp") return `${x.vorm}|imp|praes|${x.p}|${x.g}`;
+    return `${x.vorm}|ind|${x.tijd}|${x.p}|${x.g}`;
+  };
+  // keuzerijen voor de tempel: enkel de tijden die in de oefening kunnen voorkomen
+  function pickWW(tijden) {
+    const T = (tijden || G.TIJD_ALLE).filter((t) => G.TIJD_ALLE.includes(t));
+    return [
+      { label: "vorm", opts: [{ v: "act", html: "act." }, { v: "pass", html: "pass." }] },
+      { label: "wijs", opts: [{ v: "ind", html: "ind." }, { v: "imp", html: "imp." }, { v: "inf", html: "inf." }] },
+      { label: "tijd", opts: G.TIJD_ALLE.filter((t) => T.includes(t) || t === "praes").map((t) => ({ v: t, html: TIJDL[t] })) },
+      { label: "persoon", opts: [...G.PERS.map((p) => ({ v: p, html: persL(p) })), { v: "-", html: "–" }] },
+      { label: "getal", opts: [...G.GETAL.map((g) => ({ v: g, html: GTL[g] })), { v: "-", html: "–" }] },
+    ];
+  }
   const verbShow = (w) => `${esc(head(w.la))} <small>(${esc(w.nl)})</small>`;
   const isRegular = (w) => vs(w) && vs(w).kind !== "onr";
-  // willekeurige vormsleutel (imperatief zelden)
-  function pickKey(F, opt = {}) {
-    let ks = Object.keys(F);
-    if (opt.noImp || Math.random() < 0.9) ks = ks.filter((k) => !k.includes(".imp."));
-    if (opt.tijd) ks = ks.filter((k) => k.includes(`.${opt.tijd}.`));
-    return pick(ks);
+  // welke tijden mogen? (instelling "welke tijd" of de keuze van een caput)
+  const tijdenOf = (s) => (s && s._tijden) || (s && s.wwTijd && s.wwTijd !== "alle" ? [s.wwTijd] : null);
+  function keyOk(s, k) {
+    const x = G.keyParts(k), T = tijdenOf(s);
+    if (s && s._passVolt === false && x.vorm === "pass" && G.TIJD_VOLT.includes(x.tijd)) return false;
+    if (s && s._onlyPass && x.vorm !== "pass") return false;
+    if (!T) return true;
+    return T.includes(x.tijd);
+  }
+  // willekeurige vormsleutel (imperatief en infinitief zelden)
+  function pickKey(F, s, opt = {}) {
+    let ks = Object.keys(F).filter((k) => keyOk(s, k) && (!opt.only || opt.only.includes(G.keyParts(k).tijd)));
+    const rare = (k) => /\.(imp|inf)\./.test(k);
+    if (opt.noImp || Math.random() < 0.85) { const r = ks.filter((k) => !rare(k)); if (r.length) ks = r; }
+    return ks.length ? pick(ks) : null;
   }
   const keysWith = (F, f) => Object.keys(F).filter((k) => F[k].includes(f));
+  const hasKey = (s) => (w) => vs(w) && Object.keys(vf(w)).some((k) => keyOk(s, k) && !/\.(imp|inf)\./.test(k));
 
   // ---------- V1. werkwoordsvorm bepalen (de tempel) ----------
   unit({
     id: "ww_bepalen", group: "V", label: "Werkwoordsvorm bepalen (vorm, wijs, tijd, persoon, getal)", page: "tempel van het werkwoord",
-    rule: "Tempel van het werkwoord: vorm (act./pass.) · wijs (ind./imp.) · tijd (praes./imperf./fut. s.) · persoon (1-2-3) · getal (enk./mv.). Imperfectum = -ba- · futurum = -b- + bindklinker (amāre, monēre) of -ē-/-a- (tegere, audīre, capere).",
-    items: (s) => inRange(s).filter((w) => vs(w)),
+    rule: "Tempel van het werkwoord: vorm (act./pass.) · wijs (ind./imp./inf.) · tijd (praes./imperf./fut. s./perf./plqpf./fut. ex.) · persoon (1-2-3) · getal (enk./mv.). Imperfectum = -ba-/-ēba- · futurum = -b- + bindklinker of -ē-/-a- · perfectum = perfectumstam + -ī, -istī … · plqpf. = -era- · fut. ex. = -eri-/-er-.",
+    items: (s) => inRange(s).filter(hasKey(s)),
     gen(level, w, s) {
-      const F = vf(w), k = pickKey(F, { tijd: tijdOf(s) }), f = F[k][0], valid = uniq(keysWith(F, f).map(anWW));
+      const F = vf(w), k = pickKey(F, s), f = F[k][0], valid = uniq(keysWith(F, f).map(anWW));
       const q = base(this, { instruction: "Determineer deze werkwoordsvorm.", prompt: lat(f), promptClass: "latin", hint: level === "easy" ? `van ${head(w.la)} (${w.nl})` : "",
         page: `§${w.sec} · nr. ${w.nr}`, valid, answerShown: uniq(keysWith(F, f).map(wwTxt)).join(" <i>of</i> ") + ` <small>(${esc(head(w.la))})</small>`, tag: "bepalen_ww",
         key: `wbep:${w.nr}`, itemLabel: `${w.nr}. ${f}: bepalen`, nr: w.nr });
       if (level === "easy") {
-        const wrong = shuffle(Object.keys(F).filter((x) => !F[x].includes(f) && G.keyParts(x).p === G.keyParts(k).p)).map(wwTxt);
-        const opts = shuffle([wwTxt(k), ...uniq(wrong).slice(0, 3)]);
+        const other = Object.keys(F).filter((x) => !F[x].includes(f) && wwTxt(x) !== wwTxt(k));
+        const same = shuffle(other.filter((x) => keyOk(s, x) && G.keyParts(x).p === G.keyParts(k).p)), rest = shuffle(other);
+        const opts = shuffle([wwTxt(k), ...uniq([...same, ...rest].map(wwTxt)).slice(0, 3)]);
         return Object.assign(q, { mode: "mc", options: opts.map((o) => ({ v: o, html: esc(o) })), answer: wwTxt(k) });
       }
-      return Object.assign(q, { mode: "pick", picks: PICK_WW, check: "pick" });
+      return Object.assign(q, { mode: "pick", picks: pickWW(tijdenOf(s)), check: "pick" });
     },
   });
 
   // ---------- V2. vorm maken ----------
   unit({
     id: "ww_vorm", group: "V", label: "Werkwoord: gevraagde vorm maken", page: "leerstofoverzicht werkwoord",
-    rule: "Zoek het vervoegingsmodel (amāre, monēre, tegere, audīre, capere of onregelmatig), neem de stam en voeg de tijdkenmerken en de uitgang toe.",
-    items: (s) => inRange(s).filter((w) => vs(w)),
+    rule: "Zoek het vervoegingsmodel en de stamtijden in de woordenlijst. Onvoltooide tijden: praesensstam + kenletters + uitgang. Actieve voltooide tijden: perfectumstam + uitgang (amāv-ī, amāv-eram, amāv-erō). Passieve voltooide tijden: participium perfectum + vorm van esse (amātus sum, eram, erō).",
+    items: (s) => inRange(s).filter(hasKey(s)),
     gen(level, w, s) {
-      const F = vf(w), k = pickKey(F, { tijd: tijdOf(s) }), ans = F[k];
-      const q = base(this, { instruction: `Geef: <b>${esc(wwTxt(k))}</b> <small>(${esc(wwLang(k))})</small>`, prompt: verbShow(w), promptClass: "latin",
+      const F = vf(w), k = pickKey(F, s), ans = F[k];
+      const q = base(this, { instruction: `Geef: <b>${esc(wwTxt(k))}</b> <small>(${esc(wwLang(k))})</small>`, prompt: verbShow(w) + (w.mid ? `<span class="midcol">${esc(w.mid)}</span>` : ""), promptClass: "latin",
         page: `§${w.sec} · nr. ${w.nr}`, accepted: ans, answerShown: esc(ans.join(" of ")), tag: "vormen_ww", key: `wvorm:${w.nr}`, itemLabel: `${w.nr}. ${head(w.la)}: ${wwTxt(k)}`, nr: w.nr });
       if (typed(level, 0.6)) return Object.assign(q, { mode: "text", lang: "la", check: "form", short: false });
       const x = G.keyParts(k);
-      const near = Object.keys(F).filter((y) => !F[y].includes(ans[0]) && G.keyParts(y).p === x.p && G.keyParts(y).g === x.g).map((y) => F[y][0]);
-      const opts = shuffle([ans[0], ...shuffle(uniq(near)).slice(0, nOpts(level))]);
+      const other = Object.keys(F).filter((y) => !F[y].some((z) => ans.includes(z)));
+      const near = shuffle(other.filter((y) => G.keyParts(y).p === x.p && G.keyParts(y).g === x.g)).concat(shuffle(other)).map((y) => F[y][0]);
+      const opts = shuffle([ans[0], ...uniq(near).slice(0, nOpts(level))]);
       return Object.assign(q, { mode: "mc", options: opts.map((o) => ({ v: o, html: lat(o) })), answer: ans[0] });
     },
   });
@@ -624,13 +653,15 @@
   // ---------- V3. tabel vervoegen ----------
   unit({
     id: "ww_tabel", group: "V", label: "Werkwoord: tabel invullen (vervoegen)", page: "leerstofoverzicht werkwoord",
-    rule: "Vervoeg per persoon: 1ste, 2de, 3de p. enkelvoud en meervoud. Actief: -ō/-m, -s, -t, -mus, -tis, -nt · passief: -or/-r, -ris, -tur, -mur, -minī, -ntur.",
-    items: (s) => inRange(s).filter((w) => vs(w)),
+    rule: "Vervoeg per persoon: 1ste, 2de, 3de p. enkelvoud en meervoud. Actief: -ō/-m, -s, -t, -mus, -tis, -nt · passief: -or/-r, -ris, -tur, -mur, -minī, -ntur · perfectum: -ī, -istī, -it, -imus, -istis, -ērunt.",
+    items: (s) => inRange(s).filter(hasKey(s)),
     gen(level, w, s) {
-      const F = vf(w), v = vs(w), vorm = v.pass && Math.random() < 0.4 ? "pass" : "act", tijd = tijdOf(s) || pick(G.TIJD);
+      const F = vf(w);
+      const combos = uniq(Object.keys(F).filter((k) => keyOk(s, k) && !/\.(imp|inf)\./.test(k)).map((k) => { const x = G.keyParts(k); return `${x.vorm}.${x.tijd}`; }));
+      const [vorm, tijd] = pick(combos).split(".");
       const cells = ["1.enk", "2.enk", "3.enk", "1.mv", "2.mv", "3.mv"].map((x) => `${vorm}.${tijd}.${x}`), acc = cells.map((c) => F[c]);
       return base(this, { mode: "fields", instruction: `Vervoeg in de <b>${G.VORM_NAAM[vorm]}e indicatief ${G.TIJD_NAAM[tijd]}</b>`.replace("actiefe", "actieve").replace("passiefe", "passieve"),
-        prompt: verbShow(w), promptClass: "latin", page: `§${w.sec} · nr. ${w.nr}`,
+        prompt: verbShow(w) + (w.mid ? `<span class="midcol">${esc(w.mid)}</span>` : ""), promptClass: "latin", page: `§${w.sec} · nr. ${w.nr}`,
         fields: cells.map((c) => { const x = G.keyParts(c); return { label: `${persL(x.p)} ${GTL[x.g]}` }; }), cells, acc,
         answerShown: acc.map((a) => `<span class="latin">${esc(a[0])}</span>`).join(", "), tag: "vormen_ww", key: `wtab:${w.nr}`, itemLabel: `${w.nr}. ${head(w.la)}: ${vorm}. ${G.TIJD_NAAM[tijd]}`, nr: w.nr, check: "table" });
     },
@@ -661,30 +692,34 @@
 
   // ---------- V5. verwar niet: welke tijd? ----------
   unit({
-    id: "ww_verwar", group: "V", label: "Verwar niet: praesens, imperfectum of futurum?", page: "futurum simplex",
-    rule: "Verwar niet: tegēs (fut.) ↔ tegis (praes.) · tegēris (pass. fut.) ↔ tegeris (pass. praes.) · monēs is praesens! · monēbit (fut.) ↔ monēbat (imperf.) · erunt (fut.) ↔ erant (imperf.).",
-    items: (s) => inRange(s).filter((w) => vs(w)),
+    id: "ww_verwar", group: "V", label: "Verwar niet: welke tijd?", page: "futurum simplex",
+    rule: "Verwar niet: tegēs (fut.) ↔ tegis (praes.) · tegēris (pass. fut.) ↔ tegeris (pass. praes.) · monēs is praesens! · monēbit (fut.) ↔ monēbat (imperf.) · erunt (fut.) ↔ erant (imperf.) · amāverant (plqpf.) ↔ amāverint (fut. ex.) ↔ amāvērunt (perf.).",
+    items: (s) => inRange(s).filter(hasKey(s)),
     gen(level, w, s) {
-      const F = vf(w), v = vs(w), p = pick(G.PERS), g = pick(G.GETAL), vorm = v.pass && level !== "easy" && Math.random() < 0.4 ? "pass" : "act", tijd = tijdOf(s) || pick(G.TIJD);
-      const target = F[`${vorm}.${tijd}.${p}.${g}`][0];
-      let cand = G.TIJD.map((t) => F[`${vorm}.${t}.${p}.${g}`][0]);
-      if (level === "hard" && v.pass) cand = cand.concat(G.TIJD.map((t) => F[`${vorm === "act" ? "pass" : "act"}.${t}.${p}.${g}`][0]));
-      const opts = shuffle(uniq(cand));
-      const what = level === "hard" && v.pass ? `${G.VORM_NAAM[vorm]} ${G.TIJD_NAAM[tijd]}` : G.TIJD_NAAM[tijd];
+      const F = vf(w), v = vs(w), T = (tijdenOf(s) || G.TIJD).filter((t) => G.TIJD_ALLE.includes(t));
+      const k0 = pickKey(F, s, { noImp: true, only: T }), x = G.keyParts(k0), p = x.p, g = x.g, vorm = x.vorm, tijd = x.tijd;
+      const target = F[k0][0];
+      const pool = [...G.TIJD_ALLE.filter((t) => T.includes(t) || (T.length === 1 && G.TIJD.includes(t)))];
+      let cand = pool.map((t) => F[`${vorm}.${t}.${p}.${g}`]).filter(Boolean).map((a) => a[0]);
+      const otherV = vorm === "act" ? "pass" : "act";
+      if (level === "hard") cand = cand.concat(pool.map((t) => F[`${otherV}.${t}.${p}.${g}`]).filter(Boolean).map((a) => a[0]));
+      cand = uniq(cand).filter((c) => c !== target && !keysWith(F, c).some((kk) => G.keyParts(kk).tijd === tijd && G.keyParts(kk).vorm === vorm));
+      const opts = shuffle([target, ...shuffle(cand).slice(0, level === "easy" ? 2 : 4)]);
+      const what = level === "hard" ? `${G.VORM_NAAM[vorm]} ${G.TIJD_NAAM[tijd]}` : G.TIJD_NAAM[tijd];
       return base(this, { mode: "mc", instruction: `Welke vorm is <b>${esc(what)}</b>?`, prompt: verbShow(w), promptClass: "latin", page: `§${w.sec} · nr. ${w.nr}`,
-        options: opts.map((o) => ({ v: o, html: lat(o) })), answer: target, answerShown: `${lat(target)} <small>(${esc(wwTxt(`${vorm}.${tijd}.${p}.${g}`))})</small>`, tag: "tijd",
+        options: opts.map((o) => ({ v: o, html: lat(o) })), answer: target, answerShown: `${lat(target)} <small>(${esc(wwTxt(k0))})</small>`, tag: "tijd",
         key: `verw:${w.nr}`, itemLabel: `${w.nr}. ${head(w.la)}: ${what}`, nr: w.nr });
     },
   });
 
   // ---------- V6. van welk werkwoord? ----------
   unit({
-    id: "ww_inf", group: "V", label: "Van welk werkwoord? (infinitief praesens)", page: "futurum simplex",
-    rule: "Haal tijdkenmerk en uitgang weg en zoek het werkwoord in de woordenlijst. Let op onregelmatige vormen: ībō → īre, fīent → fierī, poterunt → posse, feram → ferre, volam → velle.",
-    items: (s) => inRange(s).filter((w) => vs(w)),
+    id: "ww_inf", group: "V", label: "Van welk werkwoord? (grondwoord = infinitief praesens)", page: "stamtijden",
+    rule: "Haal tijdkenmerk en uitgang weg en zoek het werkwoord (met de stamtijden) in de woordenlijst. Let op onregelmatige vormen: ībō → īre, fīent → fierī, poterunt → posse, feram → ferre, volam → velle, tulit → ferre, fuit → esse.",
+    items: (s) => inRange(s).filter(hasKey(s)),
     gen(level, w, s) {
-      const F = vf(w), k = pickKey(F, { tijd: tijdOf(s) }), f = F[k][0], ans = head(w.la);
-      const q = base(this, { instruction: "Van welk werkwoord komt deze vorm? Geef de (actieve) infinitief praesens.", prompt: lat(f), promptClass: "latin", page: `§${w.sec} · nr. ${w.nr}`,
+      const F = vf(w), k = pickKey(F, s, { noImp: true }), f = F[k][0], ans = head(w.la);
+      const q = base(this, { instruction: "Van welk werkwoord komt deze vorm? Geef het grondwoord (de actieve infinitief praesens).", prompt: lat(f), promptClass: "latin", page: `§${w.sec} · nr. ${w.nr}`,
         target: ans, answerShown: `${lat(ans)} – ${esc(w.nl)} <small>(${esc(wwTxt(k))})</small>`, tag: "herkennen_ww", key: `winf:${w.nr}`, itemLabel: `${w.nr}. ${f} → ${ans}`, nr: w.nr });
       if (typed(level, 0.5)) return Object.assign(q, { mode: "text", lang: "la", check: "lemma" });
       const v = vs(w), pool = rangeOr(s, VERBS, 6).filter((x) => head(x.la) !== ans);
@@ -701,7 +736,7 @@
     rule: "Zoek het werkwoord in de woordenlijst: -āre = amāre · -ēre, ~eō = monēre · -ere, ~ō = tegere · -īre, ~iō = audīre · -ere, ~iō = capere ('Oh zo lekker': facere, fugere, rapere, iacere, capere, cupere).",
     items: (s) => inRange(s).filter(isRegular),
     gen(level, w, s) {
-      const F = vf(w), k = pickKey(F, { noImp: true, tijd: tijdOf(s) }), f = F[k][0], m = vs(w).kind;
+      const F = vf(w), k = pickKey(F, s, { noImp: true, only: G.TIJD }) || pickKey(F, {}, { noImp: true, only: G.TIJD }), f = F[k][0], m = vs(w).kind;
       return base(this, { mode: "mc", instruction: "Volgens welk model wordt dit werkwoord vervoegd?", prompt: lat(f), promptClass: "latin", hint: level === "easy" ? `van ${head(w.la)}` : "",
         page: `§${w.sec} · nr. ${w.nr}`, options: MODELS_WW.map((x) => ({ v: x, html: `<span class="latin">${G.MODEL_WW[x]}</span>` })), answer: m,
         answerShown: `${lat(G.MODEL_WW[m])} <small>(${esc(head(w.la))}, ${esc(w.nl)} · ${esc(wwTxt(k))})</small>`, tag: "vervoeging", key: `wmod:${w.nr}`, itemLabel: `${w.nr}. ${head(w.la)}: model`, nr: w.nr });
@@ -716,20 +751,21 @@
     return NL_ALT[i].map((p) => norm(`${p} ${rest}`));
   }
   unit({
-    id: "ww_vertalen", group: "V", label: "Werkwoordsvorm vertalen (ik zal …, hij werd …)", page: "futurum simplex",
-    rule: "praesens: hij bemint / hij wordt bemind · imperfectum (onvoltooid verleden tijd): hij beminde / hij werd bemind · futurum (onvoltooid toekomende tijd): hij zal beminnen / hij zal bemind worden.",
-    items: () => VERT_ITEMS, noRange: true,
+    id: "ww_vertalen", group: "V", label: "Werkwoordsvorm vertalen (ik zal …, hij heeft …, hij was …)", page: "vertaling van de tijden",
+    rule: "praesens OTT: hij bemint · imperfectum OVT: hij beminde · futurum OTkT: hij zal beminnen · perfectum OVT of VTT: hij beminde / hij heeft bemind · plqpf. VVT: hij had bemind · fut. ex. VTkT: hij zal bemind hebben. Passief met worden / zijn: hij wordt, werd, is, was bemind.",
+    items: (s) => VERT_ITEMS.filter((w) => Object.keys(vf(w)).some((k) => keyOk(s, k) && G.nlAlle(head(w.la), k).length)), noRange: true,
     gen(level, w, s) {
-      const inf = head(w.la), F = vf(w), tj = tijdOf(s);
-      const keys = Object.keys(F).filter((k) => !k.includes(".imp.") && G.nlVorm(inf, k) && (!tj || k.includes(`.${tj}.`)));
-      const k = pick(keys), nl = G.nlVorm(inf, k), f = F[k][0];
-      const q = base(this, { instruction: "Vertaal deze werkwoordsvorm.", prompt: lat(f) + `<small> (${esc(inf)}: ${esc(/;/.test(G.NL_WW[inf]) ? w.nl : G.NL_WW[inf].split("|")[3])})</small>`, promptClass: "latin", page: "futurum simplex",
-        answerShown: `${esc(nl)} <small>(${esc(wwTxt(k))})</small>`, accepted: nlAccepted(nl, k), tag: "vertalen_ww", key: `wvert:${inf}`, itemLabel: `${f} = ${nl}` });
+      const inf = head(w.la), F = vf(w);
+      const keys = Object.keys(F).filter((k) => !/\.(imp|inf)\./.test(k) && keyOk(s, k) && G.nlAlle(inf, k).length);
+      const k = pick(keys), alle = G.nlAlle(inf, k), nl = pick(alle), f = F[k][0];
+      const acc = uniq(alle.flatMap((x) => nlAccepted(x, k)));
+      const q = base(this, { instruction: "Vertaal deze werkwoordsvorm.", prompt: lat(f) + `<small> (${esc(inf)}: ${esc(/;/.test(G.NL_WW[inf]) ? w.nl : G.NL_WW[inf].split("|")[3])})</small>`, promptClass: "latin", page: "vertaling van de tijden",
+        answerShown: `${esc(alle.join(" / "))} <small>(${esc(wwTxt(k))})</small>`, accepted: acc, tag: "vertalen_ww", key: `wvert:${inf}`, itemLabel: `${f} = ${alle.join(" / ")}` });
       if (level === "hard") return Object.assign(q, { mode: "text", lang: "nl", noKeyboard: true, check: "nlww" });
       const x = G.keyParts(k);
-      const near = keys.filter((y) => y !== k && (G.keyParts(y).p === x.p && G.keyParts(y).g === x.g)).map((y) => G.nlVorm(inf, y));
-      const far = keys.filter((y) => y !== k && G.keyParts(y).tijd === x.tijd).map((y) => G.nlVorm(inf, y));
-      const opts = shuffle([nl, ...uniq(shuffle(near).concat(shuffle(far))).filter((o) => o !== nl).slice(0, nOpts(level))]);
+      const other = (filt) => keys.filter((y) => y !== k && filt(G.keyParts(y))).flatMap((y) => G.nlAlle(inf, y)).filter((o) => !alle.includes(o));
+      const near = other((y) => y.p === x.p && y.g === x.g), far = other((y) => y.tijd === x.tijd);
+      const opts = shuffle([nl, ...uniq(shuffle(near).concat(shuffle(far))).slice(0, nOpts(level))]);
       return Object.assign(q, { mode: "mc", options: opts.map((o) => ({ v: o, html: esc(o) })), answer: nl });
     },
   });
@@ -748,6 +784,223 @@
   });
 
   // ============================================================
+  // TAALSTUDIE UIT HET LEERWERKBOEK (caput 1-3): functies, voorzetsels, voornaamwoorden, praesens of perfectum
+  // Deze onderdelen hangen in de groepen per caput (zie verder: CAPUT-GROEPEN).
+  // ============================================================
+  const capOf = (w) => +String(w.sec).split(".")[0];
+  const markZin = (z) => esc(z).replace(/\[\[(.*?)\]\]/g, "<u><b>$1</b></u>");
+  const plainZin = (z) => z.replace(/\[\[(.*?)\]\]/g, "$1");
+  const zinDoel = (z) => (z.match(/\[\[(.*?)\]\]/) || [])[1] || "";
+
+  // ---------- naamval en functie in een zin ----------
+  const FZ_ITEMS = G.ZINNEN_FUNCTIE.map(([z, n, f, rol], i) => ({ i, z, n, f, rol }));
+  const PICK_FZ = [
+    { label: "naamval", opts: G.NV.map((n) => ({ v: n, html: NVL[n] })) },
+    { label: "functie", opts: Object.keys(G.FUNCTIES).map((f) => ({ v: f, html: f === "AANSPR" ? "aanspr." : f })) },
+  ];
+  const fzTxt = (it) => `${NVL[it.n]} – ${G.FUNCTIES[it.f]}${it.rol ? ` (${it.rol})` : ""}`;
+  unit({
+    id: "functies", group: "X", label: "Naamval en functie in de zin", page: "naamvallen en functies",
+    rule: "nominatief: onderwerp of naamwoordelijk deel · accusatief: lijdend voorwerp (met voorzetsel: BWB, vaak richting) · genitief: bijvoeglijke bepaling ('van') · datief: meewerkend voorwerp ('aan', 'voor') · ablatief: bijwoordelijke bepaling (middel, tijd, plaats, wijze, oorzaak) of met ā/ab bij een passief: handelend voorwerp · vocatief: aanspreking.",
+    items: () => FZ_ITEMS, noRange: true,
+    gen(level, it) {
+      const q = base(this, { instruction: `Geef naamval en functie van <b>${esc(zinDoel(it.z))}</b>.`, prompt: markZin(it.z), promptClass: "latin", answerShown: esc(fzTxt(it)),
+        valid: [`${it.n}|${it.f}`], tag: "functies", key: `fz:${it.i}`, itemLabel: `${zinDoel(it.z)}: ${NVL[it.n]} ${it.f}` });
+      if (level === "easy") {
+        const all = G.NV.flatMap((n) => Object.keys(G.FUNCTIES).map((f) => ({ n, f }))).filter((x) => !(x.n === it.n && x.f === it.f));
+        const opts = shuffle([{ n: it.n, f: it.f }, ...shuffle(all.filter((x) => x.n === it.n || x.f === it.f)).slice(0, 3)]);
+        return Object.assign(q, { mode: "mc", options: opts.map((x) => ({ v: `${x.n}|${x.f}`, html: `${NVL[x.n]} – ${esc(G.FUNCTIES[x.f])}` })), answer: `${it.n}|${it.f}` });
+      }
+      return Object.assign(q, { mode: "pick", picks: PICK_FZ, check: "pick" });
+    },
+    byKey(rest) { return FZ_ITEMS[+rest]; },
+  });
+
+  // ---------- voorzetsels ----------
+  const VZ = G.VOORZETSELS.map(([vz, nv, nl], i) => ({ i, vz, nv, nl }));
+  const VZ_UNIEK = uniq(VZ.map((x) => x.vz));
+  const VZ_ITEMS = [...VZ_UNIEK.map((vz) => ({ t: "nv", vz })), ...VZ.map((x) => ({ t: "nl", x })), ...VZ.filter((x) => !["in", "sub"].includes(x.vz)).map((x) => ({ t: "vorm", x }))];
+  const vzKey = (it) => `vz:${it.t}:${it.t === "nv" ? it.vz : it.x.i}`;
+  unit({
+    id: "voorzetsels", group: "X", label: "Voorzetsels: naamval, betekenis en juiste vorm", page: "voorzetsels",
+    rule: "+ acc.: ad, ante, apud, circum, inter, ob, per, post, praeter, trāns · + abl.: ā/ab, cum, dē, ē/ex, prō, sine · in en sub: + acc. = richting (naar, tot onder), + abl. = plaats (in, op, onder).",
+    items: () => VZ_ITEMS, noRange: true,
+    gen(level, it, s) {
+      if (it.t === "nv") {
+        const both = VZ.filter((x) => x.vz === it.vz).length > 1, ans = both ? "beide" : VZ.find((x) => x.vz === it.vz).nv;
+        return base(this, { mode: "mc", instruction: "Door welke naamval wordt dit voorzetsel gevolgd?", prompt: lat(it.vz), promptClass: "latin",
+          options: [{ v: "acc", html: "accusatief" }, { v: "abl", html: "ablatief" }, { v: "beide", html: "allebei (met een andere betekenis)" }], answer: ans,
+          answerShown: VZ.filter((x) => x.vz === it.vz).map((x) => `+ ${x.nv}.: ${esc(x.nl)}`).join(" · "), tag: "voorzetsels", key: vzKey(it), itemLabel: `${it.vz}: naamval` });
+      }
+      if (it.t === "nl") {
+        const x = it.x, others = uniq(VZ.filter((y) => y.nl !== x.nl).map((y) => y.nl));
+        const label = VZ.filter((y) => y.vz === x.vz).length > 1 ? `${x.vz} + ${x.nv}.` : x.vz;
+        return base(this, { mode: "mc", instruction: "Wat betekent dit voorzetsel?", prompt: lat(label), promptClass: "latin",
+          options: shuffle([x.nl, ...shuffle(others).slice(0, nOpts(level))]).map((o) => ({ v: o, html: esc(o) })), answer: x.nl, answerShown: esc(x.nl),
+          tag: "voorzetsels", key: vzKey(it), itemLabel: `${label} = ${x.nl}` });
+      }
+      // juiste vorm na het voorzetsel
+      const x = it.x, pool = rangeOr(s, NOUNS).filter((w) => !nf(w).mvOnly);
+      for (let t = 0; t < 20; t++) {
+        const w = pick(pool), F = nf(w).forms, g = pick(G.GETAL), cell = `${x.nv}.${g}`;
+        if (!F[cell]) continue;
+        const ans = F[cell][0];
+        const bad = uniq(Object.keys(F).filter((k) => F[k] && !k.startsWith("voc")).flatMap((k) => F[k])).filter((f) => !cellsWith(F, f).some((c) => c.n === x.nv));
+        if (bad.length < 2) continue;
+        return base(this, { mode: "mc", instruction: `Welke vorm past na het voorzetsel? <small>(${esc(head(w.la))}, ${esc(w.mid)})</small>`, prompt: `${esc(x.vz.split(" / ")[0])} …`, promptClass: "latin",
+          options: shuffle([ans, ...shuffle(bad).slice(0, level === "easy" ? 2 : 3)]).map((o) => ({ v: o, html: lat(o) })), answer: ans,
+          answerShown: `${lat(x.vz.split(" / ")[0] + " " + ans)} <small>(${x.vz} + ${x.nv}.: ${esc(x.nl)})</small>`, tag: "voorzetsels", key: vzKey(it), itemLabel: `${x.vz} + ${x.nv}.` });
+      }
+      return this.gen(level, { t: "nl", x }, s);
+    },
+    byKey(rest) { const [t, v] = rest.split(":"); return t === "nv" ? { t, vz: v } : { t, x: VZ[+v] }; },
+  });
+
+  // ---------- persoonlijke voornaamwoorden ----------
+  const PERS_FORMS = uniq(G.PERSOONLIJK.map((r) => r[0]));
+  const persAn = (f) => G.PERSOONLIJK.filter((r) => r[0] === f).flatMap((r) => r[2].split("/").map((g) => `${r[1]}|${g}|${r[3]}`));
+  const PICK_PERS = [
+    { label: "persoon", opts: [{ v: "1", html: "1ste p." }, { v: "2", html: "2de p." }, { v: "3", html: "3de p. (sē)" }] },
+    { label: "getal", opts: G.GETAL.map((g) => ({ v: g, html: GTL[g] })) },
+    { label: "naamval", opts: G.NV.slice(0, 5).map((n) => ({ v: n, html: NVL[n] })) },
+  ];
+  const persTxt = (a) => { const [p, g, n] = a.split("|"); return `${p === "3" ? "3de p. reflexief" : persL(p)} ${GTL[g]} ${NVL[n]}`; };
+  unit({
+    id: "vnw_pers", group: "X", label: "Persoonlijke voornaamwoorden (ego, tū, sē, nōs, vōs)", page: "persoonlijke voornaamwoorden",
+    rule: "ego, mē, meī, mihi, mē · tū, tē, tuī, tibi, tē · (refl.) –, sē, suī, sibi, sē · nōs, nōs, nostrī/nostrum, nōbīs, nōbīs · vōs, vōs, vestrī/vestrum, vōbīs, vōbīs. Met cum: mēcum, tēcum, sēcum, nōbīscum, vōbīscum.",
+    items: () => PERS_FORMS, noRange: true,
+    gen(level, f) {
+      const an = uniq(persAn(f)), rows = G.PERSOONLIJK.filter((r) => r[0] === f);
+      if (level === "easy" || Math.random() < 0.4) {
+        const ans = uniq(rows.map((r) => r[4])).join(" / "), others = uniq(G.PERSOONLIJK.filter((r) => r[0] !== f).map((r) => r[4])).filter((x) => !ans.includes(x));
+        return base(this, { mode: "mc", instruction: "Wat betekent dit voornaamwoord?", prompt: lat(f), promptClass: "latin",
+          options: shuffle([ans, ...shuffle(others).slice(0, nOpts(level))]).map((o) => ({ v: o, html: esc(o) })), answer: ans, answerShown: `${esc(ans)} <small>(${an.map(persTxt).join(" of ")})</small>`,
+          tag: "voornaamwoorden", key: `vnwp:${f}`, itemLabel: `${f} = ${ans}` });
+      }
+      return base(this, { mode: "pick", instruction: "Geef persoon, getal en naamval.", prompt: lat(f), promptClass: "latin", picks: PICK_PERS, check: "pick", valid: an,
+        answerShown: an.map(persTxt).join(" <i>of</i> "), tag: "voornaamwoorden", key: `vnwp:${f}`, itemLabel: `${f}: bepalen` });
+    },
+    byKey(rest) { return PERS_FORMS.includes(rest) ? rest : null; },
+  });
+
+  // ---------- voornaamwoorden in een zin: reflexief of niet, wie is bedoeld? ----------
+  const VZIN_ITEMS = G.VNW_ZINNEN.map(([z, ok, ...fout], i) => ({ i, z, ok, fout }));
+  unit({
+    id: "vnw_zin", group: "X", label: "Voornaamwoord in de zin: vertaling en wie bedoeld wordt", page: "persoonlijke en bezittelijke voornaamwoorden",
+    rule: "sē en suus zijn reflexief: ze verwijzen naar het onderwerp (zich, zijn/haar/hun eigen). eum, eam, eōs … en eius, eōrum, eārum verwijzen naar iemand anders (hem, haar, hen · zijn, haar, hun). Staat er geen bezittelijk voornaamwoord, dan voeg je het in het Nederlands toe volgens de context.",
+    items: () => VZIN_ITEMS, noRange: true,
+    gen(level, it) {
+      const d = zinDoel(it.z);
+      return base(this, { mode: "mc", instruction: d ? `Hoe vertaal je <b>${esc(d)}</b> en naar wie verwijst het?` : "Welke vertaling is juist?", prompt: markZin(it.z), promptClass: "latin",
+        options: shuffle([it.ok, ...it.fout.slice(0, level === "easy" ? 2 : 3)]).map((o) => ({ v: o, html: esc(o) })), answer: it.ok, answerShown: esc(it.ok),
+        tag: "voornaamwoorden", key: `vnwz:${it.i}`, itemLabel: `${d || plainZin(it.z)}: ${it.ok}` });
+    },
+    byKey(rest) { return VZIN_ITEMS[+rest]; },
+  });
+
+  // ---------- bezittelijke voornaamwoorden: congruentie ----------
+  const BEZ = G.BEZITTELIJK;
+  unit({
+    id: "vnw_bez", group: "X", label: "Bezittelijke voornaamwoorden (meus, tuus, suus, noster, vester) bij een substantief", page: "bezittelijke voornaamwoorden",
+    rule: "meus, tuus, suus, noster en vester volgen bonus, bona, bonum en congrueren met hun kern in naamval, genus en getal (fīliam tuam, mīlitēs tuī).",
+    items: (s) => rangeOr(s, NOUNS).filter((w) => !nf(w).mvOnly), noRange: true,
+    gen(level, w) {
+      const F = nf(w).forms, gs = pick(G.gsOf(w)), b = pick(BEZ), A = af(b).forms[gs];
+      const cell = pick(Object.keys(F).filter((k) => F[k] && A[k] && !k.startsWith("voc")));
+      const nfm = F[cell][0], nc = cellsWith(F, nfm).map((c) => `${c.n}.${c.g}`);
+      const good = uniq(nc.flatMap((c) => A[c] || []));
+      const bad = uniq(Object.values(af(b).forms).flatMap((X) => Object.keys(X).filter((k) => X[k] && !k.startsWith("voc")).flatMap((k) => X[k]))).filter((f) => !good.includes(f));
+      const ans = A[cell][0];
+      const q = base(this, { instruction: `Welke vorm van <b>${esc(b.la)}</b> (${esc(b.nl)}) past bij dit substantief?`, prompt: `${lat(nfm)} <small>(${esc(head(w.la))}, ${esc(w.mid)})</small>`, promptClass: "latin",
+        accepted: good, answerShown: `${lat(nfm + " " + good.join(" / "))} <small>(${nc.map(cellTxt).join(" of ")})</small>`, tag: "voornaamwoorden",
+        key: `bez:${w.nr}`, itemLabel: `${nfm} + ${b.la}`, nr: w.nr });
+      if (level === "hard") return Object.assign(q, { mode: "text", lang: "la", check: "form", short: true });
+      return Object.assign(q, { mode: "mc", options: shuffle([ans, ...shuffle(bad).slice(0, level === "easy" ? 2 : 3)]).map((o) => ({ v: o, html: lat(o) })), answer: ans });
+    },
+  });
+
+  // ---------- aanwijzende voornaamwoorden (hic, iste, ille · is, idem, ipse) ----------
+  const AW = G.AANWIJZEND;
+  const awSel = (s) => (s && s._vnw) || Object.keys(AW);
+  const awForms = (id) => uniq(G.GS.flatMap((g) => Object.values(AW[id].t[g]).flat()));
+  const awAn = (id, f) => G.GS.flatMap((g) => Object.keys(AW[id].t[g]).filter((c) => AW[id].t[g][c].includes(f)).map((c) => { const [n, n2] = c.split("."); return `${n}|${g}|${n2}`; }));
+  const AW_ITEMS = Object.keys(AW).flatMap((id) => awForms(id).map((f) => ({ id, f })));
+  unit({
+    id: "aanw_bep", group: "X", label: "Aanwijzende voornaamwoorden: naamval, genus en getal", page: "aanwijzende voornaamwoorden",
+    rule: "Enkelvoud: gen. -ius, dat. -ī, nom./acc. o. meestal -d (illud, istud, id) · meervoud: zoals bonus (behalve haec = nom./acc. o. mv. van hic). Let op dubbelgangers: haec, illī, istī, eī, hīs, eīs.",
+    items: (s) => AW_ITEMS.filter((it) => awSel(s).includes(it.id)), noRange: true,
+    gen(level, it) {
+      const an = uniq(awAn(it.id, it.f)), vk = new Set(an);
+      const q = base(this, { instruction: `Geef naamval, genus en getal <small>(${esc(AW[it.id].titel)})</small>.`, prompt: lat(it.f), promptClass: "latin", valid: an,
+        answerShown: an.map((a) => { const [n, gs, g] = a.split("|"); return anTxt({ n, gs, g }); }).join(" <i>of</i> "), tag: "voornaamwoorden",
+        key: `aw:${it.id}:${it.f}`, itemLabel: `${it.f} (${it.id}): bepalen` });
+      if (level === "easy") {
+        const right = pick(an), [rn, rgs, rg] = right.split("|");
+        const wrong = shuffle(ALL_AN.filter((a) => a.n !== "voc" && !vk.has(anKey(a)) && (a.gs === rgs || a.n === rn)));
+        const opts = shuffle([{ n: rn, gs: rgs, g: rg }, ...wrong.slice(0, 3)]);
+        return Object.assign(q, { mode: "mc", options: opts.map((a) => ({ v: anKey(a), html: anTxt(a) })), answer: right });
+      }
+      return Object.assign(q, { mode: "pick", picks: PICK_NW.map((r) => (r.label === "naamval" ? { ...r, opts: r.opts.filter((o) => o.v !== "voc") } : r)), check: "pick" });
+    },
+    byKey(rest) { const [id, f] = rest.split(":"); return AW[id] ? { id, f } : null; },
+  });
+  unit({
+    id: "aanw_cong", group: "X", label: "Aanwijzend voornaamwoord bij een substantief (congruentie)", page: "aanwijzende voornaamwoorden",
+    rule: "Een bijvoeglijk gebruikt aanwijzend voornaamwoord congrueert met zijn kern in naamval, genus en getal (illīs regiōnibus, huic praedae, hunc rēgem).",
+    items: (s) => rangeOr(s, NOUNS).filter((w) => !nf(w).mvOnly), noRange: true,
+    gen(level, w, s) {
+      const F = nf(w).forms, gs = pick(G.gsOf(w)), id = pick(awSel(s)), T = AW[id].t[gs];
+      const cell = pick(Object.keys(F).filter((k) => F[k] && T[k] && !k.startsWith("voc")));
+      const nfm = F[cell][0], nc = cellsWith(F, nfm).map((c) => `${c.n}.${c.g}`).filter((c) => T[c]);
+      const good = uniq(nc.flatMap((c) => T[c]));
+      const bad = awForms(id).filter((f) => !good.includes(f));
+      const ans = T[cell][0];
+      const q = base(this, { instruction: `Welke vorm van <b>${esc(AW[id].titel)}</b> past bij dit substantief?`, prompt: `${lat(nfm)} <small>(${esc(head(w.la))}, ${esc(w.mid)})</small>`, promptClass: "latin",
+        accepted: good, answerShown: `${lat(good.join(" / ") + " " + nfm)} <small>(${nc.map(cellTxt).join(" of ")} ${GSL[gs]})</small>`, tag: "voornaamwoorden",
+        key: `awc:${w.nr}`, itemLabel: `${id} + ${nfm}`, nr: w.nr });
+      if (level === "hard") return Object.assign(q, { mode: "text", lang: "la", check: "form", short: true });
+      return Object.assign(q, { mode: "mc", options: shuffle([ans, ...shuffle(bad).slice(0, level === "easy" ? 2 : 3)]).map((o) => ({ v: o, html: lat(o) })), answer: ans });
+    },
+  });
+  const AWV_ITEMS = Object.keys(AW).flatMap((id) => G.GS.flatMap((gs) => Object.keys(AW[id].t[gs]).map((c) => ({ id, gs, c }))));
+  unit({
+    id: "aanw_vorm", group: "X", label: "Aanwijzende voornaamwoorden: gevraagde vorm (tabel)", page: "aanwijzende voornaamwoorden",
+    rule: "Ken de tabellen van hic, iste, ille, is, īdem en ipse (zie leerkaarten 'Tabel').",
+    items: (s) => AWV_ITEMS.filter((it) => awSel(s).includes(it.id)), noRange: true,
+    gen(level, it) {
+      const ans = AW[it.id].t[it.gs][it.c], gsN = { m: "mannelijk", v: "vrouwelijk", o: "onzijdig" }[it.gs];
+      const q = base(this, { instruction: `Geef de <b>${cellLang(it.c)}, ${gsN}</b>`, prompt: lat(AW[it.id].titel), promptClass: "latin", accepted: ans, answerShown: esc(ans.join(" of ")),
+        tag: "voornaamwoorden", key: `awv:${it.id}:${it.gs}:${it.c}`, itemLabel: `${it.id}: ${cellTxt(it.c)} ${it.gs}.` });
+      if (typed(level, 0.6)) return Object.assign(q, { mode: "text", lang: "la", check: "form", short: true });
+      const bad = awForms(it.id).filter((f) => !ans.includes(f));
+      return Object.assign(q, { mode: "mc", options: shuffle([ans[0], ...shuffle(bad).slice(0, nOpts(level))]).map((o) => ({ v: o, html: lat(o) })), answer: ans[0] });
+    },
+    byKey(rest) { const [id, gs, c] = rest.split(":"); return AW[id] ? { id, gs, c } : null; },
+  });
+
+  // ---------- praesens of perfectum? ----------
+  function ppAmbig(w) {
+    const F = vf(w);
+    return ["3.enk", "1.mv"].filter((c) => F[`act.praes.${c}`] && F[`act.perf.${c}`] && noMacron(F[`act.praes.${c}`][0]) === noMacron(F[`act.perf.${c}`][0]));
+  }
+  unit({
+    id: "praes_perf", group: "X", label: "Praesens of perfectum? (accidit, venit/vēnit …)", page: "praesens of perfectum",
+    rule: "Bij sommige werkwoorden zijn praesens- en perfectumstam gelijk (accidit, solvit, metuimus, incendimus: praesens én perfectum mogelijk). Bij andere verschillen ze enkel in de lengte van de klinker: venit (praes.) ↔ vēnit (perf.), fugimus ↔ fūgimus, videt ↔ vīdit.",
+    items: (s) => inRange(s).filter((w) => vs(w) && vs(w).pst && vs(w).kind !== "onr"),
+    gen(level, w) {
+      const F = vf(w), amb = ppAmbig(w);
+      const c = amb.length && Math.random() < 0.75 ? pick(amb) : pick(["1.enk", "2.enk", "3.enk", "1.mv", "2.mv", "3.mv"]);
+      const t = pick(["praes", "perf"]), f = F[`act.${t}.${c}`][0];
+      const isP = (F[`act.praes.${c}`] || []).includes(f), isF = (F[`act.perf.${c}`] || []).includes(f);
+      const ans = isP && isF ? "beide" : isP ? "praes" : "perf";
+      return base(this, { mode: "mc", instruction: "Praesens, perfectum of allebei mogelijk?", prompt: lat(f) + `<small> (${esc(head(w.la))}: ${esc(w.mid || "")})</small>`, promptClass: "latin",
+        options: [{ v: "praes", html: "praesens" }, { v: "perf", html: "perfectum" }, { v: "beide", html: "allebei mogelijk" }], answer: ans,
+        answerShown: `${{ praes: "praesens", perf: "perfectum", beide: "praesens én perfectum" }[ans]} <small>(praes. ${esc(F[`act.praes.${c}`][0])} · perf. ${esc(F[`act.perf.${c}`][0])})</small>`,
+        tag: "tijd", key: `pp:${w.nr}`, itemLabel: `${w.nr}. ${f}: praes. of perf.`, nr: w.nr });
+    },
+  });
+
+  // ============================================================
   // TOETS SAMENSTELLEN
   // ============================================================
   const items = (u, s) => u.items(s);
@@ -762,7 +1015,7 @@
     const decks = {};
     for (let i = 0; out.length < s.count && i < s.count * 4; i++) {
       // vertaling en middenkolom krijgen meer gewicht dan grammatica
-      const weighted = sel.flatMap((u) => (u.group === "W" ? [u, u, u] : [u]));
+      const weighted = sel.flatMap((u) => (/W$/.test(u.group) ? [u, u, u] : [u]));
       const u = pick(weighted);
       if (!decks[u.id] || !decks[u.id].length) decks[u.id] = shuffle(items(u, s));
       out.push(u.gen(s.level, decks[u.id].pop(), s));
@@ -773,7 +1026,8 @@
   // foutgerichte toets: vraag opnieuw maken op basis van de bewaarde sleutel (bv. "vertalen:352")
   const KEY_UNIT = { vertalen: "vertalen", midden: "midden", herkennen: "herkennen", vv: "voorvoegsels", dekl: "verbuiging", gs: "geslacht", verv: "vervoeging", dat: "datief", sfx: "achtervoegsels",
     nvorm: "nw_vorm", ntab: "nw_tabel", nbep: "nw_bepalen", cong: "congruentie", bn2: "bn2", mod: "modellen",
-    wbep: "ww_bepalen", wvorm: "ww_vorm", wtab: "ww_tabel", wspl: "ww_splitsen", verw: "ww_verwar", winf: "ww_inf", wmod: "ww_model", wvert: "ww_vertalen", regel: "regels" };
+    wbep: "ww_bepalen", wvorm: "ww_vorm", wtab: "ww_tabel", wspl: "ww_splitsen", verw: "ww_verwar", winf: "ww_inf", wmod: "ww_model", wvert: "ww_vertalen", regel: "regels",
+    fz: "functies", vz: "voorzetsels", vnwp: "vnw_pers", vnwz: "vnw_zin", bez: "vnw_bez", aw: "aanw_bep", awc: "aanw_cong", awv: "aanw_vorm", pp: "praes_perf", cr: "cregels" };
   function fromKey(key, level, s = {}) {
     const i = key.indexOf(":"), pre = key.slice(0, i), rest = key.slice(i + 1), u = UNITS.find((x) => x.id === KEY_UNIT[pre]);
     if (!u) return null;
@@ -783,6 +1037,7 @@
     if (pre === "mod") { const it = MOD_ITEMS.find((x) => modKey(x) === key); return it ? u.gen(level, it, all) : null; }
     if (pre === "wvert") { const it = VERT_ITEMS.find((x) => head(x.la) === rest); return it ? u.gen(level, it, all) : null; }
     if (pre === "regel") { const it = REGEL_ITEMS.find((x) => x.id === rest); return it ? u.gen(level, it, all) : null; }
+    if (u.byKey) { const it = u.byKey(rest); return it ? u.gen(level, it, all) : null; }
     const nr = +rest, r = s.bereik || [MIN, MAX];
     if (!u.noRange && (nr < r[0] || nr > r[1])) return null; // buiten het gekozen bereik
     const it = u.items({ bereik: [nr, nr] }).find((x) => x.nr === nr);
@@ -857,51 +1112,164 @@
     w.soort === "nw" && w.gs ? `${GS_NAAM[w.gs]}${w.dekl ? " · " + DEKL_NAAM[w.dekl] : ""}` : w.soort === "ww" && w.verv ? VERV_NAAM[w.verv] : SOORT_NAAM[w.soort] || "",
     w.naamval ? "+ " + w.naamval : "",
   ].filter(Boolean).join(" · ");
-  const KAART_UNITS = ["vertalen", "midden", "regels"];
-  // grammaticakaarten: regels + volledige tabellen (modellen en werkwoorden)
+  // ============================================================
+  // CAPUT-GROEPEN (leerwerkboek): per caput woordenschat en grammatica
+  // De onderdelen hergebruiken de generatoren hierboven, beperkt tot de woorden en de leerstof van dat caput.
+  // ============================================================
+  const CAP_REGEL_ITEMS = Object.entries(G.REGELS_CAPUT).flatMap(([c, rs]) => rs.map(([id, vraag, antw, ...fout]) => ({ c: +c, id, vraag, antw, fout })));
+  unit({
+    id: "cregels", group: "X", label: "Regels per caput", page: "samenvatting grammatica",
+    rule: "Herhaal de samenvatting van de taalstudie van dit caput (leerkaarten 'Regel').",
+    items: (s) => CAP_REGEL_ITEMS.filter((it) => !s || !s._cap || it.c === s._cap), noRange: true,
+    gen(level, it) {
+      const opts = shuffle([it.antw, ...it.fout.slice(0, level === "easy" ? 2 : 3)]);
+      return base(this, { mode: "mc", instruction: it.vraag, prompt: "", options: opts.map((o) => ({ v: o, html: o })), answer: it.antw, answerShown: it.antw, tag: "regels",
+        key: `cr:${it.id}`, itemLabel: `regel: ${it.vraag.replace(/<[^>]+>/g, "")}` });
+    },
+    byKey(rest) { return CAP_REGEL_ITEMS.find((x) => x.id === rest); },
+  });
+
+  const capRange = (c, mode) => { const x = CAPS.find((y) => +y.c === c); return !x || mode === "all" ? [MIN, MAX] : mode === "le" ? [MIN, x.v[1]] : x.v; };
+  const KENNOG = Object.fromEntries(Object.entries(G.KEN_JE_NOG).map(([c, list]) => [c, WOORDEN.filter((w) => list.includes(head(w.la)))]));
+  const T_ONVOLT = ["praes", "imperf", "fut", "imp", "inf"];
+  // een caput-onderdeel = generator + eigen woorden/tijden
+  function wrap(baseId, id, c, grp, label, extra = {}) {
+    const B = UNITS.find((u) => u.id === baseId);
+    const { _filter, _rule, _page, ...setx } = extra;
+    const sx = (s) => ({ ...(s || {}), bereik: capRange(c, setx._words || "le"), nwKlasse: "alle", wwTijd: "alle", _cap: c, ...setx });
+    return unit({ ...B, id, group: grp, label, cap: c, page: _page || B.page, rule: _rule || B.rule, noRange: true,
+      items: (s) => B.items(sx(s)).filter((it) => !_filter || _filter(it)),
+      gen(level, it, s) { return B.gen.call(this, level, it, sx(s)); } });
+  }
+  const CAPUT_GROUPS = [];
+  [1, 2, 3].forEach((c) => {
+    const naam = G.CAPUT_INFO[c].naam, W = `C${c}W`, GR = `C${c}G`;
+    CAPUT_GROUPS.push({ id: W, short: `caput ${c} woorden`, titel: `Caput ${c} – ${naam}: woordenschat`, p: "" }, { id: GR, short: `caput ${c} grammatica`, titel: `Caput ${c} – ${naam}: grammatica`, p: "" });
+    const kn = new Set(KENNOG[c]);
+    wrap("vertalen", `c${c}_vertalen`, c, W, `Woorden van caput ${c}: vertalen`, { _words: "cap" });
+    wrap("midden", `c${c}_midden`, c, W, c === 1 ? `Woorden van caput ${c}: middenkolom` : `Woorden van caput ${c}: middenkolom (genitief, stamtijden)`, { _words: "cap" });
+    wrap("vertalen", `c${c}_kennog`, c, W, `"Ken je deze woorden nog?" (herhaling bij de teksten)`, { _words: "all", _filter: (w) => kn.has(w) });
+    if (c === 1) {
+      wrap("verbuiging", "c1_klasse", 1, GR, "Substantieven en adjectieven: klasse en model");
+      wrap("nw_bepalen", "c1_nwbep", 1, GR, "Naamwoord(groep)en determineren: naamval, genus, getal");
+      wrap("nw_vorm", "c1_nwvorm", 1, GR, "Substantief: gevraagde vorm maken");
+      wrap("bn2", "c1_bn2", 1, GR, "Adjectieven 2e klasse (fortis)");
+      wrap("functies", "c1_functies", 1, GR, "Naamvallen en functies in de zin");
+      wrap("voorzetsels", "c1_voorzetsels", 1, GR, "Voorzetsels met accusatief of ablatief");
+      wrap("ww_bepalen", "c1_wwbep", 1, GR, "Onvoltooide tijden: werkwoordsvorm bepalen (tempel)", { _tijden: T_ONVOLT });
+      wrap("ww_vorm", "c1_wwvorm", 1, GR, "Onvoltooide tijden: vorm maken", { _tijden: T_ONVOLT });
+      wrap("ww_tabel", "c1_wwtabel", 1, GR, "Onvoltooide tijden: tabel vervoegen", { _tijden: G.TIJD });
+      wrap("ww_verwar", "c1_wwverwar", 1, GR, "Praesens, imperfectum of futurum?", { _tijden: G.TIJD });
+      wrap("ww_vertalen", "c1_wwvert", 1, GR, "Onvoltooide tijden vertalen (OTT, OVT, OTkT)", { _tijden: G.TIJD });
+    }
+    if (c === 2) {
+      const T2 = [...T_ONVOLT, "perf"];
+      wrap("ww_vorm", "c2_perfvorm", 2, GR, "Actieve indicatief perfectum: vorm maken (perfectumstam)", { _tijden: ["perf"], _passVolt: false });
+      wrap("ww_tabel", "c2_perftabel", 2, GR, "Actieve indicatief perfectum: tabel vervoegen", { _tijden: ["perf"], _passVolt: false });
+      wrap("ww_inf", "c2_grondwoord", 2, GR, "Perfectum: grondwoord geven (stamtijden)", { _tijden: ["perf"], _passVolt: false });
+      wrap("praes_perf", "c2_praesperf", 2, GR, "Praesens of perfectum?");
+      wrap("ww_bepalen", "c2_wwbep", 2, GR, "Werkwoordsvorm bepalen (met perfectum)", { _tijden: T2, _passVolt: false });
+      wrap("ww_vertalen", "c2_wwvert", 2, GR, "Perfectum vertalen: OVT of VTT", { _tijden: ["perf"], _passVolt: false });
+      wrap("vnw_pers", "c2_vnwpers", 2, GR, "Persoonlijke voornaamwoorden (ego, tū, sē, nōs, vōs)");
+      wrap("aanw_bep", "c2_is", 2, GR, "is, ea, id (3de persoon): naamval, genus, getal", { _vnw: ["is"] });
+      wrap("vnw_bez", "c2_vnwbez", 2, GR, "Bezittelijke voornaamwoorden bij een substantief");
+      wrap("vnw_zin", "c2_vnwzin", 2, GR, "Voornaamwoorden in de zin: reflexief of niet?");
+    }
+    if (c === 3) {
+      const V = G.TIJD_VOLT;
+      wrap("ww_vorm", "c3_passperf", 3, GR, "Passieve indicatief perfectum: vorm maken (amātus sum)", { _tijden: ["perf"], _onlyPass: true });
+      wrap("ww_vorm", "c3_plqfut", 3, GR, "Plusquamperfectum en futurum exactum: vorm maken", { _tijden: ["plqpf", "futex"] });
+      wrap("ww_tabel", "c3_wwtabel", 3, GR, "Voltooide tijden: tabel vervoegen (actief en passief)", { _tijden: V });
+      wrap("ww_bepalen", "c3_wwbep", 3, GR, "Werkwoordsvorm bepalen (alle tijden)", { _tijden: [...T_ONVOLT, ...V] });
+      wrap("ww_verwar", "c3_wwverwar", 3, GR, "Perfectum, plusquamperfectum of futurum exactum?", { _tijden: V });
+      wrap("ww_vertalen", "c3_wwvert", 3, GR, "Voltooide tijden vertalen (VTT, VVT, VTkT, passief)", { _tijden: V });
+      wrap("ww_inf", "c3_grondwoord", 3, GR, "Voltooide tijden: grondwoord geven", { _tijden: V });
+      wrap("aanw_bep", "c3_aanwbep", 3, GR, "Aanwijzende voornaamwoorden: naamval, genus, getal", { _vnw: ["hic", "iste", "ille", "is", "idem", "ipse"] });
+      wrap("aanw_cong", "c3_aanwcong", 3, GR, "Aanwijzend voornaamwoord bij een substantief", { _vnw: ["hic", "iste", "ille", "is", "idem", "ipse"] });
+      wrap("aanw_vorm", "c3_aanwvorm", 3, GR, "Aanwijzende voornaamwoorden: tabellen", { _vnw: ["hic", "iste", "ille", "is", "idem", "ipse"] });
+    }
+    wrap("cregels", `c${c}_regels`, c, GR, `Regels en begrippen van caput ${c}`);
+  });
+
+  // ============================================================
+  // KAARTEN (studiemodule): eerst de betekenis, pas daarna de middenkolom
+  // ============================================================
+  const KAART_UNITS = ["vertalen", "midden", "regels", ...[1, 2, 3].flatMap((c) => [`c${c}_vertalen`, `c${c}_midden`, `c${c}_kennog`, `c${c}_regels`])];
   const ptab = (head1, rows) => `<table class="ptab"><tr>${head1.map((h) => `<th>${h}</th>`).join("")}</tr>${rows.map((r) => `<tr>${r.map((c, i) => (i ? `<td class="latin">${esc(c)}</td>` : `<th>${c}</th>`)).join("")}</tr>`).join("")}</table>`;
   const PERS_RIJ = ["1ste p. enk.", "2de p. enk.", "3de p. enk.", "1ste p. mv.", "2de p. mv.", "3de p. mv."];
-  function grammarCards() {
-    const out = REGEL_ITEMS.map((it) => ({ key: `regel:${it.id}`, unit: "regels", soort: "Regel", ask: "Weet je het antwoord?", front: it.vraag, back: it.antw, page: "samenvatting grammatica", label: `regel: ${it.vraag.replace(/<[^>]+>/g, "")}` }));
-    MODEL_WOORDEN.forEach((w) => {
-      const F = nf(w).forms, m = nf(w).model;
-      out.push({ key: `tab:${head(w.la)}`, unit: "regels", soort: "Tabel", ask: "Verbuig dit model (enk. en mv.)",
-        front: `${esc(w.la)}<span class="midcol">${esc(w.mid)}</span>`, frontCls: "latin", info: `${G.KLASSE_NAAM[G.modelKlasse(m)]} · ${esc(w.nl)}`,
-        back: ptab(["", "enk.", "mv."], G.NV.map((n) => [NVL[n], F[`${n}.enk`][0], F[`${n}.mv`] ? F[`${n}.mv`][0] : "-um / -ium"])), page: "leerstofoverzicht klassen", label: `tabel ${head(w.la)}` });
-    });
-    MODEL_ADJ.forEach((w) => {
-      const A = af(w).forms;
-      out.push({ key: `tab:${head(w.la)}`, unit: "regels", soort: "Tabel", ask: "Verbuig dit adjectief (m. – v. – o.)",
-        front: esc(w.la), frontCls: "latin", info: esc(w.titel),
-        back: ["enk", "mv"].map((g) => ptab([GTL[g], "m.", "v.", "o."], G.NV.map((n) => [NVL[n], ...G.GS.map((x) => A[x][`${n}.${g}`][0])]))).join(""), page: "adjectieven", label: `tabel ${head(w.la)}` });
-    });
-    const wwModels = Object.values(G.MODEL_WW).map((inf) => WOORDEN.find((x) => x.soort === "ww" && head(x.la) === inf)).filter(Boolean);
-    const wwOnr = Object.keys(G.ONR).map((inf) => WOORDEN.find((x) => x.soort === "ww" && head(x.la) === inf)).filter((x) => x && vs(x));
-    [...wwModels, ...wwOnr].forEach((w) => {
+  const wwModels = () => Object.values(G.MODEL_WW).map((inf) => WOORDEN.find((x) => x.soort === "ww" && head(x.la) === inf)).filter(Boolean);
+  const wwOnr = () => Object.keys(G.ONR).map((inf) => WOORDEN.find((x) => x.soort === "ww" && head(x.la) === inf)).filter((x) => x && vs(x));
+  function verbTabCards(list, tijden, unitId) {
+    const out = [];
+    list.forEach((w) => {
       const F = vf(w), inf = head(w.la);
-      G.TIJD.forEach((t) => {
+      tijden.forEach((t) => {
+        if (!F[`act.${t}.1.enk`]) return;
         const hasP = !!F[`pass.${t}.1.enk`];
-        out.push({ key: `tab:${inf}:${t}`, unit: "regels", soort: "Tabel", ask: `Vervoeg: indicatief ${G.TIJD_NAAM[t]}${hasP ? " (actief en passief)" : ""}`,
-          front: esc(inf), frontCls: "latin", info: esc(w.nl),
+        out.push({ key: `tab:${inf}:${t}`, unit: unitId, soort: "Tabel", ask: `Vervoeg: indicatief ${G.TIJD_NAAM[t]}${hasP ? " (actief en passief)" : ""}`,
+          front: esc(inf) + (w.mid ? `<span class="midcol">${esc(w.mid)}</span>` : ""), frontCls: "latin", info: esc(w.nl),
           back: ptab(hasP ? ["", "actief", "passief"] : ["", "actief"], PERS_RIJ.map((pr, i) => { const k = `${(i % 3) + 1}.${i < 3 ? "enk" : "mv"}`; return [pr, F[`act.${t}.${k}`][0], ...(hasP ? [F[`pass.${t}.${k}`][0]] : [])]; })),
           page: G.TIJD_NAAM[t], label: `tabel ${inf} ${G.TIJD_NAAM[t]}` });
       });
     });
     return out;
   }
+  function nounTabCards(unitId) {
+    const out = [];
+    MODEL_WOORDEN.forEach((w) => {
+      const F = nf(w).forms, m = nf(w).model;
+      out.push({ key: `tab:${head(w.la)}`, unit: unitId, soort: "Tabel", ask: "Verbuig dit model (enk. en mv.)",
+        front: `${esc(w.la)}<span class="midcol">${esc(w.mid)}</span>`, frontCls: "latin", info: `${G.KLASSE_NAAM[G.modelKlasse(m)]} · ${esc(w.nl)}`,
+        back: ptab(["", "enk.", "mv."], G.NV.map((n) => [NVL[n], F[`${n}.enk`][0], F[`${n}.mv`] ? F[`${n}.mv`][0] : "-um / -ium"])), page: "leerstofoverzicht klassen", label: `tabel ${head(w.la)}` });
+    });
+    MODEL_ADJ.forEach((w) => {
+      const A = af(w).forms;
+      out.push({ key: `tab:${head(w.la)}`, unit: unitId, soort: "Tabel", ask: "Verbuig dit adjectief (m. – v. – o.)",
+        front: esc(w.la), frontCls: "latin", info: esc(w.titel),
+        back: ["enk", "mv"].map((g) => ptab([GTL[g], "m.", "v.", "o."], G.NV.map((n) => [NVL[n], ...G.GS.map((x) => A[x][`${n}.${g}`][0])]))).join(""), page: "adjectieven", label: `tabel ${head(w.la)}` });
+    });
+    return out;
+  }
+  function vnwTabCards(ids, unitId) {
+    return ids.map((id) => ({ key: `tab:${id}`, unit: unitId, soort: "Tabel", ask: "Verbuig dit voornaamwoord (m. – v. – o.)", front: esc(AW[id].titel), frontCls: "latin", info: esc(AW[id].nl),
+      back: ["enk", "mv"].map((g) => ptab([GTL[g], "m.", "v.", "o."], G.NV.slice(0, 5).map((n) => [NVL[n], ...G.GS.map((x) => AW[id].t[x][`${n}.${g}`].join("/"))]))).join(""),
+      page: "aanwijzende voornaamwoorden", label: `tabel ${id}` }));
+  }
+  const persCard = (unitId) => ({ key: "tab:ego", unit: unitId, soort: "Tabel", ask: "Geef de persoonlijke voornaamwoorden (nom. – acc. – gen. – dat. – abl.)", front: "ego, tū, sē · nōs, vōs", frontCls: "latin", info: "persoonlijke voornaamwoorden",
+    back: ptab(["", "ego", "tū", "(refl.)", "nōs", "vōs"], [["nom.", "ego", "tū", "–", "nōs", "vōs"], ["acc.", "mē", "tē", "sē", "nōs", "vōs"], ["gen.", "meī", "tuī", "suī", "nostrī/nostrum", "vestrī/vestrum"], ["dat.", "mihi", "tibi", "sibi", "nōbīs", "vōbīs"], ["abl.", "mē", "tē", "sē", "nōbīs", "vōbīs"]]),
+    page: "persoonlijke voornaamwoorden", label: "tabel persoonlijke vnw" });
+  const regelCard = (it, unitId) => ({ key: `${unitId === "regels" ? "regel" : "cr"}:${it.id}`, unit: unitId, soort: "Regel", ask: "Weet je het antwoord?", front: it.vraag, back: it.antw, page: "samenvatting grammatica", label: `regel: ${it.vraag.replace(/<[^>]+>/g, "")}` });
+  function grammarCards() {
+    return [...REGEL_ITEMS.map((it) => regelCard(it, "regels")), ...nounTabCards("regels"), ...verbTabCards([...wwModels(), ...wwOnr()], G.TIJD, "regels")];
+  }
+  function capCards(c) {
+    const u = `c${c}_regels`, out = CAP_REGEL_ITEMS.filter((it) => it.c === c).map((it) => regelCard(it, u));
+    if (c === 1) out.push(...nounTabCards(u), ...verbTabCards([...wwModels(), ...wwOnr().filter((w) => ["esse", "posse"].includes(head(w.la)))], G.TIJD, u));
+    if (c === 2) out.push(...verbTabCards([...wwModels(), ...wwOnr().filter((w) => ["esse", "posse", "īre", "ferre"].includes(head(w.la)))], ["perf"], u), persCard(u), ...vnwTabCards(["is"], u));
+    if (c === 3) out.push(...verbTabCards(wwModels(), ["plqpf", "futex"], u), ...vnwTabCards(["hic", "iste", "ille", "idem", "ipse"], u));
+    return out;
+  }
   function kaarten(s) {
     const sel = s && Array.isArray(s.units) ? s.units : KAART_UNITS;
-    const words = s ? inRange(s) : WOORDEN;
-    const out = [];
-    words.forEach((w) => {
+    const out = [], seen = new Set();
+    const add = (card) => { if (!seen.has(card.key)) { seen.add(card.key); out.push(card); } };
+    const wordCards = (words, uV, uM) => words.forEach((w) => {
       const page = `§${w.sec} · nr. ${w.nr}`;
-      if (sel.includes("vertalen")) out.push({ key: `vertalen:${w.nr}`, unit: "vertalen", soort: "Betekenis", ask: "Wat betekent dit woord?",
+      if (uV) add({ key: `vertalen:${w.nr}`, unit: uV, soort: "Betekenis", ask: "Wat betekent dit woord?",
         front: esc(w.la), frontCls: "latin", back: esc(w.nl), info: (w.mid ? `<span class="latin">${esc(w.mid)}</span> · ` : "") + esc(wordInfo(w)),
         tip: w.afl ? `denk aan: ${esc(w.afl)}` : "", page, label: `${w.nr}. ${w.la} → ${w.nl}` });
-      if (sel.includes("midden") && w.mid) out.push({ key: `midden:${w.nr}`, unit: "midden", soort: "Middenkolom", ask: "Wat staat er in de middenkolom?",
+      if (uM && w.mid) add({ key: `midden:${w.nr}`, unit: uM, soort: "Middenkolom", ask: "Wat staat er in de middenkolom?",
         front: esc(w.la), frontCls: "latin", back: esc(w.mid), backCls: "latin", info: esc(w.nl), page, label: `${w.nr}. ${w.la} – ${w.mid}`, na: `vertalen:${w.nr}` });
     });
-    if (sel.includes("regels")) out.push(...grammarCards());
+    const words = s ? inRange(s) : WOORDEN;
+    wordCards(words, sel.includes("vertalen") && "vertalen", sel.includes("midden") && "midden");
+    [1, 2, 3].forEach((c) => {
+      const cw = WOORDEN.filter((w) => capOf(w) === c && (!s || s.welke !== "vet" || w.vet));
+      wordCards(cw, sel.includes(`c${c}_vertalen`) && `c${c}_vertalen`, sel.includes(`c${c}_midden`) && `c${c}_midden`);
+      if (sel.includes(`c${c}_kennog`)) wordCards(KENNOG[c], `c${c}_kennog`, null);
+      if (sel.includes(`c${c}_regels`)) capCards(c).forEach(add);
+    });
+    if (sel.includes("regels")) grammarCards().forEach(add);
     return out;
   }
 
@@ -911,15 +1279,19 @@
   Vakken.register({
     id: "latijn-2", vak: I.vak, icon: I.icon, theme: I.theme, titel: I.titel, klas: I.klas, bron: I.bron,
     groups: [
-      { id: "W", short: "woorden", titel: "Woordenschat", p: "" },
-      { id: "N", short: "naamwoorden", titel: "Grammatica: substantieven en adjectieven (klassen)", p: "" },
-      { id: "V", short: "werkwoorden", titel: "Grammatica: werkwoorden (praesens, imperfectum, futurum)", p: "" },
-      { id: "G", short: "woordvorming", titel: "Woordvorming en woordenlijst", p: "" },
-      { id: "R", short: "regels", titel: "Regels en begrippen", p: "" },
+      ...CAPUT_GROUPS,
+      { id: "W", short: "woorden", titel: "Alle capita – woordenschat (volgens de nummers hieronder)", p: "", closed: true },
+      { id: "N", short: "naamwoorden", titel: "Alle capita – substantieven en adjectieven (klassen)", p: "", closed: true },
+      { id: "V", short: "werkwoorden", titel: "Alle capita – werkwoorden (alle tijden)", p: "", closed: true },
+      { id: "G", short: "woordvorming", titel: "Alle capita – woordvorming en woordenlijst", p: "", closed: true },
+      { id: "R", short: "regels", titel: "Alle capita – regels en begrippen", p: "", closed: true },
     ],
-    units: UNITS.map((u) => ({ id: u.id, group: u.group, label: u.label, page: u.page })),
+    units: UNITS.filter((u) => u.group !== "X").map((u) => ({ id: u.id, group: u.group, label: u.label, page: u.page, defaultOn: /^C\d/.test(u.group) })),
     quick: [
       { label: "Alles", select: () => true },
+      ...[1, 2, 3].map((c) => ({ label: `📘 Caput ${c}`, select: (u) => u.group === `C${c}W` || u.group === `C${c}G` })),
+      { label: "📖 Woordenschat caput 1-3", select: (u) => /^C\dW$/.test(u.group) },
+      { label: "🧩 Grammatica caput 1-3", select: (u) => /^C\dG$/.test(u.group) },
       { label: "📖 Vertalen + middenkolom", select: (u) => u.id === "vertalen" || u.id === "midden" },
       { label: "📚 Enkel woordenschat", select: (u) => u.group === "W" },
       { label: "🧩 Substantieven + adjectieven", select: (u) => u.group === "N" },
@@ -927,17 +1299,17 @@
       { label: "🏟️ Caput 8: 3e klasse + futurum", select: (u) => ["verbuiging", "nw_vorm", "nw_tabel", "nw_bepalen", "congruentie", "ww_bepalen", "ww_vorm", "ww_splitsen", "ww_verwar", "ww_vertalen", "ww_inf", "regels"].includes(u.id) },
     ],
     settings: [
-      { key: "bereik", type: "range", label: "Welke woorden? <span class=\"muted\">(nummers uit de woordenlijst)</span>", min: MIN, max: MAX, default: [MIN, MAX],
+      { key: "bereik", type: "range", label: "Welke woorden? <span class=\"muted\">(nummers uit de woordenlijst · voor 'Alle capita'; de caput-onderdelen nemen zelf de woorden van hun caput)</span>", min: MIN, max: MAX, default: [MIN, MAX],
         presets: [{ label: "Alles", v: [MIN, MAX] }, ...CAPS.map((x) => ({ label: `${x.c} ${x.naam}`, v: x.v }))],
         hint: "Geldt voor alle vragen over woorden (ook grammatica). Een paragraaf kiezen? Typ de nummers (bv. 344 tot 358 = §3.3). De kaders 'woordvorming: achtervoegsels' hebben geen nummers en komen altijd aan bod als je ze aanvinkt." },
       { key: "welke", type: "radio", label: "Welke woorden in dat bereik?", default: "alle",
         options: [{ v: "alle", label: "Alle woorden" }, { v: "vet", label: "Enkel vetgedrukte <small>(750 meest frequente)</small>" }] },
-      { key: "nwKlasse", type: "radio", label: "Substantieven en adjectieven: welke klasse? <span class=\"muted\">(grammatica)</span>", default: "alle",
+      { key: "nwKlasse", type: "radio", label: "Substantieven en adjectieven: welke klasse? <span class=\"muted\">(enkel voor 'Alle capita')</span>", default: "alle",
         options: [{ v: "alle", label: "Alle klassen" }, { v: "1", label: "1e klasse <small>(avus, rosa, dōnum, bonus)</small>" }, { v: "2", label: "2e klasse <small>(dux, māter, corpus, fēlīx, fortis, ācer)</small>" }, { v: "3", label: "3e klasse <small>(fructus, rēs)</small>" }] },
-      { key: "wwTijd", type: "radio", label: "Werkwoorden: welke tijd? <span class=\"muted\">(grammatica)</span>", default: "alle",
-        options: [{ v: "alle", label: "Alle tijden" }, { v: "praes", label: "praesens" }, { v: "imperf", label: "imperfectum" }, { v: "fut", label: "futurum simplex" }] },
+      { key: "wwTijd", type: "radio", label: "Werkwoorden: welke tijd? <span class=\"muted\">(enkel voor 'Alle capita')</span>", default: "alle",
+        options: [{ v: "alle", label: "Alle tijden" }, { v: "praes", label: "praesens" }, { v: "imperf", label: "imperfectum" }, { v: "fut", label: "futurum simplex" }, { v: "perf", label: "perfectum" }, { v: "plqpf", label: "plusquamperfectum" }, { v: "futex", label: "futurum exactum" }] },
     ],
-    describe: (s) => `woorden ${s.bereik[0]}–${s.bereik[1]}${s.welke === "vet" ? " (enkel vetgedrukt)" : ""} (${inRange(s).length})${s.nwKlasse && s.nwKlasse !== "alle" ? ` · ${s.nwKlasse}e klasse` : ""}${s.wwTijd && s.wwTijd !== "alle" ? ` · ${{ praes: "praesens", imperf: "imperfectum", fut: "futurum" }[s.wwTijd]}` : ""}`,
+    describe: (s) => `woorden ${s.bereik[0]}–${s.bereik[1]}${s.welke === "vet" ? " (enkel vetgedrukt)" : ""} (${inRange(s).length})${s.nwKlasse && s.nwKlasse !== "alle" ? ` · ${s.nwKlasse}e klasse` : ""}${s.wwTijd && s.wwTijd !== "alle" ? ` · ${G.TIJD_NAAM[s.wwTijd]}` : ""}`,
     levels: {
       easy: { title: "🙂 Makkelijk", desc: "alles meerkeuze" },
       normal: { title: "💪 Normaal", desc: "meerkeuze + typen; lengtetekens (ā, ē…) hoeven niet" },

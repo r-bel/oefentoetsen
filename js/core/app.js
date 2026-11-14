@@ -123,7 +123,7 @@
       const block = (list, title) => !list.length ? "" : `<div class="kindgroup">${title ? `<div class="kindtitle">${esc(title)}</div>` : ""}` + list.map((u) =>
         `<label class="unit"><input type="checkbox" class="unit-cb" data-group="${g.id}" value="${u.id}" ${u.defaultOn !== false ? "checked" : ""}> ${esc(u.label)} <small>${pg(u.page)}</small></label>`).join("") + `</div>`;
       const body = kinds.map((k) => block(items.filter((u) => !k || u.kind === k), k && v.kinds[k])).join("");
-      return `<details class="mission" open><summary><label><input type="checkbox" class="mission-cb" data-group="${g.id}"> ${esc(g.titel)} ${g.p ? `<small class="muted">${pg(g.p)}</small>` : ""}</label></summary><div class="kinds ${kinds.length > 1 ? "" : "single"}">${body}</div></details>`;
+      return `<details class="mission" ${g.closed ? "" : "open"}><summary><label><input type="checkbox" class="mission-cb" data-group="${g.id}"> ${esc(g.titel)} ${g.p ? `<small class="muted">${pg(g.p)}</small>` : ""}</label></summary><div class="kinds ${kinds.length > 1 ? "" : "single"}">${body}</div></details>`;
     }).join("") + `</div>`;
     let html = sec("Wat wil je oefenen?", quick + tree);
     // extra instellingen van het vak (bv. richting bij talen)
