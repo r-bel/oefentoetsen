@@ -35,7 +35,10 @@
   const SECTIES = uniq(WOORDEN.map((w) => w.sec)).map((sec) => { const n = WOORDEN.filter((w) => w.sec === sec).map((w) => w.nr); return { sec, v: [Math.min(...n), Math.max(...n)] }; });
   // snelkeuzes per caput (de paragrafen kan je met de nummers kiezen)
   const CAPS = uniq(WOORDEN.map((w) => w.sec.split(".")[0])).map((c) => { const n = WOORDEN.filter((w) => w.sec.split(".")[0] === c).map((w) => w.nr); return { c, naam: (CAPITA || {})[c] || "", v: [Math.min(...n), Math.max(...n)] }; });
-  const inRange = (s) => { const r = s.bereik || [MIN, MAX]; return WOORDEN.filter((w) => w.nr >= r[0] && w.nr <= r[1] && (s.welke !== "vet" || w.vet)); };
+  // woordsoorten: nw (substantieven), bn (adjectieven), ww (werkwoorden), rest (alle andere woorden)
+  const soortGroep = (w) => (w.soort === "nw" || w.soort === "bn" || w.soort === "ww" ? w.soort : "rest");
+  const soortOk = (s, w) => !s || !Array.isArray(s.woordsoorten) || s.woordsoorten.includes(soortGroep(w));
+  const inRange = (s) => { const r = s.bereik || [MIN, MAX]; return WOORDEN.filter((w) => w.nr >= r[0] && w.nr <= r[1] && (s.welke !== "vet" || w.vet) && soortOk(s, w)); };
   const show = (w) => `${esc(w.la)}${w.mid ? `<span class="midcol">${esc(w.mid)}</span>` : ""}`;
 
   // ---------- vertaling Latijn → Nederlands ----------
@@ -349,9 +352,11 @@
   const nf = memo(G.nounForms), af = memo(G.adjForms), vs = memo(G.verbSpec);
   const vf = memo((w) => (vs(w) ? G.verbForms(vs(w)) : null));
   const NOUNS = WOORDEN.filter((w) => nf(w)), ADJS = WOORDEN.filter((w) => af(w)), VERBS = WOORDEN.filter((w) => vs(w));
-  const rangeOr = (s, all, min = 4) => { const r = inRange(s).filter((w) => all.includes(w)); return r.length >= min ? r : all; };
+  const rangeOr = (s, all, min = 4) => { const r = inRange(s).filter((w) => all.includes(w)); return r.length >= min ? r : all.filter((w) => soortOk(s, w)); };
   const genOf = (w) => (w.mid || "").split(",")[0].trim();
-  const klOk = (s, w) => !s || !s.nwKlasse || s.nwKlasse === "alle" || (w.soort === "nw" ? nf(w) && String(G.modelKlasse(nf(w).model)) === s.nwKlasse : G.adjInfo(w) && String(G.adjInfo(w).klasse) === s.nwKlasse);
+  // klassen: nieuwe instelling = lijst (nwKlassen), oude = één waarde (nwKlasse)
+  const klassenOf = (s) => (s && Array.isArray(s.nwKlassen) ? s.nwKlassen : s && s.nwKlasse && s.nwKlasse !== "alle" ? [s.nwKlasse] : null);
+  const klOk = (s, w) => { const K = klassenOf(s); if (!K) return true; return w.soort === "nw" ? nf(w) && K.includes(String(G.modelKlasse(nf(w).model))) : G.adjInfo(w) && K.includes(String(G.adjInfo(w).klasse)); };
   const nounShow = (w) => `${esc(head(w.la))}, ${esc(w.mid)}`;
   // cellen met een vorm (vocatief minder vaak)
   function cellsOf(forms, opts = {}) {
@@ -541,7 +546,7 @@
   ];
   const modKey = (it) => `mod:${head(it.w.la)}:${it.c}${it.gs ? ":" + it.gs : ""}`;
   unit({
-    id: "modellen", group: "N", label: "Modeltabellen (avus … rēs, bonus, fēlīx, fortis, ācer)", page: "leerstofoverzicht klassen",
+    id: "modellen", nom: true, group: "N", label: "Modeltabellen (avus … rēs, bonus, fēlīx, fortis, ācer)", page: "leerstofoverzicht klassen",
     rule: "Ken de modeltabellen vanbuiten: 1e klasse avus, rosa, dōnum · 2e klasse dux/māter, corpus · 3e klasse fructus, rēs · adjectieven bonus (1e klasse) en fēlīx, fortis, ācer (2e klasse).",
     items: () => MOD_ITEMS, noRange: true,
     gen(level, it) {
@@ -594,7 +599,10 @@
   const verbShow = (w) => `${esc(head(w.la))} <small>(${esc(w.nl)})</small>`;
   const isRegular = (w) => vs(w) && vs(w).kind !== "onr";
   // welke tijden mogen? (instelling "welke tijd" of de keuze van een caput)
-  const tijdenOf = (s) => (s && s._tijden) || (s && s.wwTijd && s.wwTijd !== "alle" ? [s.wwTijd] : null);
+  // tijden: keuze van het caput (_tijden) ∩ keuze van de leerling (wwTijden; oud: wwTijd)
+  const userTijden = (s) => (s && Array.isArray(s.wwTijden) ? s.wwTijden : s && s.wwTijd && s.wwTijd !== "alle" ? [s.wwTijd] : null);
+  const tijdenOf = (s) => { const a = s && s._tijden, b = userTijden(s); return a && b ? a.filter((t) => b.includes(t)) : a || b || null; };
+  const tijdOk = (s, t) => { const T = tijdenOf(s); return !T || T.includes(t); };
   function keyOk(s, k) {
     const x = G.keyParts(k), T = tijdenOf(s);
     if (s && s._passVolt === false && x.vorm === "pass" && G.TIJD_VOLT.includes(x.tijd)) return false;
@@ -610,7 +618,8 @@
     return ks.length ? pick(ks) : null;
   }
   const keysWith = (F, f) => Object.keys(F).filter((k) => F[k].includes(f));
-  const hasKey = (s) => (w) => vs(w) && Object.keys(vf(w)).some((k) => keyOk(s, k) && !/\.(imp|inf)\./.test(k));
+  const hasKey = (s) => (w) => vs(w) && Object.keys(vf(w)).some((k) => keyOk(s, k));
+  const hasKeyInd = (s) => (w) => vs(w) && Object.keys(vf(w)).some((k) => keyOk(s, k) && !/\.(imp|inf)\./.test(k));
 
   // ---------- V1. werkwoordsvorm bepalen (de tempel) ----------
   unit({
@@ -654,7 +663,7 @@
   unit({
     id: "ww_tabel", group: "V", label: "Werkwoord: tabel invullen (vervoegen)", page: "leerstofoverzicht werkwoord",
     rule: "Vervoeg per persoon: 1ste, 2de, 3de p. enkelvoud en meervoud. Actief: -ō/-m, -s, -t, -mus, -tis, -nt · passief: -or/-r, -ris, -tur, -mur, -minī, -ntur · perfectum: -ī, -istī, -it, -imus, -istis, -ērunt.",
-    items: (s) => inRange(s).filter(hasKey(s)),
+    items: (s) => inRange(s).filter(hasKeyInd(s)),
     gen(level, w, s) {
       const F = vf(w);
       const combos = uniq(Object.keys(F).filter((k) => keyOk(s, k) && !/\.(imp|inf)\./.test(k)).map((k) => { const x = G.keyParts(k); return `${x.vorm}.${x.tijd}`; }));
@@ -672,7 +681,7 @@
   unit({
     id: "ww_splitsen", group: "V", label: "Futurum: splitsen in stam – kenletter – (bindklinker) – uitgang", page: "futurum simplex",
     rule: "amāre, monēre: stam + kenletter b + eventueel bindklinker + uitgang (amā-b-i-t, amā-b-u-nt, amā-b-e-ris). tegere, audīre, capere: stam + kenletter ē (a in de 1ste p. enk.) + uitgang (teg-a-m, audi-ē-s, capi-e-nt).",
-    items: (s) => inRange(s).filter(isRegular),
+    items: (s) => (tijdOk(s, "fut") ? inRange(s).filter(isRegular) : []),
     gen(level, w) {
       const v = vs(w), vorm = v.pass && Math.random() < 0.4 ? "pass" : "act", i = rnd(6), parts = G.futSplit(v, vorm)[i], f = parts.join(""), ans = splitTxt(parts);
       const key = `${vorm}.fut.${(i % 3) + 1}.${i < 3 ? "enk" : "mv"}`;
@@ -694,7 +703,7 @@
   unit({
     id: "ww_verwar", group: "V", label: "Verwar niet: welke tijd?", page: "futurum simplex",
     rule: "Verwar niet: tegēs (fut.) ↔ tegis (praes.) · tegēris (pass. fut.) ↔ tegeris (pass. praes.) · monēs is praesens! · monēbit (fut.) ↔ monēbat (imperf.) · erunt (fut.) ↔ erant (imperf.) · amāverant (plqpf.) ↔ amāverint (fut. ex.) ↔ amāvērunt (perf.).",
-    items: (s) => inRange(s).filter(hasKey(s)),
+    items: (s) => inRange(s).filter(hasKeyInd(s)).filter(() => (tijdenOf(s) || G.TIJD).some((t) => G.TIJD_ALLE.includes(t))),
     gen(level, w, s) {
       const F = vf(w), v = vs(w), T = (tijdenOf(s) || G.TIJD).filter((t) => G.TIJD_ALLE.includes(t));
       const k0 = pickKey(F, s, { noImp: true, only: T }), x = G.keyParts(k0), p = x.p, g = x.g, vorm = x.vorm, tijd = x.tijd;
@@ -734,9 +743,9 @@
   unit({
     id: "ww_model", group: "V", label: "Vervoegingsmodel herkennen (amāre, monēre, tegere, audīre, capere)", page: "futurum simplex",
     rule: "Zoek het werkwoord in de woordenlijst: -āre = amāre · -ēre, ~eō = monēre · -ere, ~ō = tegere · -īre, ~iō = audīre · -ere, ~iō = capere ('Oh zo lekker': facere, fugere, rapere, iacere, capere, cupere).",
-    items: (s) => inRange(s).filter(isRegular),
+    items: (s) => (G.TIJD.some((t) => tijdOk(s, t)) ? inRange(s).filter(isRegular) : []),
     gen(level, w, s) {
-      const F = vf(w), k = pickKey(F, s, { noImp: true, only: G.TIJD }) || pickKey(F, {}, { noImp: true, only: G.TIJD }), f = F[k][0], m = vs(w).kind;
+      const F = vf(w), k = pickKey(F, s, { noImp: true, only: G.TIJD }), f = F[k][0], m = vs(w).kind;
       return base(this, { mode: "mc", instruction: "Volgens welk model wordt dit werkwoord vervoegd?", prompt: lat(f), promptClass: "latin", hint: level === "easy" ? `van ${head(w.la)}` : "",
         page: `§${w.sec} · nr. ${w.nr}`, options: MODELS_WW.map((x) => ({ v: x, html: `<span class="latin">${G.MODEL_WW[x]}</span>` })), answer: m,
         answerShown: `${lat(G.MODEL_WW[m])} <small>(${esc(head(w.la))}, ${esc(w.nl)} · ${esc(wwTxt(k))})</small>`, tag: "vervoeging", key: `wmod:${w.nr}`, itemLabel: `${w.nr}. ${head(w.la)}: model`, nr: w.nr });
@@ -753,7 +762,7 @@
   unit({
     id: "ww_vertalen", group: "V", label: "Werkwoordsvorm vertalen (ik zal …, hij heeft …, hij was …)", page: "vertaling van de tijden",
     rule: "praesens OTT: hij bemint · imperfectum OVT: hij beminde · futurum OTkT: hij zal beminnen · perfectum OVT of VTT: hij beminde / hij heeft bemind · plqpf. VVT: hij had bemind · fut. ex. VTkT: hij zal bemind hebben. Passief met worden / zijn: hij wordt, werd, is, was bemind.",
-    items: (s) => VERT_ITEMS.filter((w) => Object.keys(vf(w)).some((k) => keyOk(s, k) && G.nlAlle(head(w.la), k).length)), noRange: true,
+    items: (s) => VERT_ITEMS.filter((w) => soortOk(s, w)).filter((w) => Object.keys(vf(w)).some((k) => keyOk(s, k) && G.nlAlle(head(w.la), k).length)), noRange: true,
     gen(level, w, s) {
       const inf = head(w.la), F = vf(w);
       const keys = Object.keys(F).filter((k) => !/\.(imp|inf)\./.test(k) && keyOk(s, k) && G.nlAlle(inf, k).length);
@@ -800,7 +809,7 @@
   ];
   const fzTxt = (it) => `${NVL[it.n]} – ${G.FUNCTIES[it.f]}${it.rol ? ` (${it.rol})` : ""}`;
   unit({
-    id: "functies", group: "X", label: "Naamval en functie in de zin", page: "naamvallen en functies",
+    id: "functies", nom: true, group: "X", label: "Naamval en functie in de zin", page: "naamvallen en functies",
     rule: "nominatief: onderwerp of naamwoordelijk deel · accusatief: lijdend voorwerp (met voorzetsel: BWB, vaak richting) · genitief: bijvoeglijke bepaling ('van') · datief: meewerkend voorwerp ('aan', 'voor') · ablatief: bijwoordelijke bepaling (middel, tijd, plaats, wijze, oorzaak) of met ā/ab bij een passief: handelend voorwerp · vocatief: aanspreking.",
     items: () => FZ_ITEMS, noRange: true,
     gen(level, it) {
@@ -822,7 +831,7 @@
   const VZ_ITEMS = [...VZ_UNIEK.map((vz) => ({ t: "nv", vz })), ...VZ.map((x) => ({ t: "nl", x })), ...VZ.filter((x) => !["in", "sub"].includes(x.vz)).map((x) => ({ t: "vorm", x }))];
   const vzKey = (it) => `vz:${it.t}:${it.t === "nv" ? it.vz : it.x.i}`;
   unit({
-    id: "voorzetsels", group: "X", label: "Voorzetsels: naamval, betekenis en juiste vorm", page: "voorzetsels",
+    id: "voorzetsels", nom: true, group: "X", label: "Voorzetsels: naamval, betekenis en juiste vorm", page: "voorzetsels",
     rule: "+ acc.: ad, ante, apud, circum, inter, ob, per, post, praeter, trāns · + abl.: ā/ab, cum, dē, ē/ex, prō, sine · in en sub: + acc. = richting (naar, tot onder), + abl. = plaats (in, op, onder).",
     items: () => VZ_ITEMS, noRange: true,
     gen(level, it, s) {
@@ -841,7 +850,7 @@
       }
       // juiste vorm na het voorzetsel
       const x = it.x, pool = rangeOr(s, NOUNS).filter((w) => !nf(w).mvOnly);
-      for (let t = 0; t < 20; t++) {
+      for (let t = 0; t < 20 && pool.length; t++) {
         const w = pick(pool), F = nf(w).forms, g = pick(G.GETAL), cell = `${x.nv}.${g}`;
         if (!F[cell]) continue;
         const ans = F[cell][0];
@@ -866,7 +875,7 @@
   ];
   const persTxt = (a) => { const [p, g, n] = a.split("|"); return `${p === "3" ? "3de p. reflexief" : persL(p)} ${GTL[g]} ${NVL[n]}`; };
   unit({
-    id: "vnw_pers", group: "X", label: "Persoonlijke voornaamwoorden (ego, tū, sē, nōs, vōs)", page: "persoonlijke voornaamwoorden",
+    id: "vnw_pers", nom: true, group: "X", label: "Persoonlijke voornaamwoorden (ego, tū, sē, nōs, vōs)", page: "persoonlijke voornaamwoorden",
     rule: "ego, mē, meī, mihi, mē · tū, tē, tuī, tibi, tē · (refl.) –, sē, suī, sibi, sē · nōs, nōs, nostrī/nostrum, nōbīs, nōbīs · vōs, vōs, vestrī/vestrum, vōbīs, vōbīs. Met cum: mēcum, tēcum, sēcum, nōbīscum, vōbīscum.",
     items: () => PERS_FORMS, noRange: true,
     gen(level, f) {
@@ -886,7 +895,7 @@
   // ---------- voornaamwoorden in een zin: reflexief of niet, wie is bedoeld? ----------
   const VZIN_ITEMS = G.VNW_ZINNEN.map(([z, ok, ...fout], i) => ({ i, z, ok, fout }));
   unit({
-    id: "vnw_zin", group: "X", label: "Voornaamwoord in de zin: vertaling en wie bedoeld wordt", page: "persoonlijke en bezittelijke voornaamwoorden",
+    id: "vnw_zin", nom: true, group: "X", label: "Voornaamwoord in de zin: vertaling en wie bedoeld wordt", page: "persoonlijke en bezittelijke voornaamwoorden",
     rule: "sē en suus zijn reflexief: ze verwijzen naar het onderwerp (zich, zijn/haar/hun eigen). eum, eam, eōs … en eius, eōrum, eārum verwijzen naar iemand anders (hem, haar, hen · zijn, haar, hun). Staat er geen bezittelijk voornaamwoord, dan voeg je het in het Nederlands toe volgens de context.",
     items: () => VZIN_ITEMS, noRange: true,
     gen(level, it) {
@@ -901,7 +910,7 @@
   // ---------- bezittelijke voornaamwoorden: congruentie ----------
   const BEZ = G.BEZITTELIJK;
   unit({
-    id: "vnw_bez", group: "X", label: "Bezittelijke voornaamwoorden (meus, tuus, suus, noster, vester) bij een substantief", page: "bezittelijke voornaamwoorden",
+    id: "vnw_bez", nom: true, group: "X", label: "Bezittelijke voornaamwoorden (meus, tuus, suus, noster, vester) bij een substantief", page: "bezittelijke voornaamwoorden",
     rule: "meus, tuus, suus, noster en vester volgen bonus, bona, bonum en congrueren met hun kern in naamval, genus en getal (fīliam tuam, mīlitēs tuī).",
     items: (s) => rangeOr(s, NOUNS).filter((w) => !nf(w).mvOnly), noRange: true,
     gen(level, w) {
@@ -926,7 +935,7 @@
   const awAn = (id, f) => G.GS.flatMap((g) => Object.keys(AW[id].t[g]).filter((c) => AW[id].t[g][c].includes(f)).map((c) => { const [n, n2] = c.split("."); return `${n}|${g}|${n2}`; }));
   const AW_ITEMS = Object.keys(AW).flatMap((id) => awForms(id).map((f) => ({ id, f })));
   unit({
-    id: "aanw_bep", group: "X", label: "Aanwijzende voornaamwoorden: naamval, genus en getal", page: "aanwijzende voornaamwoorden",
+    id: "aanw_bep", nom: true, group: "X", label: "Aanwijzende voornaamwoorden: naamval, genus en getal", page: "aanwijzende voornaamwoorden",
     rule: "Enkelvoud: gen. -ius, dat. -ī, nom./acc. o. meestal -d (illud, istud, id) · meervoud: zoals bonus (behalve haec = nom./acc. o. mv. van hic). Let op dubbelgangers: haec, illī, istī, eī, hīs, eīs.",
     items: (s) => AW_ITEMS.filter((it) => awSel(s).includes(it.id)), noRange: true,
     gen(level, it) {
@@ -945,7 +954,7 @@
     byKey(rest) { const [id, f] = rest.split(":"); return AW[id] ? { id, f } : null; },
   });
   unit({
-    id: "aanw_cong", group: "X", label: "Aanwijzend voornaamwoord bij een substantief (congruentie)", page: "aanwijzende voornaamwoorden",
+    id: "aanw_cong", nom: true, group: "X", label: "Aanwijzend voornaamwoord bij een substantief (congruentie)", page: "aanwijzende voornaamwoorden",
     rule: "Een bijvoeglijk gebruikt aanwijzend voornaamwoord congrueert met zijn kern in naamval, genus en getal (illīs regiōnibus, huic praedae, hunc rēgem).",
     items: (s) => rangeOr(s, NOUNS).filter((w) => !nf(w).mvOnly), noRange: true,
     gen(level, w, s) {
@@ -964,7 +973,7 @@
   });
   const AWV_ITEMS = Object.keys(AW).flatMap((id) => G.GS.flatMap((gs) => Object.keys(AW[id].t[gs]).map((c) => ({ id, gs, c }))));
   unit({
-    id: "aanw_vorm", group: "X", label: "Aanwijzende voornaamwoorden: gevraagde vorm (tabel)", page: "aanwijzende voornaamwoorden",
+    id: "aanw_vorm", nom: true, group: "X", label: "Aanwijzende voornaamwoorden: gevraagde vorm (tabel)", page: "aanwijzende voornaamwoorden",
     rule: "Ken de tabellen van hic, iste, ille, is, īdem en ipse (zie leerkaarten 'Tabel').",
     items: (s) => AWV_ITEMS.filter((it) => awSel(s).includes(it.id)), noRange: true,
     gen(level, it) {
@@ -986,7 +995,7 @@
   unit({
     id: "praes_perf", group: "X", label: "Praesens of perfectum? (accidit, venit/vēnit …)", page: "praesens of perfectum",
     rule: "Bij sommige werkwoorden zijn praesens- en perfectumstam gelijk (accidit, solvit, metuimus, incendimus: praesens én perfectum mogelijk). Bij andere verschillen ze enkel in de lengte van de klinker: venit (praes.) ↔ vēnit (perf.), fugimus ↔ fūgimus, videt ↔ vīdit.",
-    items: (s) => inRange(s).filter((w) => vs(w) && vs(w).pst && vs(w).kind !== "onr"),
+    items: (s) => (tijdOk(s, "perf") ? inRange(s).filter((w) => vs(w) && vs(w).pst && vs(w).kind !== "onr") : []),
     gen(level, w) {
       const F = vf(w), amb = ppAmbig(w);
       const c = amb.length && Math.random() < 0.75 ? pick(amb) : pick(["1.enk", "2.enk", "3.enk", "1.mv", "2.mv", "3.mv"]);
@@ -1003,7 +1012,9 @@
   // ============================================================
   // TOETS SAMENSTELLEN
   // ============================================================
-  const items = (u, s) => u.items(s);
+  // naamwoord-grammatica (naamvallen, voorzetsels, voornaamwoorden, modeltabellen) valt weg als substantieven én adjectieven uitgevinkt zijn
+  const nomOk = (s) => !s || !Array.isArray(s.woordsoorten) || s.woordsoorten.includes("nw") || s.woordsoorten.includes("bn");
+  const items = (u, s) => (u.nom && !nomOk(s) ? [] : u.items(s));
   function makeQuiz(s) {
     const sel = UNITS.filter((u) => s.units.includes(u.id) && items(u, s).length);
     if (!sel.length) return [];
@@ -1032,7 +1043,7 @@
     const i = key.indexOf(":"), pre = key.slice(0, i), rest = key.slice(i + 1), u = UNITS.find((x) => x.id === KEY_UNIT[pre]);
     if (!u) return null;
     const all = { bereik: [MIN, MAX] };
-    Object.assign(all, { nwKlasse: s.nwKlasse, wwTijd: s.wwTijd });
+    Object.assign(all, { nwKlasse: s.nwKlasse, wwTijd: s.wwTijd, nwKlassen: s.nwKlassen, wwTijden: s.wwTijden, woordsoorten: s.woordsoorten });
     if (pre === "sfx") { const it = SFX_ITEMS.find((x) => (x.t === "duidt" ? x.g.sfx : x.w[2]) === rest); return it ? u.gen(level, it, all) : null; }
     if (pre === "mod") { const it = MOD_ITEMS.find((x) => modKey(x) === key); return it ? u.gen(level, it, all) : null; }
     if (pre === "wvert") { const it = VERT_ITEMS.find((x) => head(x.la) === rest); return it ? u.gen(level, it, all) : null; }
@@ -1136,7 +1147,7 @@
   function wrap(baseId, id, c, grp, label, extra = {}) {
     const B = UNITS.find((u) => u.id === baseId);
     const { _filter, _rule, _page, ...setx } = extra;
-    const sx = (s) => ({ ...(s || {}), bereik: capRange(c, setx._words || "le"), nwKlasse: "alle", wwTijd: "alle", _cap: c, ...setx });
+    const sx = (s) => ({ ...(s || {}), bereik: capRange(c, setx._words || "le"), _cap: c, ...setx });
     return unit({ ...B, id, group: grp, label, cap: c, page: _page || B.page, rule: _rule || B.rule, noRange: true,
       items: (s) => B.items(sx(s)).filter((it) => !_filter || _filter(it)),
       gen(level, it, s) { return B.gen.call(this, level, it, sx(s)); } });
@@ -1264,9 +1275,9 @@
     const words = s ? inRange(s) : WOORDEN;
     wordCards(words, sel.includes("vertalen") && "vertalen", sel.includes("midden") && "midden");
     [1, 2, 3].forEach((c) => {
-      const cw = WOORDEN.filter((w) => capOf(w) === c && (!s || s.welke !== "vet" || w.vet));
+      const cw = WOORDEN.filter((w) => capOf(w) === c && (!s || s.welke !== "vet" || w.vet) && soortOk(s, w));
       wordCards(cw, sel.includes(`c${c}_vertalen`) && `c${c}_vertalen`, sel.includes(`c${c}_midden`) && `c${c}_midden`);
-      if (sel.includes(`c${c}_kennog`)) wordCards(KENNOG[c], `c${c}_kennog`, null);
+      if (sel.includes(`c${c}_kennog`)) wordCards(KENNOG[c].filter((w) => soortOk(s, w)), `c${c}_kennog`, null);
       if (sel.includes(`c${c}_regels`)) capCards(c).forEach(add);
     });
     if (sel.includes("regels")) grammarCards().forEach(add);
@@ -1304,12 +1315,20 @@
         hint: "Geldt voor alle vragen over woorden (ook grammatica). Een paragraaf kiezen? Typ de nummers (bv. 344 tot 358 = §3.3). De kaders 'woordvorming: achtervoegsels' hebben geen nummers en komen altijd aan bod als je ze aanvinkt." },
       { key: "welke", type: "radio", label: "Welke woorden in dat bereik?", default: "alle",
         options: [{ v: "alle", label: "Alle woorden" }, { v: "vet", label: "Enkel vetgedrukte <small>(750 meest frequente)</small>" }] },
-      { key: "nwKlasse", type: "radio", label: "Substantieven en adjectieven: welke klasse? <span class=\"muted\">(enkel voor 'Alle capita')</span>", default: "alle",
-        options: [{ v: "alle", label: "Alle klassen" }, { v: "1", label: "1e klasse <small>(avus, rosa, dōnum, bonus)</small>" }, { v: "2", label: "2e klasse <small>(dux, māter, corpus, fēlīx, fortis, ācer)</small>" }, { v: "3", label: "3e klasse <small>(fructus, rēs)</small>" }] },
-      { key: "wwTijd", type: "radio", label: "Werkwoorden: welke tijd? <span class=\"muted\">(enkel voor 'Alle capita')</span>", default: "alle",
-        options: [{ v: "alle", label: "Alle tijden" }, { v: "praes", label: "praesens" }, { v: "imperf", label: "imperfectum" }, { v: "fut", label: "futurum simplex" }, { v: "perf", label: "perfectum" }, { v: "plqpf", label: "plusquamperfectum" }, { v: "futex", label: "futurum exactum" }] },
+      { key: "woordsoorten", type: "checks", label: "Welke woordsoorten?", default: ["nw", "bn", "ww", "rest"],
+        options: [{ v: "nw", label: "substantieven" }, { v: "bn", label: "adjectieven" }, { v: "ww", label: "werkwoorden" }, { v: "rest", label: "andere <small>(bijwoorden, voegwoorden …)</small>" }],
+        hint: "Geldt voor de woordenschat én de grammatica. Bv. enkel 'werkwoorden' aanvinken = geen substantieven of adjectieven." },
+      { key: "nwKlassen", type: "checks", label: "Substantieven en adjectieven: welke klassen?", default: ["1", "2", "3"],
+        options: [{ v: "1", label: "1e klasse <small>(avus, rosa, dōnum, bonus)</small>" }, { v: "2", label: "2e klasse <small>(dux, māter, corpus, fortis …)</small>" }, { v: "3", label: "3e klasse <small>(fructus, rēs)</small>" }] },
+      { key: "wwTijden", type: "checks", label: "Werkwoorden: welke tijden?", default: [...G.TIJD_ALLE, "imp", "inf"],
+        options: [{ v: "praes", label: "praesens" }, { v: "imperf", label: "imperfectum" }, { v: "fut", label: "futurum simplex" }, { v: "perf", label: "perfectum" }, { v: "plqpf", label: "plusquam&shy;perfectum" }, { v: "futex", label: "futurum exactum" }, { v: "imp", label: "imperatief" }, { v: "inf", label: "infinitief" }],
+        hint: "Bij de caput-onderdelen komen enkel de tijden van dat caput die je hier aanvinkt." },
     ],
-    describe: (s) => `woorden ${s.bereik[0]}–${s.bereik[1]}${s.welke === "vet" ? " (enkel vetgedrukt)" : ""} (${inRange(s).length})${s.nwKlasse && s.nwKlasse !== "alle" ? ` · ${s.nwKlasse}e klasse` : ""}${s.wwTijd && s.wwTijd !== "alle" ? ` · ${G.TIJD_NAAM[s.wwTijd]}` : ""}`,
+    describe: (s) => { const K = klassenOf(s), T = userTijden(s), S = s.woordsoorten;
+      return `woorden ${s.bereik[0]}–${s.bereik[1]}${s.welke === "vet" ? " (enkel vetgedrukt)" : ""} (${inRange(s).length})` +
+        (Array.isArray(S) && S.length < 4 ? ` · ${S.length ? S.map((x) => ({ nw: "substantieven", bn: "adjectieven", ww: "werkwoorden", rest: "andere" })[x]).join(", ") : "geen woordsoort!"}` : "") +
+        (K && K.length < 3 ? ` · ${K.length ? K.map((k) => k + "e").join(", ") + " klasse" : "geen klasse"}` : "") +
+        (T && T.length < 8 ? ` · ${T.length ? T.map((t) => G.TIJD_NAAM[t] || { imp: "imperatief", inf: "infinitief" }[t]).join(", ") : "geen tijd!"}` : ""); },
     levels: {
       easy: { title: "🙂 Makkelijk", desc: "alles meerkeuze" },
       normal: { title: "💪 Normaal", desc: "meerkeuze + typen; lengtetekens (ā, ē…) hoeven niet" },

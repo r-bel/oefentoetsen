@@ -129,6 +129,8 @@
     // extra instellingen van het vak (bv. richting bij talen)
     (v.settings || []).forEach((s) => {
       if (s.type === "radio") html += sec(s.label, `<div class="seg seg${s.options.length}">${s.options.map((o) => `<label><input type="radio" name="x-${s.key}" value="${o.v}" ${o.v === s.default ? "checked" : ""}><span>${o.label}</span></label>`).join("")}</div>`);
+      // meerkeuze-vinkjes (bv. welke tijden): waarde = lijst van aangevinkte opties
+      if (s.type === "checks") html += sec(s.label, `<div class="seg ${s.options.length <= 5 ? "seg" + s.options.length : "seg3"} checks">${s.options.map((o) => `<label><input type="checkbox" name="x-${s.key}" value="${o.v}" ${(s.default || []).includes(o.v) ? "checked" : ""}><span>${o.label}</span></label>`).join("")}</div>` + (s.hint ? `<div class="muted small">${s.hint}</div>` : ""));
       // bereik: "van nr. … tot nr. …" met snelkeuzes (bv. per paragraaf)
       if (s.type === "range") html += sec(s.label, `<div class="rangebox"><label>van ${s.word || "nr."} <input type="number" id="x-${s.key}-from" class="answer rangeinp" min="${s.min}" max="${s.max}" value="${s.default[0]}" inputmode="numeric"></label>
         <label>tot ${s.word || "nr."} <input type="number" id="x-${s.key}-to" class="answer rangeinp" min="${s.min}" max="${s.max}" value="${s.default[1]}" inputmode="numeric"></label></div>` +
@@ -167,6 +169,7 @@
     };
     (vak.settings || []).forEach((x) => {
       if (x.type === "radio") s[x.key] = $(`input[name="x-${x.key}"]:checked`).value;
+      else if (x.type === "checks") s[x.key] = $$(`input[name="x-${x.key}"]:checked`).map((c) => c.value);
       else if (x.type === "range") {
         let a = parseInt($(`#x-${x.key}-from`).value, 10), b = parseInt($(`#x-${x.key}-to`).value, 10);
         if (isNaN(a)) a = x.min; if (isNaN(b)) b = x.max;
@@ -184,6 +187,7 @@
     (vak.settings || []).forEach((x) => {
       if (s[x.key] === undefined) return;
       if (x.type === "radio") set("x-" + x.key, s[x.key]);
+      else if (x.type === "checks") { if (Array.isArray(s[x.key])) $$(`input[name="x-${x.key}"]`).forEach((c) => (c.checked = s[x.key].includes(c.value))); }
       else if (x.type === "range") { if (Array.isArray(s[x.key])) { $(`#x-${x.key}-from`).value = s[x.key][0]; $(`#x-${x.key}-to`).value = s[x.key][1]; } }
       else $(`#x-${x.key}`).checked = !!s[x.key];
     });
@@ -229,6 +233,7 @@
       const val = s[x.key];
       if (val === undefined) return;
       if (x.type === "radio") { const o = x.options.find((o) => o.v === val); if (o) parts.push(plain(x.label).replace(/\s*\(.*\)$/, "") + ": " + plain(o.label)); }
+      else if (x.type === "checks" && Array.isArray(val) && val.length < x.options.length) parts.push(plain(x.label).replace(/\s*\(.*\)$/, "").replace(/\?$/, "") + ": " + (val.length ? x.options.filter((o) => val.includes(o.v)).map((o) => plain(o.label)).join(", ") : "geen"));
       else if (x.type === "range" && Array.isArray(val)) parts.push(`${x.word || "nr."} ${val[0]}–${val[1]}`);
       else if (x.type === "checkbox" && val && (!x.showIf || x.showIf(s)) && s.count === "all") parts.push(plain(x.label));
     });
