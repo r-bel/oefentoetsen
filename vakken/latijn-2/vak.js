@@ -74,7 +74,9 @@
 
   // ---------- middenkolom ----------
   // verwachte delen per woord: [{ label, forms:[…aanvaarde vormen met lengtetekens] }]
-  function midSpec(w) {
+  // middenkolom werkwoorden: perfectum(stam) en/of supinum (participiumstam) – instelling midWW
+  const midDelen = (s) => (s && Array.isArray(s.midWW) ? s.midWW : ["perf", "sup"]);
+  function midSpec(w, s) {
     const m = w.mid;
     if (!m || /^\(/.test(m)) return null;
     if (w.soort === "nw") {
@@ -92,10 +94,13 @@
       const stem = head(w.la).replace(/us$/, "");
       return { kind: "bn", f: stem + "a", n: stem + "um", prompt: "Geef de vrouwelijke en onzijdige vorm (middenkolom)" };
     }
-    if (w.soort === "ww" && /\bsum$/.test(m)) return { kind: "dep", perf: m, prompt: "Geef het perfectum (middenkolom)" };
+    if (w.soort === "ww" && /\bsum$/.test(m)) return midDelen(s).length ? { kind: "dep", perf: m, prompt: "Geef het perfectum (middenkolom)" } : null;
     if (w.soort === "ww") {
-      const [perf, sup] = m.split(",").map((x) => x.trim());
-      return { kind: "ww", perf, sup: sup === "-" ? null : sup, prompt: "Geef het perfectum en het supinum (middenkolom)" };
+      const [perf, sup0] = m.split(",").map((x) => x.trim()), sup = sup0 === "-" || !sup0 ? null : sup0, D = midDelen(s);
+      if (D.includes("perf") && D.includes("sup")) return { kind: "ww", part: "both", perf, sup, ans: m, prompt: sup ? "Geef het perfectum en het supinum (middenkolom)" : "Geef het perfectum (middenkolom; dit werkwoord heeft geen supinum)" };
+      if (D.includes("perf")) return { kind: "ww", part: "perf", perf, sup: null, ans: perf, prompt: "Geef enkel het perfectum (middenkolom, perfectumstam + ī)" };
+      if (D.includes("sup") && sup) return { kind: "ww", part: "sup", perf: null, sup, ans: sup, prompt: "Geef enkel het supinum (middenkolom, participiumstam + um)" };
+      return null;
     }
     return null;
   }
@@ -137,6 +142,9 @@
     } else if (sp.kind === "bn3") {
       res = cmpTok(t[t.length - 1], sp.gen);
       if (!res) return { status: "wrong", tag: "middenkolom" };
+    } else if (sp.part === "perf" || sp.part === "sup") {
+      res = cmpTok(t[0], sp.part === "perf" ? sp.perf : sp.sup);
+      if (!res) return { status: "wrong", tag: "middenkolom" };
     } else {
       const p = cmpTok(t[0], sp.perf), s = sp.sup ? cmpTok(t[1], sp.sup) : "ok";
       if (!p && s && sp.sup) return { status: "wrong", tag: "middenkolom", note: "Het supinum is juist, het perfectum niet." };
@@ -147,7 +155,7 @@
     if (res === "spelling") return { status: "spelling", tag: "spelling" };
     if (partial) return { status: "partial", tag: "geslacht", note: partial };
     // ontbrekende of verkeerde lengtetekens zijn nooit fout (op geen enkel niveau); we tonen enkel de schrijfwijze
-    if (res === "macron") return { status: "correct", note: `Met lengtetekens: ${q.answerShown.replace(/&amp;/g, "&")}` };
+    if (res === "macron") return { status: "correct", note: `Met lengtetekens: ${(q.spec && q.spec.ans) || q.answerShown.replace(/&amp;/g, "&")}` };
     return { status: "correct" };
   }
   // geloofwaardige foute middenkolommen voor meerkeuze
@@ -172,11 +180,11 @@
   }
 
   // ---------- vorm herkennen (middenkolom → woord) ----------
-  function recogForms(w) {
-    const sp = midSpec(w);
+  function recogForms(w, s) {
+    const sp = midSpec(w, s);
     if (!sp) return [];
     if (sp.kind === "nw") return noMacron(sp.gen) !== noMacron(head(w.la)) ? [{ f: sp.gen, wat: w.mv ? "de genitief meervoud" : "de genitief" }] : [];
-    if (sp.kind === "ww") return [{ f: sp.perf, wat: "het perfectum" }, ...(sp.sup ? [{ f: sp.sup, wat: "het supinum" }] : [])];
+    if (sp.kind === "ww") return [...(sp.perf ? [{ f: sp.perf, wat: "het perfectum" }] : []), ...(sp.sup ? [{ f: sp.sup, wat: "het supinum" }] : [])];
     if (sp.kind === "dep") return [{ f: sp.perf, wat: "het perfectum" }];
     return [];
   }
@@ -211,27 +219,29 @@
   unit({
     id: "midden", group: "W", label: "Middenkolom: genitief, vormen, stamtijden", page: "woordenlijst",
     rule: "Naamwoord: genitief (+ geslacht bij de 3e verbuiging). Bijvoeglijk naamwoord: vrouwelijke en onzijdige vorm. Werkwoord: perfectum en supinum. Onveranderlijk woord: de woordsoort.",
-    items: (s) => inRange(s).filter((w) => w.mid && (/^\(/.test(w.mid) || midSpec(w))),
-    gen(level, w) {
+    items: (s) => inRange(s).filter((w) => w.mid && (/^\(/.test(w.mid) || midSpec(w, s))),
+    gen(level, w, s) {
       const common = { prompt: show({ la: w.la }), promptClass: "latin", page: `§${w.sec} · nr. ${w.nr}`, key: `midden:${w.nr}`, itemLabel: `${w.nr}. ${w.la} – ${w.mid}`, nr: w.nr };
       if (/^\(/.test(w.mid)) { // onveranderlijk woord: woordsoort
         const opts = ["(bijwoord)", "(ondersch. voegw.)", "(nevensch. voegw.)", "(voorzetsel)"];
         return base(this, { ...common, mode: "mc", instruction: "Wat staat er in de middenkolom (welke woordsoort)?", options: shuffle(uniq([w.mid, ...opts]).slice(0, 4)).map((o) => ({ v: o, html: esc(o) })), answer: w.mid, answerShown: esc(w.mid), tag: "woordsoort" });
       }
-      const sp = midSpec(w);
-      const q = base(this, { ...common, instruction: sp.prompt, spec: sp, answerShown: esc(w.mid) });
+      const sp = midSpec(w, s), ans = sp.ans || w.mid;
+      const q = base(this, { ...common, instruction: sp.prompt, spec: sp, answerShown: esc(ans) + (ans !== w.mid ? ` <small>(middenkolom: ${esc(w.mid)})</small>` : "") });
       if (typed(level, 0.6)) return Object.assign(q, { mode: "text", lang: "la", short: false, check: "mid" });
-      const opts = shuffle([w.mid, ...shuffle(midDistractors(w, sp)).slice(0, nOpts(level))]);
-      return Object.assign(q, { mode: "mc", options: opts.map((o) => ({ v: o, html: esc(o) })), answer: w.mid, tag: "middenkolom" });
+      let dis = midDistractors(w, sp);
+      if (sp.part === "perf" || sp.part === "sup") dis = uniq(dis.map((x) => (x.split(",")[sp.part === "perf" ? 0 : 1] || "").trim())).filter((x) => x && noMacron(x) !== noMacron(ans) && x !== "-");
+      const opts = shuffle([ans, ...shuffle(dis).slice(0, nOpts(level))]);
+      return Object.assign(q, { mode: "mc", options: opts.map((o) => ({ v: o, html: esc(o) })), answer: ans, tag: "middenkolom" });
     },
   });
   // 3. vorm herkennen (middenkolom → woord)
   unit({
     id: "herkennen", group: "W", label: "Vorm herkennen: van welk woord?", page: "woordenlijst",
     rule: "Leer de middenkolom zo dat je ook in een tekst herkent van welk woord een vorm komt (bv. attulī → afferre).",
-    items: (s) => inRange(s).filter((w) => recogForms(w).length),
+    items: (s) => inRange(s).filter((w) => recogForms(w, s).length),
     gen(level, w, s) {
-      const f = pick(recogForms(w)), ans = head(w.la);
+      const f = pick(recogForms(w, s)), ans = head(w.la);
       const q = base(this, {
         instruction: `Van welk woord is dit ${f.wat}? Geef de eerste kolom (het woord zoals in de woordenlijst).`,
         prompt: esc(f.f), promptClass: "latin", page: `§${w.sec} · nr. ${w.nr}`, answerShown: esc(w.la) + " – " + esc(w.nl),
@@ -1092,7 +1102,7 @@
     const i = key.indexOf(":"), pre = key.slice(0, i), rest = key.slice(i + 1), u = UNITS.find((x) => x.id === KEY_UNIT[pre]);
     if (!u) return null;
     const all = { bereik: [MIN, MAX] };
-    Object.assign(all, { nwKlasse: s.nwKlasse, wwTijd: s.wwTijd, nwKlassen: s.nwKlassen, wwTijden: s.wwTijden, woordsoorten: s.woordsoorten });
+    Object.assign(all, { nwKlasse: s.nwKlasse, wwTijd: s.wwTijd, nwKlassen: s.nwKlassen, wwTijden: s.wwTijden, woordsoorten: s.woordsoorten, midWW: s.midWW });
     if (pre === "sfx") { const it = SFX_ITEMS.find((x) => (x.t === "duidt" ? x.g.sfx : x.w[2]) === rest); return it ? u.gen(level, it, all) : null; }
     if (pre === "mod") { const it = MOD_ITEMS.find((x) => modKey(x) === key); return it ? u.gen(level, it, all) : null; }
     if (pre === "wvert") { const it = VERT_ITEMS.find((x) => head(x.la) === rest); return it ? u.gen(level, it, all) : null; }
@@ -1374,12 +1384,16 @@
       { key: "wwTijden", type: "checks", label: "Werkwoorden: welke tijden?", default: [...G.TIJD_ALLE, "imp", "inf"],
         options: [{ v: "praes", label: "praesens" }, { v: "imperf", label: "imperfectum" }, { v: "fut", label: "futurum simplex" }, { v: "perf", label: "perfectum" }, { v: "plqpf", label: "plusquam&shy;perfectum" }, { v: "futex", label: "futurum exactum" }, { v: "imp", label: "imperatief" }, { v: "inf", label: "infinitief" }],
         hint: "Bij de caput-onderdelen komen enkel de tijden van dat caput die je hier aanvinkt." },
+      { key: "midWW", type: "checks", label: "Middenkolom werkwoorden: wat vragen?", default: ["perf", "sup"],
+        options: [{ v: "perf", label: "perfectum <small>(perfectumstam: amāvī, monuī)</small>" }, { v: "sup", label: "supinum <small>(participiumstam: amātum, monitum)</small>" }],
+        hint: "Geldt voor 'middenkolom' en 'vorm herkennen'. Vink er één uit om de stammen apart te leren." },
     ],
     describe: (s) => { const K = klassenOf(s), T = userTijden(s), S = s.woordsoorten;
       return `woorden ${s.bereik[0]}–${s.bereik[1]}${s.welke === "vet" ? " (enkel vetgedrukt)" : ""} (${inRange(s).length})` +
         (Array.isArray(S) && S.length < 4 ? ` · ${S.length ? S.map((x) => ({ nw: "substantieven", bn: "adjectieven", ww: "werkwoorden", rest: "andere" })[x]).join(", ") : "geen woordsoort!"}` : "") +
         (K && K.length < 3 ? ` · ${K.length ? K.map((k) => k + "e").join(", ") + " klasse" : "geen klasse"}` : "") +
-        (T && T.length < 8 ? ` · ${T.length ? T.map((t) => G.TIJD_NAAM[t] || { imp: "imperatief", inf: "infinitief" }[t]).join(", ") : "geen tijd!"}` : ""); },
+        (T && T.length < 8 ? ` · ${T.length ? T.map((t) => G.TIJD_NAAM[t] || { imp: "imperatief", inf: "infinitief" }[t]).join(", ") : "geen tijd!"}` : "") +
+        (Array.isArray(s.midWW) && s.midWW.length < 2 ? ` · middenkolom ww: ${s.midWW.length ? { perf: "enkel perfectum", sup: "enkel supinum" }[s.midWW[0]] : "niet"}` : ""); },
     levels: {
       easy: { title: "🙂 Makkelijk", desc: "alles meerkeuze" },
       normal: { title: "💪 Normaal", desc: "meerkeuze + typen; lengtetekens (ā, ē…) hoeven niet" },
