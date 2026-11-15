@@ -594,6 +594,25 @@
   ];
 
   // ---------- regels per caput ----------
+  // bordschema: praesens én perfectum (zonder lengtetekens, zoals op het bord)
+  // [vorm, praesens-betekenis of null, perfectum-betekenis of null, uitleg]
+  const BORD_PP = [
+    ["solvit", "hij maakt los", "hij heeft losgemaakt", "solv-i-t (praes.) · solv-it (perf.)"],
+    ["solvimus", "wij maken los", "wij hebben losgemaakt", "solv-i-mus (praes.) · solv-imus (perf.)"],
+    ["venit", "hij komt", "hij is gekomen", "veni-t (praes.) · vēn-it (perf.)"],
+    ["venimus", "wij komen", "wij zijn gekomen", "veni-mus (praes.) · vēn-imus (perf.)"],
+    ["fugit", "hij vlucht", "hij is gevlucht", "fug-i-t (praes.) · fūg-it (perf.)"],
+    ["fugimus", "wij vluchten", "wij zijn gevlucht", "fug-i-mus (praes.) · fūg-imus (perf.)"],
+    ["solvi", "losgemaakt worden", "ik heb losgemaakt", "solv-ī = pass. inf. praes. · solv-ī = perf. 1ste p. enk."],
+    ["fugi", "ontvlucht worden", "ik ben gevlucht", "fugī = pass. inf. praes. · fūg-ī = perf. 1ste p. enk."],
+    ["veni", "kom!", "ik ben gekomen", "venī = imperatief · vēn-ī = perf. 1ste p. enk."],
+    ["iuvat", "hij helpt", null, "iuva-t: praesensstam iuva-"],
+    ["iuvit", null, "hij heeft geholpen", "iūv-it: perfectumstam iūv-"],
+    ["videt", "hij ziet", null, "vide-t: praesensstam vide-"],
+    ["vidit", null, "hij heeft gezien", "vīd-it: perfectumstam vīd-"],
+    ["respondet", "hij antwoordt", null, "responde-t: praesensstam responde-"],
+    ["respondit", null, "hij heeft geantwoord", "respond-it: perfectumstam respond-"],
+  ];
   const REGELS_CAPUT = {
     1: [
       ["c1-kl", "Welke klassen volgen de adjectieven?", "de 1e of de 2e klasse", "de 1e, 2e of 3e klasse", "enkel de 2e klasse", "enkel de 3e klasse"],
@@ -628,6 +647,16 @@
       ["c2-esse", "Wat zijn de stamtijden van esse, posse en ferre?", "fuī – potuī – tulī, lātum", "esī – possī – ferī", "erō – poterō – feram", "fuit – potuit – tulit"],
       ["c2-accidit", "<i>accidit</i>: praesens of perfectum?", "allebei mogelijk: praesens- en perfectumstam zijn gelijk", "enkel praesens", "enkel perfectum", "imperfectum"],
       ["c2-veni", "Wat is het verschil tussen <i>venī</i> en <i>vēnī</i>?", "venī = imp. (kom!) · vēnī = perf. (ik kwam)", "venī = perf. · vēnī = imp.", "er is geen verschil", "venī = futurum"],
+      ["c2-bord-stam", "Van welke stam maak je de actieve indicatief perfectum van <i>monēre, moneō, monuī, monitum</i>?", "van de perfectumstam monu- (3de stamtijd monuī zonder -ī)", "van de praesensstam mone-", "van de participiumstam monit-", "van de infinitief monēre"],
+      ["c2-bord-praesst", "Welke tijden maak je met de praesensstam (mone-)?", "praesens, imperfectum en futurum simplex – actief en passief", "enkel het perfectum actief", "perfectum en plusquamperfectum", "enkel de imperatief"],
+      ["c2-stap1", "Stappenplan: wat controleer je eerst bij een werkwoordsvorm?", "praesensstam of perfectumstam? (vergelijk met de 3de stamtijd in de woordenlijst)", "of er een voorzetsel bij staat", "de naamval", "of de vorm op -t eindigt"],
+      ["c2-stap-impf", "Stappenplan: geen perfectumstam, wel <i>(ē)ba</i> of (bij esse) <i>era</i>. Welke tijd?", "imperfectum (ik zag / ik werd gezien)", "futurum simplex", "praesens", "perfectum"],
+      ["c2-stap-fut", "Stappenplan: welke kenmerken wijzen op een futurum simplex?", "b + i/o/u/e (bi, bo, bu, be), erō/eri/eru (esse) of een losse a/e", "ba of ēba", "era of eri na de perfectumstam", "-ī, -istī, -it"],
+      ["c2-stap-praes", "Stappenplan: geen perfectumstam en geen kenmerk ((ē)ba, b, losse a/e). Welke tijd?", "praesens (ik zie / ik word gezien)", "imperfectum", "futurum simplex", "perfectum"],
+      ["c2-stap-inf", "Hoe herken je een infinitief?", "actief -re (zien) · passief -rī of -ī (gezien worden)", "actief -ī · passief -re", "aan -te", "aan -ba-"],
+      ["c2-letop", "Waar moet je extra opletten of het praesens of perfectum is?", "bij -it / -i-t, -imus / -i-mus en -ī (solvit, venimus, fugī …)", "bij elke vorm op -nt", "bij vormen met -ba-", "bij vormen met -bi-"],
+      ["c2-solvi", "<i>solvī</i> kan zijn …", "pass. inf. praes. (losgemaakt worden) of perf. 1ste p. enk. (ik heb losgemaakt)", "enkel een imperatief (maak los!)", "enkel praesens (ik maak los)", "een futurum (ik zal losmaken)"],
+      ["c2-1letter", "<i>iuvat ↔ iuvit, videt ↔ vīdit, respondet ↔ respondit</i>: wat is het verschil?", "één letter: praesens (hij helpt, ziet, antwoordt) ↔ perfectum (hij heeft geholpen, gezien, geantwoord)", "er is geen verschil", "praesens ↔ futurum", "actief ↔ passief"],
       ["c2-ostendi", "<i>ostendī</i> kan zijn …", "pass. inf. praes. (getoond worden) of act. ind. perf. 1ste p. enk. (ik toonde)", "enkel een imperatief", "enkel praesens", "een futurum"],
       ["c2-impf", "Wat drukt een imperfectum uit in een verhaal?", "beschrijving / achtergrond, of een herhaling of gewoonte", "de snel opeenvolgende acties", "iets wat nog moet gebeuren", "een bevel"],
       ["c2-verhaal", "Wat drukt het verhalend perfectum uit?", "de opeenvolgende acties op de voorgrond (vertalen met OVT)", "de achtergrond", "een gewoonte", "iets in de toekomst"],
@@ -668,7 +697,7 @@
     GRAM: {
       NV, NV_NAAM, GETAL, GS, CELLS, MODELLEN, MODEL_LABEL, KLASSE_NAAM, DEKL_KLASSE, SPECIAAL, ADJ_MODELLEN, ADJ_GROEP,
       TIJD, TIJD_VOLT, TIJD_ALLE, TIJD_NAAM, VORM_NAAM, PERS, MODEL_WW, MODEL_WW_NL, ONR, NL_WW, REGELS,
-      CAPUT_INFO, KEN_JE_NOG, VOORZETSELS, FUNCTIES, ZINNEN_FUNCTIE, AANWIJZEND, PERSOONLIJK, BEZITTELIJK, VNW_ZINNEN, REGELS_CAPUT,
+      CAPUT_INFO, KEN_JE_NOG, VOORZETSELS, FUNCTIES, ZINNEN_FUNCTIE, AANWIJZEND, PERSOONLIJK, BEZITTELIJK, VNW_ZINNEN, REGELS_CAPUT, BORD_PP,
       nounModel, nounForms, modelKlasse, modelNaam, adjInfo, adjForms, verbSpec, verbForms, futSplit, keyParts, isVolt, nlVorm, nlAlle, slot, gsOf, tabelNw,
     },
   });

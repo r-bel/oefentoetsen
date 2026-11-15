@@ -1009,6 +1009,55 @@
     },
   });
 
+  // ---------- stappenplan: werkwoorden determineren en vertalen ----------
+  const STAP_TIJD = ["praes", "imperf", "fut", "perf", "imp", "inf"];
+  const STAP_KEN = { perf: "perfectumstam + -ī, -istī, -it …", imperf: "(ē)ba – bij esse: era", fut: "b + i/o/u/e – erō/eri/eru – losse a/e", praes: "geen kenmerk", inf: "-re (act.) / -rī, -ī (pass.)", imp: "stam (+e) / -te" };
+  const PICK_STAP = [
+    { label: "stap 1: stam", opts: [{ v: "praesst", html: "praesensstam" }, { v: "perfst", html: "perfectumstam" }] },
+    { label: "stap 2: kenmerk", opts: ["perf", "imperf", "fut", "praes", "inf", "imp"].map((t) => ({ v: t, html: esc(STAP_KEN[t]) })) },
+    { label: "stap 3: tijd", opts: ["praes", "imperf", "fut", "perf"].map((t) => ({ v: t, html: TIJDL[t] })) },
+    { label: "stap 4: vorm", opts: [{ v: "act", html: "actief" }, { v: "pass", html: "passief" }] },
+  ];
+  const stapKey = (k) => { const x = G.keyParts(k); return x.tijd === "perf" ? `perfst|perf|perf|${x.vorm}` : `praesst|${x.tijd}|${["imp", "inf"].includes(x.tijd) ? "praes" : x.tijd}|${x.vorm}`; };
+  const stapOk = (s, k) => { const x = G.keyParts(k); return keyOk(s, k) && STAP_TIJD.includes(x.tijd) && !(x.vorm === "pass" && x.tijd === "perf"); };
+  unit({
+    id: "stappenplan", group: "V", label: "Stappenplan: werkwoord determineren en vertalen", page: "stappenplan werkwoorden",
+    rule: "Stap 1: praesensstam of perfectumstam? (3de stamtijd) → perfectumstam = perfectum actief (-ī, -istī, -it, -imus, -istis, -ērunt: ik zag / ik heb gezien). Stap 2: (ē)ba of era (esse)? → imperfectum. Stap 3: b + i/o/u/e, erō/eri/eru (esse) of een losse a/e? → futurum simplex. Anders → praesens. Uitgang -ō/-m, -s, -t … = actief; -or/-r, -ris, -tur … = passief. Infinitief: -re (act.), -rī/-ī (pass.); imperatief: stam (+e) / -te.",
+    items: (s) => inRange(s).filter((w) => vs(w) && Object.keys(vf(w)).some((k) => stapOk(s, k))),
+    gen(level, w, s) {
+      const F = vf(w), ks = Object.keys(F).filter((k) => stapOk(s, k));
+      const ind = ks.filter((k) => !/\.(imp|inf)\./.test(k)), k = pick(ind.length && Math.random() < 0.85 ? ind : ks), f = F[k][0];
+      const all = keysWith(F, f).filter((x) => STAP_TIJD.includes(G.keyParts(x).tijd) && !(G.keyParts(x).vorm === "pass" && G.keyParts(x).tijd === "perf"));
+      const inf = head(w.la), nl = uniq(all.flatMap((x) => G.nlAlle(inf, x)));
+      return base(this, { mode: "pick", check: "pick", picks: PICK_STAP, valid: uniq(all.map(stapKey)), instruction: "Volg het stappenplan: stam, kenmerk, tijd en vorm.",
+        prompt: lat(f), promptClass: "latin", hint: level === "hard" ? "" : `van ${inf}${w.mid ? ", " + w.mid : ""} – ${w.nl}`,
+        answerShown: uniq(all.map(wwTxt)).join(" <i>of</i> ") + (nl.length ? ` – <i>${esc(nl.join(" / "))}</i>` : "") + ` <small>(${esc(inf)})</small>`,
+        page: `§${w.sec} · nr. ${w.nr}`, tag: "bepalen_ww", key: `stap:${w.nr}`, itemLabel: `${w.nr}. ${f}: stappenplan`, nr: w.nr });
+    },
+  });
+
+  // ---------- bordschema: praesens én perfectum ----------
+  const BORD = G.BORD_PP.map(([f, pr, pf, uitleg]) => ({ f, pr, pf, uitleg }));
+  unit({
+    id: "bord_pp", group: "X", label: "Praesens én perfectum: welke vertaling? (solvit, venit, fugī …)", page: "bordschema perfectum actief",
+    rule: "Let vooral op bij -it / -i-t, -imus / -i-mus en -ī: solvit = hij maakt los én hij heeft losgemaakt; venit = hij komt (veni-t) of hij is gekomen (vēn-it); solvī = losgemaakt worden of ik heb losgemaakt; venī = kom! of ik ben gekomen. Soms maar 1 letter verschil: iuvat ↔ iuvit, videt ↔ vidit, respondet ↔ respondit.",
+    items: (s) => (tijdOk(s, "perf") && tijdOk(s, "praes") && soortOk(s, { soort: "ww" }) ? BORD : []), noRange: true,
+    gen(level, it) {
+      const both = it.pr && it.pf, one = it.pr || it.pf;
+      const partner = BORD.find((x) => x !== it && x.f.slice(0, 3) === it.f.slice(0, 3) && !(x.pr && x.pf));
+      const ans = both ? `${it.pr} <i>én</i> ${it.pf}` : one;
+      const fout = both ? [`enkel: ${it.pr}`, `enkel: ${it.pf}`]
+        : [partner ? partner.pr || partner.pf : "", partner ? `${partner.pr || it.pr} <i>én</i> ${partner.pf || it.pf}` : ""];
+      const extra = shuffle(BORD.filter((x) => x !== it && x !== partner).map((x) => x.pr || x.pf)).find((x) => x !== one);
+      if (level !== "easy" && extra) fout.push(extra);
+      const opts = shuffle([ans, ...uniq(fout).filter((x) => x && x !== ans)]);
+      return base(this, { mode: "mc", instruction: both ? "Welke vertaling(en) zijn mogelijk?" : "Wat betekent deze vorm?", prompt: lat(it.f), promptClass: "latin",
+        options: opts.map((o) => ({ v: o, html: o })), answer: ans, answerShown: `${ans} <small>(${esc(it.uitleg)})</small>`, tag: "tijd",
+        key: `bord:${it.f}`, itemLabel: `${it.f}: praesens én perfectum` });
+    },
+    byKey(rest) { return BORD.find((x) => x.f === rest); },
+  });
+
   // ============================================================
   // TOETS SAMENSTELLEN
   // ============================================================
@@ -1038,7 +1087,7 @@
   const KEY_UNIT = { vertalen: "vertalen", midden: "midden", herkennen: "herkennen", vv: "voorvoegsels", dekl: "verbuiging", gs: "geslacht", verv: "vervoeging", dat: "datief", sfx: "achtervoegsels",
     nvorm: "nw_vorm", ntab: "nw_tabel", nbep: "nw_bepalen", cong: "congruentie", bn2: "bn2", mod: "modellen",
     wbep: "ww_bepalen", wvorm: "ww_vorm", wtab: "ww_tabel", wspl: "ww_splitsen", verw: "ww_verwar", winf: "ww_inf", wmod: "ww_model", wvert: "ww_vertalen", regel: "regels",
-    fz: "functies", vz: "voorzetsels", vnwp: "vnw_pers", vnwz: "vnw_zin", bez: "vnw_bez", aw: "aanw_bep", awc: "aanw_cong", awv: "aanw_vorm", pp: "praes_perf", cr: "cregels" };
+    fz: "functies", vz: "voorzetsels", vnwp: "vnw_pers", vnwz: "vnw_zin", bez: "vnw_bez", aw: "aanw_bep", awc: "aanw_cong", awv: "aanw_vorm", pp: "praes_perf", cr: "cregels", stap: "stappenplan", bord: "bord_pp" };
   function fromKey(key, level, s = {}) {
     const i = key.indexOf(":"), pre = key.slice(0, i), rest = key.slice(i + 1), u = UNITS.find((x) => x.id === KEY_UNIT[pre]);
     if (!u) return null;
@@ -1179,6 +1228,8 @@
       wrap("ww_tabel", "c2_perftabel", 2, GR, "Actieve indicatief perfectum: tabel vervoegen", { _tijden: ["perf"], _passVolt: false });
       wrap("ww_inf", "c2_grondwoord", 2, GR, "Perfectum: grondwoord geven (stamtijden)", { _tijden: ["perf"], _passVolt: false });
       wrap("praes_perf", "c2_praesperf", 2, GR, "Praesens of perfectum?");
+      wrap("bord_pp", "c2_bordpp", 2, GR, "Praesens én perfectum: welke vertaling? (bordschema)");
+      wrap("stappenplan", "c2_stappenplan", 2, GR, "Stappenplan: werkwoord determineren en vertalen", { _tijden: T2, _passVolt: false });
       wrap("ww_bepalen", "c2_wwbep", 2, GR, "Werkwoordsvorm bepalen (met perfectum)", { _tijden: T2, _passVolt: false });
       wrap("ww_vertalen", "c2_wwvert", 2, GR, "Perfectum vertalen: OVT of VTT", { _tijden: ["perf"], _passVolt: false });
       wrap("vnw_pers", "c2_vnwpers", 2, GR, "Persoonlijke voornaamwoorden (ego, tū, sē, nōs, vōs)");
