@@ -303,7 +303,7 @@
 
   function renderQuestion() {
     const q = state.questions[state.i];
-    Object.assign(state, { answered: false, choice: null, clicks: [], lastInput: null });
+    Object.assign(state, { answered: false, choice: null, clicks: [], lastInput: null, mapSel: null });
     $("#progressBar").style.width = (state.i / state.questions.length) * 100 + "%";
     $("#qCounter").textContent = `Vraag ${state.i + 1} van ${state.questions.length}`;
     $("#qTopic").textContent = q.unitLabel;
@@ -312,6 +312,7 @@
     $("#qPrompt").className = "prompt " + (q.promptClass || "");
     $("#qHint").textContent = q.hint || "";
     $("#qFigure").innerHTML = q.svg || "";
+    $("#qFigure").classList.remove("zoom"); $("#qFigure").onclick = null;
     $("#qFeedback").innerHTML = ""; $("#qFeedback").className = "feedback";
     $("#nextBtn").textContent = "Controleer ✓";
     const area = $("#qAnswerArea");
@@ -371,6 +372,22 @@
         state.picks[r] = b.dataset.v;
         $$(`#qAnswerArea .pick[data-r="${r}"]`).forEach((x) => x.classList.toggle("on", x === b));
       }));
+    } else if (q.mode === "map") {
+      // kaartvraag: tik op een land, stad, gebergte of rivier (elementen met data-hit)
+      area.innerHTML = `<div class="clickinfo"><span id="mapStatus" class="muted small">${esc(q.mapHint || "Tik op de kaart en klik dan op Controleer.")}</span><button type="button" id="mapZoom" class="small">${state.mapZoom ? "🔍 Kleiner" : "🔍 Vergroot"}</button></div>`;
+      const fig = $("#qFigure");
+      fig.classList.toggle("zoom", !!state.mapZoom);
+      const center = () => { if (!state.mapZoom) return; const t = fig.querySelector(".hl") || fig.querySelector(".sel"); const svg = fig.querySelector("svg"); if (!svg) return;
+        if (t && t.getBBox) { const b = t.getBBox(), vb = svg.viewBox.baseVal, k = svg.clientWidth / vb.width; fig.scrollLeft = (b.x + b.width / 2) * k - fig.clientWidth / 2; fig.scrollTop = 0; } else fig.scrollLeft = (svg.clientWidth - fig.clientWidth) / 2; };
+      $("#mapZoom").addEventListener("click", () => { state.mapZoom = !state.mapZoom; fig.classList.toggle("zoom", state.mapZoom); $("#mapZoom").textContent = state.mapZoom ? "🔍 Kleiner" : "🔍 Vergroot"; center(); });
+      setTimeout(center, 30);
+      fig.onclick = (e) => {
+        const el = e.target.closest("[data-hit]");
+        if (!el || state.answered || q.mode !== "map") return;
+        state.mapSel = el.dataset.hit;
+        fig.querySelectorAll("[data-hit]").forEach((x) => x.classList.toggle("sel", x.dataset.hit === state.mapSel));
+        $("#mapStatus").textContent = "Gekozen ✓ – klik op Controleer (of tik iets anders aan).";
+      };
     } else if (q.mode === "click") {
       area.innerHTML = `<div class="clickinfo"><span id="clickStatus"></span><button type="button" id="clearClicks" class="small">Wis</button></div>`;
       $("#clearClicks").addEventListener("click", () => { if (!state.answered) { state.clicks = []; drawClicks(); } });
@@ -418,6 +435,7 @@
     if (q.mode === "mc") return state.choice;
     if (q.mode === "coord") { const x = $("#cx").value.trim(), y = $("#cy").value.trim(); return x && y ? `${x};${y}` : ""; }
     if (q.mode === "click") return state.clicks.length === q.nPts ? state.clicks.map((p) => [...p]) : null;
+    if (q.mode === "map") return state.mapSel;
     if (q.mode === "fields") { const v = q.fields.map((f, i) => $(`#fld${i}`).value.trim()); return v.every((x, i) => x || q.fields[i].optional) ? v : null; }
     if (q.mode === "pick") return state.picks.every((x) => x != null) ? state.picks.slice() : null;
     if (q.mode === "order") return state.order.length === q.chunks.length ? state.order.map((k) => q.chunks[k]).join(" ") : null;
@@ -428,6 +446,7 @@
     if (q.givenFmt) return q.givenFmt(g);
     if (q.mode === "fields") return (g || []).map((x, i) => `${q.fields[i].label || ""} ${esc(x)}${q.fields[i].suffix ? " " + esc(q.fields[i].suffix) : ""}`.trim()).join(" · ");
     if (q.mode === "pick") return (g || []).map((v, i) => { const o = q.picks[i].opts.find((x) => x.v === v); return o ? o.html || esc(o.v) : "—"; }).join(" · ");
+    if (q.mode === "map") return esc((q.hitNames && q.hitNames[g]) || g || "—");
     if (q.mode === "click") return (g || []).map((p, i) => `${q.names[i]}(${fmtN(p[0])}, ${fmtN(p[1])})`).join(" ");
     if (q.mode === "coord") return g ? `(${esc(g.replace(";", ", "))})` : "—";
     return esc(g || "—");
@@ -439,7 +458,7 @@
     const given = readGiven(q);
     if (given == null || given === "" || (typeof given === "string" && !given.trim())) {
       $("#qFeedback").className = "feedback warn";
-      $("#qFeedback").textContent = q.mode === "fields" ? "Vul alle vakjes in." : q.mode === "pick" ? "Maak in elke rij een keuze." : q.mode === "order" ? "Gebruik alle stukken om de zin te maken." : q.mode === "click" ? `Duid eerst ${q.nPts} punt(en) aan.` : q.mode === "coord" ? "Vul beide coördinaten in." : "Geef eerst een antwoord.";
+      $("#qFeedback").textContent = q.mode === "fields" ? "Vul alle vakjes in." : q.mode === "pick" ? "Maak in elke rij een keuze." : q.mode === "order" ? "Gebruik alle stukken om de zin te maken." : q.mode === "click" ? `Duid eerst ${q.nPts} punt(en) aan.` : q.mode === "map" ? "Tik eerst iets aan op de kaart." : q.mode === "coord" ? "Vul beide coördinaten in." : "Geef eerst een antwoord.";
       return;
     }
     const r = vak.check(given, q, state.settings.level);
@@ -461,6 +480,7 @@
       b.disabled = true;
     });
     else { $$("#qAnswerArea input").forEach((i) => (i.readOnly = true)); $$("#qAnswerArea .chunk, #qAnswerArea .pick").forEach((b) => (b.disabled = true)); }
+    if (q.mode === "map") $$("#qFigure [data-hit]").forEach((x) => { if ((q.goodHits || [q.answer]).includes(x.dataset.hit)) x.classList.add("good"); else if (x.dataset.hit === given) x.classList.add("bad"); });
     if (q.solutionSvg && r.status !== "correct") {
       $("#qFigure").innerHTML = q.solutionSvg;
       if (q.mode === "click") drawGiven($("#qFigure svg"), given);
