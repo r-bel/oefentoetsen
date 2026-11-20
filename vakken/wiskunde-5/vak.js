@@ -19,7 +19,7 @@
   const gcd = (a, b) => { a = Math.abs(a); b = Math.abs(b); while (b) [a, b] = [b, a % b]; return a || 1; };
   const lcm = (a, b) => (a * b) / gcd(a, b);
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
-  const typed = (level, p = 0.6) => (level === "easy" ? false : level === "hard" ? true : Math.random() < p);
+  const typed = (level, p = 0.6) => (level === "easy" ? false : level === "hard" || Vakken.vast ? true : Math.random() < p);
   const pad2 = (n) => String(n).padStart(2, "0");
 
   // breuken (teller/noemer als gehele getallen)
@@ -425,7 +425,7 @@
     const out = [];
     if (s.count === "all") {
       units.forEach((u) => { for (let c = 0; c < u.cases; c++) out.push(finalize(u, u.gen(s.level, c), c)); });
-      return shuffle(out);
+      return s.ordered ? out : shuffle(out);
     }
     const decks = {};
     const draw = (u) => { if (!decks[u.id] || !decks[u.id].length) decks[u.id] = shuffle([...Array(u.cases).keys()]); return decks[u.id].pop(); };

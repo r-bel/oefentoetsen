@@ -68,7 +68,7 @@
     },
   };
   function ensure(p) {
-    p.prefs = p.prefs || {}; p.items = p.items || {}; p.sessions = p.sessions || [];
+    p.prefs = p.prefs || {}; p.items = p.items || {}; p.sessions = p.sessions || []; p.doorloop = p.doorloop || {};
     const s = (p.studie = p.studie || {});
     s.cfg = s.cfg || {}; s.toetsen = s.toetsen || []; s.kaarten = s.kaarten || {}; s.log = s.log || {}; s.recent = s.recent || {};
     return p;
@@ -170,6 +170,9 @@
       [...new Set([...Object.keys(A), ...Object.keys(B)])].sort().forEach((k) => { const e = byLater(A[k], B[k], "last"); if (!cleared || (e.last || "") > cleared) out[k] = e; });
       p.items[vak] = out;
     });
+    // doorloop: per vak de meest recent bijgewerkte
+    p.doorloop = {};
+    [...new Set([...Object.keys(a.doorloop), ...Object.keys(b.doorloop)])].sort().forEach((vak) => { const e = byLater(a.doorloop[vak], b.doorloop[vak], "upd"); if (e) p.doorloop[vak] = e; });
     const sa = a.studie, sb = b.studie, st = (p.studie = {});
     st.cfg = (sb.cfg._t || "") > (sa.cfg._t || "") ? sb.cfg : (sa.cfg._t || "") > (sb.cfg._t || "") ? sa.cfg : pick(sa.cfg, sb.cfg);
     st.del = { ...(sb.del || {}), ...(sa.del || {}) };
@@ -267,6 +270,11 @@
       if (keys.length > MAX_ITEMS) keys.sort((a, b) => (items[a].last < items[b].last ? -1 : 1)).slice(0, keys.length - MAX_ITEMS).forEach((k) => delete items[k]);
       save(true);
     },
+
+    // ---------- doorloop (alles één per één, in blokken) ----------
+    // { id, created, upd, sel: instellingen, desc, level, blok, keys: [..], pos, res: { key: [punt 0/1, label, pogingen] }, skip: [..] }
+    doorloop: (vak) => { const d = P().doorloop[vak]; return d && !d.gone ? d : null; },
+    setDoorloop(vak, dl) { const p = P(); p.doorloop[vak] = dl ? { ...dl, upd: new Date().toISOString() } : { gone: true, upd: new Date().toISOString() }; save(true); }, // gestopt = 'gone' (zodat een ander toestel hem niet terugzet)
 
     // alle bijgehouden vragen/woorden van een vak (voor de foutgerichte toets)
     items(vak) { return Object.entries(P().items[vak] || {}).map(([key, v]) => ({ key, ...v })); },

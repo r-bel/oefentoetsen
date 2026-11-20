@@ -39,6 +39,7 @@
       if (parts[2] === "plan") { const t = parts[3] && Store.toets(parts[3]); openSetup(v, t ? t.sel : null); return window.StudieUI && StudieUI.openPlanForm(v, t); }
       return openSetup(v);
     }
+    if (parts[0] === "doorloop" && Vakken.get(parts[1])) return openDlReport(Vakken.get(parts[1]));
     if (window.StudieUI && StudieUI.route(h)) return;
     if (h.startsWith("voortgang")) return openProgress(h.split("/")[1]);
     openHome();
@@ -157,6 +158,7 @@
     }));
     $("#planForm").classList.add("hidden");
     applySettings(preset || Store.getPrefs(v.id));
+    renderDlBox(v);
     sync();
     show("screen-setup");
     Analytics.page("/v/" + v.id, v.vak + " – " + v.titel);
@@ -282,6 +284,132 @@
     start(settings, r.questions, false, true);
   }
 
+
+  // ============================================================
+  // DOORLOOP: alle vragen van de keuze één per één, in de volgorde van de leerstof,
+  // met een vaste vraagvorm, in blokken (hervatten), met een rapport per item.
+  //  - volgorde: makeQuiz({ count: "all", ordered: true }) → de vakken schudden dan niet (of vak.doorloopKeys)
+  //  - vaste vorm: elke vraag wordt gemaakt met fromKey onder een vaste seed per sleutel
+  //    en Vakken.vast = true (normaal/moeilijk: typen waar het kan)
+  // ============================================================
+  function withRandom(fn, body) { const r = Math.random; Math.random = fn; try { return body(); } finally { Math.random = r; } }
+  function seeded(str) { let h = 1779033703 ^ str.length; for (let i = 0; i < str.length; i++) { h = Math.imul(h ^ str.charCodeAt(i), 3432918353); h = (h << 13) | (h >>> 19); } let a = h >>> 0;
+    return () => { a |= 0; a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  // een item van de doorloop = "onderdeel¦sleutel" (zelfde sleutel kan in twee onderdelen voorkomen)
+  const SEP = "¦", dlSplit = (e) => { const i = e.indexOf(SEP); return i < 0 ? ["", e] : [e.slice(0, i), e.slice(i + 1)]; };
+  function doorloopKeys(v, s) {
+    if (v.doorloopKeys) return v.doorloopKeys(s).map(([u, k]) => u + SEP + k);
+    const qs = withRandom(seeded("volgorde"), () => v.makeQuiz({ ...s, count: "all", ordered: true }));
+    return [...new Set(qs.filter((q) => q.key).map((q) => (q.unit || "") + SEP + q.key))];
+  }
+  function dlQuestion(v, entry, level, s) {
+    const [unit, key] = dlSplit(entry);
+    Vakken.vast = true;
+    try { return withRandom(seeded(key + "|" + level), () => v.fromKey(key, level, { ...s }, unit)); } catch (e) { return null; } finally { Vakken.vast = false; }
+  }
+  const dlStats = (dl) => { const r = dl.keys.map((k) => (dl.res || {})[k]).filter(Boolean); return { done: r.length, ok: r.filter((x) => x[0] > 0).length, ko: r.filter((x) => !(x[0] > 0)).length, n: dl.keys.length }; };
+  const dlBlocks = (dl) => ({ nr: Math.floor(dl.pos / dl.blok) + 1, of: Math.max(1, Math.ceil(dl.keys.length / dl.blok)) });
+  function renderDlBox(v) {
+    const dl = Store.doorloop(v.id), box = $("#dlCur");
+    $("#dlMsg").textContent = "";
+    if (!dl) { box.innerHTML = ""; $("#dlStart").textContent = "📋 Start een doorloop met deze keuze"; return; }
+    const st = dlStats(dl), b = dlBlocks(dl), p = Math.round((st.done / st.n) * 100), klaar = dl.pos >= dl.keys.length;
+    box.innerHTML = `<div class="dlcur"><div><b>Lopende doorloop</b> <small class="muted">sinds ${fmtDate(dl.created)} · niveau ${LEVEL_NAME[dl.level]}</small></div>
+      <div class="small">${esc(dl.desc)}</div>
+      <div class="bar"><div class="ok" style="width:${p}%"></div></div>
+      <div class="small">${st.done} van ${st.n} gedaan · ✓ ${st.ok} · ✗ ${st.ko}${klaar ? " · <b>alles doorlopen 🎉</b>" : ` · volgend: blok ${b.nr} van ${b.of}`}</div>
+      <div class="actions left">${klaar ? "" : `<button type="button" id="dlNext" class="primary">▶ Ga verder: blok ${b.nr} van ${b.of}</button>`}<button type="button" id="dlRep">📊 Rapport</button><button type="button" id="dlStop" class="ghost small">Stoppen</button></div></div>`;
+    $("#dlStart").textContent = "📋 Nieuwe doorloop met deze keuze (vervangt de lopende)";
+    if ($("#dlNext")) $("#dlNext").addEventListener("click", () => dlNextBlock(v));
+    $("#dlRep").addEventListener("click", () => { location.hash = "#doorloop/" + v.id; });
+    $("#dlStop").addEventListener("click", (e) => { const bt = e.currentTarget; if (!bt.dataset.armed) { bt.dataset.armed = "1"; bt.textContent = "Zeker? Klik nogmaals om te stoppen"; return; } Store.setDoorloop(v.id, null); renderDlBox(v); });
+  }
+  function dlStartNew(v) {
+    const s = readSettings(), cur = Store.doorloop(v.id), bt = $("#dlStart");
+    if (!s.units.length) { $("#dlMsg").textContent = "Kies minstens één onderdeel."; return; }
+    if (cur && !bt.dataset.armed) { bt.dataset.armed = "1"; bt.textContent = "Zeker? De lopende doorloop wordt vervangen – klik nogmaals"; setTimeout(() => { delete bt.dataset.armed; renderDlBox(v); }, 5000); return; }
+    delete bt.dataset.armed;
+    const keys = doorloopKeys(v, s);
+    if (!keys.length) { $("#dlMsg").textContent = "Er zijn geen vragen voor deze keuze."; return; }
+    const sel = { ...s, count: "all" };
+    Store.setPrefs(v.id, s);
+    Store.setDoorloop(v.id, { id: Math.random().toString(36).slice(2, 9), created: new Date().toISOString(), sel, level: s.level, blok: +$("#dlBlok").value || 20,
+      desc: describeSettings(v, sel).replace(/ · eindtoets \(alles\)$/, ""), keys, pos: 0, res: {}, skip: [] });
+    dlNextBlock(v);
+  }
+  function dlNextBlock(v) {
+    vak = v; setTheme(v.theme);
+    const dl = Store.doorloop(v.id);
+    if (!dl) return;
+    const qs = [], skip = [];
+    let pos = dl.pos;
+    while (qs.length < dl.blok && pos < dl.keys.length) {
+      const k = dl.keys[pos++], q = dlQuestion(v, k, dl.level, dl.sel);
+      if (q) { q.key = q.key || dlSplit(k)[1]; q._dlKey = k; qs.push(q); } else skip.push(k);
+    }
+    if (skip.length) Store.setDoorloop(v.id, { ...dl, skip: [...new Set([...(dl.skip || []), ...skip])] });
+    if (!qs.length) { Store.setDoorloop(v.id, { ...Store.doorloop(v.id), pos }); toast("Deze doorloop is helemaal klaar."); location.hash = "#doorloop/" + v.id; return; }
+    const b = dlBlocks(dl);
+    start({ ...dl.sel, count: qs.length, mode: "doorloop", desc: `Doorloop blok ${b.nr} van ${b.of} · ${dl.desc}` }, qs, false, true);
+  }
+  // na een blok (of een herhaling): resultaten in de doorloop zetten
+  function dlRecord(v, results, herh) {
+    const dl = Store.doorloop(v.id);
+    if (!dl) return;
+    const res = { ...dl.res };
+    let last = -1;
+    results.forEach((r) => {
+      const k = r.q._dlKey || (r.q.unit || "") + SEP + r.q.key, prev = res[k], i = dl.keys.indexOf(k);
+      if (i < 0) return;
+      if (i > last) last = i;
+      res[k] = [r.points > 0 ? 1 : 0, Store.strip(r.q.itemLabel || r.q.prompt || k).slice(0, 90), (prev ? prev[2] : 0) + 1, Store.strip(r.q.unitLabel || "")];
+    });
+    Store.setDoorloop(v.id, { ...dl, res, pos: herh ? dl.pos : Math.max(dl.pos, last + 1) });
+  }
+  function renderDlCard(v) {
+    const card = $("#dlCard"), mode = state.settings.mode;
+    card.classList.toggle("hidden", mode !== "doorloop" && mode !== "doorloop-herh");
+    if (card.classList.contains("hidden")) return;
+    const dl = Store.doorloop(v.id);
+    if (!dl) { card.classList.add("hidden"); return; }
+    const st = dlStats(dl), b = dlBlocks(dl), klaar = dl.pos >= dl.keys.length;
+    card.innerHTML = `<h2>📋 Doorloop: ${st.done} van ${st.n} gedaan</h2><div class="bar"><div class="ok" style="width:${Math.round((st.done / st.n) * 100)}%"></div></div>
+      <p class="small">✓ ${st.ok} gekend · ✗ ${st.ko} niet gekend${klaar ? " · <b>alles doorlopen 🎉</b>" : ` · nog ${dl.keys.length - dl.pos} vragen (${b.of - b.nr + 1} blokken)`}</p>
+      <div class="actions left">${klaar ? "" : `<button type="button" id="dlNext2" class="primary">▶ Volgend blok (${b.nr} van ${b.of})</button>`}<button type="button" id="dlRep2">📊 Rapport</button></div>`;
+    if ($("#dlNext2")) $("#dlNext2").addEventListener("click", () => dlNextBlock(v));
+    $("#dlRep2").addEventListener("click", () => { location.hash = "#doorloop/" + v.id; });
+  }
+  function openDlReport(v) {
+    vak = v; setTheme(v.theme);
+    const dl = Store.doorloop(v.id);
+    if (!dl) { openSetup(v); return; }
+    document.title = "Rapport doorloop";
+    const st = dlStats(dl), skip = new Set(dl.skip || []);
+    const unitOf = (k) => { const r = dl.res[k]; if (r && r[3]) return r[3]; const u = v.units.find((x) => x.id === dlSplit(k)[0]); return u ? u.label : "andere"; };
+    const groups = {};
+    dl.keys.forEach((k) => { if (skip.has(k)) return; const u = unitOf(k); (groups[u] = groups[u] || []).push(k); });
+    $("#dlHead").innerHTML = `${esc(v.vak)} – ${esc(v.titel)} · ${esc(Store.activeName())}<br><small>${esc(dl.desc)} · niveau ${LEVEL_NAME[dl.level]} · gestart ${fmtDate(dl.created)}</small>`;
+    $("#dlKpis").innerHTML = `<div><b>${st.done}/${dl.keys.length - skip.size}</b><small>gedaan</small></div><div><b>${st.ok}</b><small>✓ gekend</small></div><div><b>${st.ko}</b><small>✗ niet gekend</small></div><div><b>${st.done ? Math.round((st.ok / st.done) * 100) : 0}%</b><small>score</small></div>`;
+    const fout = dl.keys.filter((k) => dl.res[k] && !(dl.res[k][0] > 0));
+    $("#dlActions").innerHTML = (dl.pos < dl.keys.length ? `<button type="button" id="dlRepNext" class="primary">▶ Ga verder (blok ${dlBlocks(dl).nr} van ${dlBlocks(dl).of})</button>` : "") +
+      (fout.length ? `<button type="button" id="dlRepFout">🔁 Herhaal enkel de niet-gekende (${fout.length})</button>` : "") +
+      `<button type="button" id="dlPrint">🖨️ Afdrukken</button><a class="btnlink" href="#v/${v.id}">Terug</a>`;
+    $("#dlUnits").innerHTML = `<table><thead><tr><th>Onderdeel</th><th>Gekend</th><th>Gedaan</th><th></th></tr></thead><tbody>` + Object.entries(groups).map(([u, ks]) => {
+      const done = ks.filter((k) => dl.res[k]), ok = done.filter((k) => dl.res[k][0] > 0).length, p = done.length ? Math.round((ok / done.length) * 100) : 0;
+      return `<tr><td>${esc(u)}</td><td>${ok}/${done.length}</td><td>${done.length}/${ks.length}</td><td>${done.length ? `<div class="bar"><div class="${p >= 80 ? "ok" : p >= 60 ? "warn" : "bad"}" style="width:${p}%"></div></div>` : ""}</td></tr>`;
+    }).join("") + `</tbody></table>`;
+    $("#dlItems").innerHTML = Object.entries(groups).map(([u, ks]) => `<details class="dlgroup" ${ks.some((k) => dl.res[k] && !(dl.res[k][0] > 0)) ? "open" : ""}><summary><b>${esc(u)}</b> <small class="muted">${ks.filter((k) => dl.res[k] && dl.res[k][0] > 0).length} ✓ · ${ks.filter((k) => dl.res[k] && !(dl.res[k][0] > 0)).length} ✗ · ${ks.filter((k) => !dl.res[k]).length} nog niet</small></summary><ul class="dlitems">` +
+      ks.filter((k) => dl.res[k]).map((k) => { const r = dl.res[k]; const ic = r[0] > 0 ? (r[2] > 1 ? "✓²" : "✓") : "✗"; return `<li class="${r[0] > 0 ? "ok" : "bad"}"><span class="ic">${ic}</span>${esc(r[1])}</li>`; }).join("") +
+      ((n) => (n ? `<li class="todo"><span class="ic">·</span>nog ${n} ${n === 1 ? "vraag" : "vragen"} niet gevraagd</li>` : ""))(ks.filter((k) => !dl.res[k]).length) + `</ul></details>`).join("");
+    if ($("#dlRepNext")) $("#dlRepNext").addEventListener("click", () => dlNextBlock(v));
+    if ($("#dlRepFout")) $("#dlRepFout").addEventListener("click", () => {
+      const qs = fout.map((k) => { const q = dlQuestion(v, k, dl.level, dl.sel); if (q) q._dlKey = k; return q; }).filter(Boolean);
+      start({ ...dl.sel, count: qs.length, mode: "doorloop-herh", desc: `Doorloop: herhaling van ${qs.length} niet-gekende · ${dl.desc}` }, qs, false, true);
+    });
+    $("#dlPrint").addEventListener("click", () => { $$(".dlgroup").forEach((d) => (d.open = true)); window.print(); });
+    show("screen-dl");
+  }
+
   // ============================================================
   // TOETS
   // ============================================================
@@ -372,6 +500,27 @@
         state.picks[r] = b.dataset.v;
         $$(`#qAnswerArea .pick[data-r="${r}"]`).forEach((x) => x.classList.toggle("on", x === b));
       }));
+    } else if (q.mode === "multi") {
+      // meerdere keuzes aanvinken (bv. alle mogelijke tijden), eventueel met een tekstvak (bv. alle vertalingen)
+      state.multi = new Set();
+      area.innerHTML = `<div class="picks"><div class="pickrow"><span class="picklbl">${esc(q.multiLabel || "kies alles wat kan")}</span><div class="pickopts">${q.opts.map((o) => `<button type="button" class="pick" data-v="${esc(o.v)}">${o.html || esc(o.v)}</button>`).join("")}</div></div></div>` +
+        (q.textLabel ? `<label class="fld wide"><span class="fldlbl">${esc(q.textLabel)}</span><input id="answer" class="answer" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="${esc(q.textPh || "")}"></label>` : "");
+      $$("#qAnswerArea .pick").forEach((b) => b.addEventListener("click", () => {
+        if (state.answered) return;
+        const v = b.dataset.v;
+        if (state.multi.has(v)) state.multi.delete(v); else state.multi.add(v);
+        b.classList.toggle("on", state.multi.has(v));
+      }));
+    } else if (q.mode === "grid") {
+      // tabel: per rij (bv. een vorm) één of meer kolommen aanduiden (bv. praesens én perfectum)
+      state.grid = q.rows.map(() => new Set());
+      area.innerHTML = `<div class="gridq"><div class="muted small">${esc(q.gridHint || "Tik per vorm de juiste kolom(men) aan. Meer dan één kan!")}</div>` + q.rows.map((r, i) => `<div class="pickrow"><span class="picklbl gridlbl ${q.rowClass || ""}">${r.html}</span><div class="pickopts">${q.cols.map((c) => `<button type="button" class="pick" data-r="${i}" data-v="${esc(c.v)}">${c.html}</button>`).join("")}</div></div>`).join("") + `</div>`;
+      $$("#qAnswerArea .pick").forEach((b) => b.addEventListener("click", () => {
+        if (state.answered) return;
+        const st = state.grid[+b.dataset.r], v = b.dataset.v;
+        if (st.has(v)) st.delete(v); else st.add(v);
+        b.classList.toggle("on", st.has(v));
+      }));
     } else if (q.mode === "map") {
       // kaartvraag: tik op een land, stad, gebergte of rivier (elementen met data-hit)
       area.innerHTML = `<div class="clickinfo"><span id="mapStatus" class="muted small">${esc(q.mapHint || "Tik op de kaart en klik dan op Controleer.")}</span><button type="button" id="mapZoom" class="small">${state.mapZoom ? "🔍 Kleiner" : "🔍 Vergroot"}</button></div>`;
@@ -436,6 +585,8 @@
     if (q.mode === "coord") { const x = $("#cx").value.trim(), y = $("#cy").value.trim(); return x && y ? `${x};${y}` : ""; }
     if (q.mode === "click") return state.clicks.length === q.nPts ? state.clicks.map((p) => [...p]) : null;
     if (q.mode === "map") return state.mapSel;
+    if (q.mode === "multi") { const t = q.textLabel ? $("#answer").value.trim() : ""; return state.multi.size && (!q.textLabel || t) ? { sel: [...state.multi], text: t } : null; }
+    if (q.mode === "grid") return state.grid.every((x) => x.size) ? state.grid.map((x) => [...x]) : null;
     if (q.mode === "fields") { const v = q.fields.map((f, i) => $(`#fld${i}`).value.trim()); return v.every((x, i) => x || q.fields[i].optional) ? v : null; }
     if (q.mode === "pick") return state.picks.every((x) => x != null) ? state.picks.slice() : null;
     if (q.mode === "order") return state.order.length === q.chunks.length ? state.order.map((k) => q.chunks[k]).join(" ") : null;
@@ -447,6 +598,8 @@
     if (q.mode === "fields") return (g || []).map((x, i) => `${q.fields[i].label || ""} ${esc(x)}${q.fields[i].suffix ? " " + esc(q.fields[i].suffix) : ""}`.trim()).join(" · ");
     if (q.mode === "pick") return (g || []).map((v, i) => { const o = q.picks[i].opts.find((x) => x.v === v); return o ? o.html || esc(o.v) : "—"; }).join(" · ");
     if (q.mode === "map") return esc((q.hitNames && q.hitNames[g]) || g || "—");
+    if (q.mode === "multi") { const lab = (v) => { const o = q.opts.find((x) => x.v === v); return o ? o.html : esc(v); }; return g ? g.sel.map(lab).join(" + ") + (g.text ? ` · ${esc(g.text)}` : "") : "—"; }
+    if (q.mode === "grid") return (g || []).map((cs, i) => `${q.rows[i].html}: ${cs.map((c) => (q.cols.find((x) => x.v === c) || { html: c }).html).join(" + ")}`).join(" · ");
     if (q.mode === "click") return (g || []).map((p, i) => `${q.names[i]}(${fmtN(p[0])}, ${fmtN(p[1])})`).join(" ");
     if (q.mode === "coord") return g ? `(${esc(g.replace(";", ", "))})` : "—";
     return esc(g || "—");
@@ -458,7 +611,7 @@
     const given = readGiven(q);
     if (given == null || given === "" || (typeof given === "string" && !given.trim())) {
       $("#qFeedback").className = "feedback warn";
-      $("#qFeedback").textContent = q.mode === "fields" ? "Vul alle vakjes in." : q.mode === "pick" ? "Maak in elke rij een keuze." : q.mode === "order" ? "Gebruik alle stukken om de zin te maken." : q.mode === "click" ? `Duid eerst ${q.nPts} punt(en) aan.` : q.mode === "map" ? "Tik eerst iets aan op de kaart." : q.mode === "coord" ? "Vul beide coördinaten in." : "Geef eerst een antwoord.";
+      $("#qFeedback").textContent = q.mode === "fields" ? "Vul alle vakjes in." : q.mode === "pick" ? "Maak in elke rij een keuze." : q.mode === "order" ? "Gebruik alle stukken om de zin te maken." : q.mode === "click" ? `Duid eerst ${q.nPts} punt(en) aan.` : q.mode === "map" ? "Tik eerst iets aan op de kaart." : q.mode === "multi" ? (q.textLabel ? "Duid minstens één keuze aan én vul het tekstvak in." : "Duid minstens één keuze aan.") : q.mode === "grid" ? "Duid bij elke vorm minstens één kolom aan." : q.mode === "coord" ? "Vul beide coördinaten in." : "Geef eerst een antwoord.";
       return;
     }
     const r = vak.check(given, q, state.settings.level);
@@ -480,6 +633,8 @@
       b.disabled = true;
     });
     else { $$("#qAnswerArea input").forEach((i) => (i.readOnly = true)); $$("#qAnswerArea .chunk, #qAnswerArea .pick").forEach((b) => (b.disabled = true)); }
+    if (q.mode === "multi" && q.answerSet) $$("#qAnswerArea .pick").forEach((b) => { const ok = q.answerSet.includes(b.dataset.v); if (ok) b.classList.add("right"); else if (b.classList.contains("on")) b.classList.add("wrongopt"); });
+    if (q.mode === "grid" && q.answerGrid) $$("#qAnswerArea .pick").forEach((b) => { const ok = q.answerGrid[+b.dataset.r].includes(b.dataset.v); if (ok) b.classList.add("right"); else if (b.classList.contains("on")) b.classList.add("wrongopt"); });
     if (q.mode === "map") $$("#qFigure [data-hit]").forEach((x) => { if ((q.goodHits || [q.answer]).includes(x.dataset.hit)) x.classList.add("good"); else if (x.dataset.hit === given) x.classList.add("bad"); });
     if (q.solutionSvg && r.status !== "correct") {
       $("#qFigure").innerHTML = q.solutionSvg;
@@ -507,6 +662,8 @@
     const a = analyse(state.results);
     state.analysis = a;
     Store.record(vak.id, state.settings, state.results);
+    if (state.settings.mode === "doorloop" || state.settings.mode === "doorloop-herh") dlRecord(vak, state.results, state.settings.mode === "doorloop-herh");
+    renderDlCard(vak);
     if (window.StudieUI) StudieUI.afterQuiz(vak, state.settings, state.results);
     $("#todayBtn").classList.toggle("hidden", !state.settings.plan);
     Analytics.event(`klaar/${vak.id}/${state.settings.level}`);
@@ -661,9 +818,11 @@
   // KNOPPEN
   // ============================================================
   $("#startBtn").addEventListener("click", () => start(readSettings()));
+  $("#dlStart").addEventListener("click", () => dlStartNew(vak));
   $("#nextBtn").addEventListener("click", submit);
   $("#stopBtn").addEventListener("click", () => { if (state.results.length) finish(); else openSetup(vak); });
   $("#againBtn").addEventListener("click", () => {
+    if (/^doorloop/.test(state.settings.mode)) return start({ ...state.settings, mode: "", desc: "", count: 20, isRetry: false });
     if (state.settings.mode === "fouten") return startErrorQuiz(vak, { ...state.settings, mode: "", desc: "", count: (Store.getPrefs(vak.id) || {}).count || 20 });
     start({ ...state.settings, isRetry: false, desc: "" });
   });
@@ -671,6 +830,11 @@
   $("#homeBtn").addEventListener("click", () => openSetup(vak));
   $("#resultProgressBtn").addEventListener("click", () => { location.hash = "#voortgang/" + vak.id; });
   $("#retryMistakesBtn").addEventListener("click", () => {
+    if (/^doorloop/.test(state.settings.mode)) { // doorloop: dezelfde vragen (vaste vorm), resultaat telt mee in het rapport
+      const dl = Store.doorloop(vak.id);
+      const qs = state.analysis.mistakes.map((r) => { const k = r.q._dlKey, q = k && dl ? dlQuestion(vak, k, dl.level, dl.sel) : null; if (q) q._dlKey = k; return q; }).filter(Boolean);
+      if (qs.length) return start({ ...state.settings, mode: "doorloop-herh", desc: `Doorloop: herhaling van ${qs.length} fouten` }, qs, false, true);
+    }
     const qs = state.analysis.mistakes.map((r) => (vak.regen ? vak.regen(r.q, state.settings.level) : { ...r.q }));
     start({ ...state.settings, desc: "" }, qs.sort(() => Math.random() - 0.5), true);
   });

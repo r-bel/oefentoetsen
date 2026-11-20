@@ -14,7 +14,7 @@
   const shuffle = (arr) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
   const uniq = (arr) => [...new Set(arr)];
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
-  const typed = (level, p = 0.4) => (level === "easy" ? false : level === "hard" ? true : Math.random() < p);
+  const typed = (level, p = 0.4) => (level === "easy" ? false : level === "hard" || Vakken.vast ? true : Math.random() < p);
   const nOpts = (level) => (level === "easy" ? 3 : 4);
   const fmt = (n) => String(n).replace(".", ",").replace(/\B(?=(\d{3})+(?!\d))/g, " ");
 
@@ -38,7 +38,8 @@
   const eqNum = (a, b, tol = 1e-9) => a != null && Math.abs(a - b) <= tol;
 
   // ---------- landen ----------
-  const LANDEN = K.countries;
+  const SORT = { eu: 0, ext: 1, ander: 2 };
+  const LANDEN = K.countries.slice().sort((a, b) => SORT[a.soort] - SORT[b.soort] || a.naam.localeCompare(b.naam, "nl"));
   const LAND = Object.fromEntries(LANDEN.map((c) => [c.id, c]));
   const SOORT_NAAM = { eu: "EU-lidstaten", ext: "VK, Noorwegen, Zwitserland, Rusland", ander: "andere landen van Europa" };
   const landSet = (s) => { const L = s && Array.isArray(s.landen) ? s.landen : ["eu", "ext"]; return LANDEN.filter((c) => L.includes(c.soort)); };
@@ -311,7 +312,8 @@
     let sel;
     if (s.count === "all") sel = all;
     else { sel = []; while (sel.length < s.count && all.length) sel.push(...shuffle(all).slice(0, s.count - sel.length)); }
-    return shuffle(sel.map(([u, it]) => u.gen(s.level, it, s)));
+    const qs = sel.map(([u, it]) => u.gen(s.level, it, s));
+    return s.ordered ? qs : shuffle(qs);
   }
   const countAll = (s) => UNITS.filter((u) => s.units.includes(u.id)).reduce((a, u) => a + u.items(s).length, 0);
   const ALLSET = { landen: ["eu", "ext", "ander"] };
@@ -386,6 +388,8 @@
     statusText: { spelling: "Bijna juist: let op de spelling." },
     tags: TAGS,
     makeQuiz, countAll, check, conclusions, regen, fromKey,
+    // doorloop: sleutels in leerstofvolgorde zonder alle kaarten te tekenen
+    doorloopKeys: (s) => UNITS.filter((u) => s.units.includes(u.id)).flatMap((u) => u.items(s).map((it) => [u.id, `${u.id}:${it.k}`])),
     kaarten, kaartUnits: KAART_UNITS,
     _UNITS: UNITS, _svgMap: svgMap, _richting: richting, _RICHT: RICHT,
   });

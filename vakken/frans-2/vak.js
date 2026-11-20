@@ -41,7 +41,7 @@
   }
   const splitArt = (fr) => { const m = fr.trim().match(/^(?:(une|un|des|les|le|la)\s+|(l'))(.+)$/i); return m ? { art: (m[1] || m[2]).toLowerCase(), noun: m[3].trim() } : { art: "", noun: fr.trim() }; };
   const isVowel = (w) => /^[aeiouyhâàäéèêëîïôöûùü]/i.test(w);
-  const typed = (level, p = 0.5) => (level === "easy" ? false : level === "hard" ? true : Math.random() < p);
+  const typed = (level, p = 0.5) => (level === "easy" ? false : level === "hard" || Vakken.vast ? true : Math.random() < p);
   const nOpts = (level) => (level === "easy" ? 3 : 4);
   const mcOpts = (correct, pool, level) => shuffle([correct, ...shuffle(uniq(pool.filter((x) => norm(x) !== norm(correct)))).slice(0, nOpts(level))]);
 
@@ -241,7 +241,7 @@
         if (u.vocab && s.dir === "both" && s.bothDirs) ["nl-fr", "fr-nl"].forEach((d) => out.push(Object.assign(u.gen(s.level, c, s, d), { _c: c })));
         else out.push(Object.assign(u.gen(s.level, c, s), { _c: c }));
       }));
-      return shuffle(out);
+      return s.ordered ? out : shuffle(out);
     }
     const decks = {};
     for (let i = 0; out.length < s.count && i < s.count * 4; i++) {

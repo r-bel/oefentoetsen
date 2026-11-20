@@ -353,13 +353,34 @@
     "nōlle": "wil|wilt|wil|willen|wilde|wilden|-;niet",
     "mālle": "wil|wilt|wil|willen|wilde|wilden|-;liever",
     "fierī": "word|wordt|wordt|worden|werd|werden|-",
+    // caput 2 (kleine toets: tijden en vertalen)
+    "iuvāre": "help|helpt|helpt|helpen|hielp|hielpen|geholpen",
+    "appārēre": "verschijn|verschijnt|verschijnt|verschijnen|verscheen|verschenen|-",
+    "cōgere": "dwing|dwingt|dwingt|dwingen|dwong|dwongen|gedwongen",
+    "compōnere": "stel samen|stelt samen|stelt samen|stellen samen|stelde samen|stelden samen|samengesteld",
+    metuere: "vrees|vreest|vreest|vrezen|vreesde|vreesden|gevreesd",
+    "redīre": "keer terug|keert terug|keert terug|keren terug|keerde terug|keerden terug|-",
+    "occīdere": "dood|doodt|doodt|doden|doodde|doodden|gedood",
+    "dēfendere": "verdedig|verdedigt|verdedigt|verdedigen|verdedigde|verdedigden|verdedigd",
+    solvere: "maak los|maakt los|maakt los|maken los|maakte los|maakten los|losgemaakt",
+    incendere: "steek aan|steekt aan|steekt aan|steken aan|stak aan|staken aan|aangestoken",
+    "pōnere": "plaats|plaatst|plaatst|plaatsen|plaatste|plaatsten|geplaatst",
+    "prōmittere": "beloof|belooft|belooft|beloven|beloofde|beloofden|beloofd",
+    referre: "breng terug|brengt terug|brengt terug|brengen terug|bracht terug|brachten terug|teruggebracht",
+    dare: "geef|geeft|geeft|geven|gaf|gaven|gegeven",
+    petere: "vraag|vraagt|vraagt|vragen|vroeg|vroegen|gevraagd",
+    "respondēre": "antwoord|antwoordt|antwoordt|antwoorden|antwoordde|antwoordden|-",
+    "manēre": "blijf|blijft|blijft|blijven|bleef|bleven|-",
+    "iubēre": "beveel|beveelt|beveelt|bevelen|beval|bevalen|bevolen",
+    "sentīre": "voel|voelt|voelt|voelen|voelde|voelden|gevoeld",
   };
   const PRON = ["ik", "jij", "hij", "wij", "jullie", "zij"];
   const ZAL = ["zal", "zult", "zal", "zullen", "zullen", "zullen"];
   const WORD = ["word", "wordt", "wordt", "worden", "worden", "worden"];
   // voltooid deelwoord en hulpwerkwoord voor de voltooide tijden
   const NL_VOLT = { esse: ["geweest", "z"], posse: ["gekund", "h"], "īre": ["gegaan", "z"], velle: ["gewild", "h"], "nōlle": ["gewild", "h"], "mālle": ["gewild", "h"],
-    "venīre": ["gekomen", "z"], "dormīre": ["geslapen", "h"], "fierī": ["geworden", "z"] };
+    "venīre": ["gekomen", "z"], "dormīre": ["geslapen", "h"], "fierī": ["geworden", "z"],
+    "appārēre": ["verschenen", "z"], "redīre": ["teruggekeerd", "z"], "manēre": ["gebleven", "z"], "respondēre": ["geantwoord", "h"] };
   const HEB = ["heb", "hebt", "heeft", "hebben", "hebben", "hebben"], BEN = ["ben", "bent", "is", "zijn", "zijn", "zijn"];
   // alle aanvaarde vertalingen (perfectum: OVT én VTT)
   function nlAlle(inf, key) {

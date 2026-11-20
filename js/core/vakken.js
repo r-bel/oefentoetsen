@@ -39,6 +39,8 @@
   const inhoud = {};
   window.Vakken = {
     list,
+    // doorloop-modus: true tijdens het maken van de vragen → vakken kiezen een vaste vraagvorm (bv. altijd typen)
+    vast: false,
     register(mod) {
       if (list.some((v) => v.id === mod.id)) throw new Error("Vak bestaat al: " + mod.id);
       list.push(mod);

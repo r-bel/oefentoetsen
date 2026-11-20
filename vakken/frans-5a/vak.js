@@ -176,7 +176,9 @@
     function mcOrText(level, preferMc) {
       if (level === "easy") return "mc";
       if (level === "hard") return "text";
-      return preferMc || Math.random() < 0.5 ? "mc" : "text";
+      if (preferMc) return "mc";
+      if (Vakken.vast) return "text"; // doorloop: vaste vraagvorm
+      return Math.random() < 0.5 ? "mc" : "text";
     }
     function mcOptions(correct, pool, n = 4) {
       const others = shuffle(uniq(pool.filter((x) => norm(x) !== norm(correct)))).slice(0, n - 1);
@@ -419,7 +421,7 @@
         }
       }
       qs.forEach((q) => { if (q.mode === "mc" && (!q.options || q.options.length < 2)) q.mode = "text"; });
-      return shuffle(qs);
+      return settings.ordered ? qs : shuffle(qs);
     }
 
     function makeQuiz(settings) {

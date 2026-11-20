@@ -17,7 +17,7 @@
   const shuffle = (arr) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
   const uniq = (a) => [...new Set(a)];
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
-  const typed = (level, p = 0.5) => (level === "easy" ? false : level === "hard" ? true : Math.random() < p);
+  const typed = (level, p = 0.5) => (level === "easy" ? false : level === "hard" || Vakken.vast ? true : Math.random() < p);
   const nOpts = (level) => (level === "easy" ? 3 : 4);
   const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
   const mark = (z) => esc(z).replace(/\[([^\]]+)\]/, "<u><b>$1</b></u>");
@@ -486,7 +486,8 @@
     let pickd;
     if (s.count === "all") pickd = all;
     else { pickd = []; while (pickd.length < s.count && all.length) pickd.push(...shuffle(all).slice(0, s.count - pickd.length)); }
-    return shuffle(pickd.map(([u, it]) => u.gen(s.level, it)));
+    const qs = pickd.map(([u, it]) => u.gen(s.level, it));
+    return s.ordered ? qs : shuffle(qs);
   }
   const countAll = (s) => activeUnits(s).reduce((a, u) => a + unitItems(u, s).length, 0);
   const KEYMAP = { vvn: "vvn_invullen", herken: "vvn_herkennen", vraag: "vvn_vraag", soort: "tw_soort", bep: "tw_bepaald", hr: "tw_hoofdrang", zoek: "tw_zoek", voluit: "tw_voluit", spel: "tw_spelling", begrip: "begrippen",

@@ -515,3 +515,37 @@ svg.map .cap.good { fill: #22c55e; }
 svg.map .cap.bad { fill: #ef4444; }
 svg.map .pt { stroke: #0f172a; stroke-width: 1.5; }
 svg.map .ptlbl { font: 700 15px system-ui, sans-serif; fill: #0f172a; paint-order: stroke; stroke: #f8fafc; stroke-width: 3.5px; }
+
+/* ============================================================
+   Doorloop (alles één per één, in blokken) + rapport
+   ============================================================ */
+.dlbox { margin-top: 18px; padding-top: 6px; border-top: 1px dashed var(--line); }
+.dlstart { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.dlstart select { background: var(--card-solid); color: inherit; border: 1px solid var(--line); border-radius: 8px; padding: 4px 6px; font: inherit; }
+.dlcur { border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin: 8px 0 12px; display: grid; gap: 6px; }
+.dlcur .bar, #dlCard .bar { height: 8px; }
+.dlgroup { border-top: 1px solid var(--line); padding: 8px 0; }
+.dlgroup summary { cursor: pointer; }
+ul.dlitems { list-style: none; padding: 0; margin: 8px 0 0; columns: 2 260px; column-gap: 18px; }
+ul.dlitems li { break-inside: avoid; padding: 2px 0; font-size: .92em; }
+ul.dlitems li .ic { display: inline-block; width: 1.8em; font-weight: 700; }
+ul.dlitems li.ok .ic { color: #22c55e; }
+ul.dlitems li.bad { color: #fca5a5; }
+ul.dlitems li.bad .ic { color: #ef4444; }
+ul.dlitems li.todo { opacity: .55; }
+@media print {
+  body { background: #fff !important; color: #000 !important; }
+  header, footer, .noprint, #toast, .screen:not(.active) { display: none !important; }
+  .card { background: #fff !important; border: 1px solid #999 !important; box-shadow: none !important; color: #000 !important; }
+  ul.dlitems li.bad { color: #b91c1c; }
+  .muted { color: #444 !important; }
+}
+
+/* meerdere keuzes en tabel-sorteren */
+.pick.right { background: var(--ok-soft); border-color: var(--ok); }
+.pick.wrongopt { background: rgba(239, 68, 68, .18); border-color: #ef4444; text-decoration: line-through; }
+.gridq { display: grid; gap: 8px; }
+.gridq .pickrow { border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+.gridlbl.latin { font-family: Georgia, "Times New Roman", serif; font-size: 1.08rem; color: #fde68a; min-width: 7.5em; }
+.fld.wide { display: grid; gap: 4px; margin-top: 10px; }
+.fld.wide .answer { width: 100%; }

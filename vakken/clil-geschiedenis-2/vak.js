@@ -15,7 +15,7 @@
   const strip = (s) => s.normalize("NFD").replace(/[̀-ͯ]/g, "");
   const norm = (s) => String(s ?? "").toLowerCase().replace(/[’‘`´]/g, "'").replace(/[.!?;:«»"()]/g, " ").replace(/\s+/g, " ").trim();
   const noArt = (s) => s.replace(/^(une|un|les|le|la|des|du|de la)\s+/, "").replace(/^(de l'|l')/, "");
-  const typed = (level, p = 0.5) => (level === "easy" ? false : level === "hard" ? true : Math.random() < p);
+  const typed = (level, p = 0.5) => (level === "easy" ? false : level === "hard" || Vakken.vast ? true : Math.random() < p);
   const nOpts = (level) => (level === "easy" ? 3 : 4);
   const CM_NAAM = { C: "la Crète (Cnossos)", M: "Mycènes" };
 
@@ -140,7 +140,8 @@
     let pick;
     if (s.count === "all") pick = all;
     else { pick = []; while (pick.length < s.count && all.length) pick.push(...shuffle(all).slice(0, s.count - pick.length)); }
-    return shuffle(pick.map(([u, it, d]) => u.gen(s.level, it, s, d)));
+    const qs = pick.map(([u, it, d]) => u.gen(s.level, it, s, d));
+    return s.ordered ? qs : shuffle(qs);
   }
   const countAll = (s) => UNITS.filter((u) => s.units.includes(u.id)).reduce((a, u) => a + u.items(s).length * (u.id === "vocab" && s.dir === "both" && s.bothDirs ? 2 : 1), 0);
   function regen(q, level) { const u = UNITS.find((x) => x.id === q.unit); return fromKey(q.key, level) || q; }

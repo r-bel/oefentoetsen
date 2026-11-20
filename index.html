@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=23">
+  <link rel="stylesheet" href="css/style.css?v=24">
 </head>
 <body data-theme="indigo">
   <header class="topbar">
@@ -72,7 +72,26 @@
         </form>
         <button id="errorQuizBtn" class="big errorbtn hidden">🎯 Toets op basis van mijn fouten</button>
         <div id="errorQuizInfo" class="msg"></div>
+        <div id="dlBox" class="dlbox">
+          <div class="section-label">📋 Doorloop: alles, één per één</div>
+          <p class="muted small">Elke vraag uit je keuze hierboven komt precies één keer aan bod, in de volgorde van de leerstof en telkens op dezelfde manier gevraagd (makkelijk = meerkeuze, normaal en moeilijk = zelf typen waar het kan). Je werkt in blokken; de app onthoudt waar je zit. Op het einde krijg je een rapport per item.</p>
+          <div id="dlCur"></div>
+          <div class="dlstart"><label class="muted small">Blokken van <select id="dlBlok"><option value="10">10</option><option value="20" selected>20</option><option value="30">30</option><option value="50">50</option></select> vragen</label>
+            <button id="dlStart" type="button" class="big">📋 Start een doorloop met deze keuze</button></div>
+          <div id="dlMsg" class="msg"></div>
+        </div>
       </div>
+    </section>
+
+    <section id="screen-dl" class="screen">
+      <div class="card hero">
+        <h1>📋 Rapport doorloop</h1>
+        <div id="dlHead" class="muted"></div>
+        <div id="dlKpis" class="kpis"></div>
+        <div class="actions left noprint" id="dlActions"></div>
+      </div>
+      <div class="card"><h2>📊 Per onderdeel</h2><div id="dlUnits"></div></div>
+      <div class="card"><h2>🗂️ Alle items</h2><p class="muted small noprint">✓ = gekend · ✗ = niet gekend · ✓² = pas bij herhaling gekend</p><div id="dlItems"></div></div>
     </section>
 
     <!-- 2. TOETS -->
@@ -101,6 +120,7 @@
         <span class="badge" id="scoreBadge"></span>
         <div id="scoreBox" class="score"></div>
       </div>
+      <div class="card hidden" id="dlCard"></div>
       <div class="card hidden" id="finalCard">
         <h2>🎓 Eindtoets: wat is volledig gekend?</h2>
         <p class="muted" id="finalIntro"></p>
@@ -210,35 +230,35 @@
   <div id="toast" class="toast"></div>
 
   <!-- kern -->
-  <script src="js/config.js?v=23"></script>
-  <script src="js/core/analytics.js?v=23"></script>
-  <script src="js/core/vakken.js?v=23"></script>
-  <script src="js/core/store.js?v=23"></script>
-  <script src="js/core/sync.js?v=23"></script>
-  <script src="js/core/geo.js?v=23"></script>
-  <script src="js/core/studie.js?v=23"></script>
+  <script src="js/config.js?v=24"></script>
+  <script src="js/core/analytics.js?v=24"></script>
+  <script src="js/core/vakken.js?v=24"></script>
+  <script src="js/core/store.js?v=24"></script>
+  <script src="js/core/sync.js?v=24"></script>
+  <script src="js/core/geo.js?v=24"></script>
+  <script src="js/core/studie.js?v=24"></script>
   <!-- vakken: per vak eerst de inhoud, dan de logica -->
-  <script src="vakken/frans-5a/inhoud.js?v=23"></script>
-  <script src="vakken/frans-5a/vak.js?v=23"></script>
-  <script src="vakken/frans-2/inhoud.js?v=23"></script>
-  <script src="vakken/frans-2/vak.js?v=23"></script>
-  <script src="vakken/wiskunde-2-m01/inhoud.js?v=23"></script>
-  <script src="vakken/wiskunde-2-m01/vak.js?v=23"></script>
-  <script src="vakken/latijn-2/inhoud.js?v=23"></script>
-  <script src="vakken/latijn-2/grammatica.js?v=23"></script>
-  <script src="vakken/latijn-2/vak.js?v=23"></script>
-  <script src="vakken/clil-geschiedenis-2/inhoud.js?v=23"></script>
-  <script src="vakken/clil-geschiedenis-2/vak.js?v=23"></script>
-  <script src="vakken/nederlands-2/inhoud.js?v=23"></script>
-  <script src="vakken/nederlands-2/deel1.js?v=23"></script>
-  <script src="vakken/nederlands-2/vak.js?v=23"></script>
-  <script src="vakken/wiskunde-5/inhoud.js?v=23"></script>
-  <script src="vakken/wiskunde-5/vak.js?v=23"></script>
-  <script src="vakken/wereldorientatie-5/kaart.js?v=23"></script>
-  <script src="vakken/wereldorientatie-5/inhoud.js?v=23"></script>
-  <script src="vakken/wereldorientatie-5/vak.js?v=23"></script>
+  <script src="vakken/frans-5a/inhoud.js?v=24"></script>
+  <script src="vakken/frans-5a/vak.js?v=24"></script>
+  <script src="vakken/frans-2/inhoud.js?v=24"></script>
+  <script src="vakken/frans-2/vak.js?v=24"></script>
+  <script src="vakken/wiskunde-2-m01/inhoud.js?v=24"></script>
+  <script src="vakken/wiskunde-2-m01/vak.js?v=24"></script>
+  <script src="vakken/latijn-2/inhoud.js?v=24"></script>
+  <script src="vakken/latijn-2/grammatica.js?v=24"></script>
+  <script src="vakken/latijn-2/vak.js?v=24"></script>
+  <script src="vakken/clil-geschiedenis-2/inhoud.js?v=24"></script>
+  <script src="vakken/clil-geschiedenis-2/vak.js?v=24"></script>
+  <script src="vakken/nederlands-2/inhoud.js?v=24"></script>
+  <script src="vakken/nederlands-2/deel1.js?v=24"></script>
+  <script src="vakken/nederlands-2/vak.js?v=24"></script>
+  <script src="vakken/wiskunde-5/inhoud.js?v=24"></script>
+  <script src="vakken/wiskunde-5/vak.js?v=24"></script>
+  <script src="vakken/wereldorientatie-5/kaart.js?v=24"></script>
+  <script src="vakken/wereldorientatie-5/inhoud.js?v=24"></script>
+  <script src="vakken/wereldorientatie-5/vak.js?v=24"></script>
   <!-- interface -->
-  <script src="js/core/studie-ui.js?v=23"></script>
-  <script src="js/core/app.js?v=23"></script>
+  <script src="js/core/studie-ui.js?v=24"></script>
+  <script src="js/core/app.js?v=24"></script>
 </body>
 </html>

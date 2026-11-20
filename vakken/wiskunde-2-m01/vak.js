@@ -51,7 +51,7 @@
     return m && m.length >= 2 ? [parseInt(m[0].replace(/\s/g, "")), parseInt(m[1].replace(/\s/g, ""))] : null;
   }
   // typen of meerkeuze?
-  const typed = (level, p = 0.6) => (level === "easy" ? false : level === "hard" ? true : Math.random() < p);
+  const typed = (level, p = 0.6) => (level === "easy" ? false : level === "hard" || Vakken.vast ? true : Math.random() < p);
   const nOpts = (level) => (level === "easy" ? 3 : level === "normal" ? 4 : 5);
 
   // ---------- transformaties rond de oorsprong ----------
@@ -577,7 +577,7 @@
     const out = [];
     if (s.count === "all") {
       units.forEach((u) => { for (let c = 0; c < caseCount(u, s.level); c++) { const q = finalize(u, u.gen(s.level, c), c); if (q) out.push(q); } });
-      return shuffle(out);
+      return s.ordered ? out : shuffle(out);
     }
     const decks = {};
     const draw = (u) => { if (!decks[u.id] || !decks[u.id].length) decks[u.id] = shuffle([...Array(caseCount(u, s.level)).keys()]); return decks[u.id].pop(); };

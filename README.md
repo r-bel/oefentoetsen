@@ -42,6 +42,14 @@ Een vak bijsturen raakt dus nooit een ander vak.
 | `nederlands-2` | Nederlands 2de middelbaar – deel 1 (les 1-8 + taalschat, p. 23-74) | eigen oefenzinnen en theorie in eigen woorden (`deel1.js` + `inhoud.js`) | reclame, lay-out, uitnodiging (onderdelen, topische vragen), woordvorming, trema en koppelteken, vragende vnw, telwoord, bijwoord, taalschat; keuze "van p. … tot p. …" |
 | `wereldorientatie-5` | Wereldoriëntatie 5de leerjaar – Europa aardrijkskundig (11 bladen + toetswijzer) | blinde kaart van Europa (`kaart.js`, landsgrenzen uit Natural Earth), landen + hoofdsteden, gebergten, rivieren, begrippen, kaartsoorten, windroos, schaal, bevolkingsdichtheid | landen/hoofdsteden/gebergten/rivieren aantikken en benoemen op de kaart, EU-lid of niet, begrippen, reliëf, landelijk/stedelijk, water, welke kaartsoort, register/inhoudstafel, windroos en reisrichting, schaal berekenen, bevolkingsdichtheid; keuze welke landen |
 
+## Doorloop (alles één per één)
+Bij elk vak, onder de startknop: **📋 Doorloop**. Alle vragen van de gekozen onderdelen komen precies één keer aan bod,
+in de volgorde van de leerstof (`makeQuiz({ count: "all", ordered: true })` of `vak.doorloopKeys(s)`), met een vaste vraagvorm
+(elke vraag wordt gemaakt met `fromKey(sleutel, niveau, instellingen, onderdeel)` onder een vaste seed, en `Vakken.vast = true`
+→ normaal/moeilijk: typen waar het kan). In blokken van 10–50 vragen; de stand staat in het profiel (`doorloop[vak]`, wordt mee
+gesynchroniseerd). Rapport per item op `#doorloop/<vak>` met ✓/✗, score per onderdeel, "herhaal enkel de niet-gekende" en afdrukken.
+Een nieuw vak moet daarvoor enkel: `s.ordered` respecteren in `makeQuiz` (niet schudden) en een `fromKey` hebben.
+
 ## Voortgang (lokaal, geen server)
 - Elke afgewerkte toets wordt in de browser bewaard: vak, niveau, score, score per onderdeel, fouttypes,
   en per vraag/woord hoe vaak het juist/fout ging.

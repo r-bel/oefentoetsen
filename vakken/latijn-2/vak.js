@@ -28,7 +28,7 @@
     return d[a.length][b.length];
   };
   const head = (la) => la.split(/,|\s\+|\sof\s/)[0].trim();            // "crēdere, ~ō + dat." → "crēdere"
-  const typed = (level, p = 0.6) => (level === "easy" ? false : level === "hard" ? true : Math.random() < p);
+  const typed = (level, p = 0.6) => (level === "easy" ? false : level === "hard" || Vakken.vast ? true : Math.random() < p);
   const nOpts = (level) => (level === "easy" ? 3 : 4);
   const NUMS = WOORDEN.map((w) => w.nr);
   const MIN = Math.min(...NUMS), MAX = Math.max(...NUMS);
@@ -1069,6 +1069,158 @@
   });
 
   // ============================================================
+  // KLEINE TOETS (zoals in de klas): vormen zonder lengtetekens, alle mogelijkheden,
+  // wat past niet, zet in de juiste tabel, determineren met grondwoord
+  // ============================================================
+  const KT_TIJD = ["praes", "imperf", "fut", "perf", "imp", "inf"];
+  const KT_NAAM = { praes: "praesens", imperf: "imperfectum", fut: "futurum simplex", perf: "perfectum", imp: "imperatief", inf: "infinitief" };
+  // welke sleutels tellen mee: enkel de tijden van de kleine toets (perfectum enkel actief)
+  const ktOk = (s, k) => { const x = G.keyParts(k); return KT_TIJD.includes(x.tijd) && !(x.vorm === "pass" && x.tijd === "perf") && keyOk(s, k); };
+  const ktKeys = (w, s) => Object.keys(vf(w)).filter((k) => ktOk(s, k));
+  const plain = (f) => noMacron(f);
+  // alle lezingen van een vorm zonder lengtetekens (binnen de toegelaten tijden)
+  // index per werkwoord (en per keuze van tijden): vorm zonder lengtetekens → sleutels
+  const LEZ = new Map();
+  function lezIndex(w, s) {
+    const sig = `${w.nr}|${JSON.stringify(tijdenOf(s))}|${s && s._passVolt}|${s && s._onlyPass}`;
+    let m = LEZ.get(sig);
+    if (!m) { m = new Map(); const F = vf(w); Object.keys(F).forEach((k) => { if (!ktOk(s, k)) return; F[k].forEach((x) => { const p = plain(x); if (!m.has(p)) m.set(p, []); if (!m.get(p).includes(k)) m.get(p).push(k); }); }); LEZ.set(sig, m); }
+    return m;
+  }
+  const lezingen = (w, f, s) => lezIndex(w, s).get(plain(f)) || [];
+  const ktItems = (s) => (tijdenOf(s) && !tijdenOf(s).some((t) => KT_TIJD.includes(t)) ? [] : inRange(s).filter((w) => vs(w) && soortOk(s, w) && ktKeys(w, s).length));
+  // feedforward per lezing (zoals de leerkracht het noteert)
+  function waarom(w, k) {
+    const v = vs(w), x = G.keyParts(k), kind = v.kind === "onr" ? v.base : v.kind;
+    if (x.tijd === "perf") return v.pst ? `perfectumstam ${v.pst}- (3de stamtijd ${v.perf}) + uitgang` : "perfectum";
+    if (x.tijd === "imperf") return kind === "esse" ? "era = imperfectum van esse" : "kenletters -ba- / -ēba-";
+    if (x.tijd === "fut") {
+      if (kind === "esse") return "erō, eris … erunt = futurum van esse";
+      if (kind === "1" || kind === "2" || kind === "īre") return "kenletter -b- + bindklinker (bō, bis … bunt)";
+      return "kenletter -ē- (in de 1ste p. enk. -a-): futurum van tegere/audīre/capere-werkwoorden";
+    }
+    if (x.tijd === "imp") return "imperatief: stam (+e) / -te";
+    if (x.tijd === "inf") return x.vorm === "act" ? "infinitief actief op -re" : "infinitief passief op -rī / -ī";
+    if (kind === "2") return "de e hoort bij de stam (monē-): praesens, géén futurum";
+    if (kind === "3" || kind === "3io") return "geen kenletter; bindklinker -i- / -u- (tegis, tegitis, tegunt)";
+    return "geen kenletter: praesens";
+  }
+  const lezingTxt = (w, k) => `${esc(wwTxt(k))} <small>– ${esc(waarom(w, k))}</small>`;
+  function nlNodig(w, ks) { const inf = head(w.la); return ks.filter((k) => !/\.(imp|inf)\./.test(k)).map((k) => ({ k, acc: uniq(G.nlAlle(inf, k).flatMap((x) => nlAccepted(x, k))), toon: G.nlAlle(inf, k) })); }
+  const nosp = (x) => x.replace(/\s+/g, "");
+  function checkNlAlle(text, nodig) {
+    const segs = String(text || "").split(/\s*(?:\/|,|;|\+|\bof\b|\ben\b)\s*/i).map(norm).filter(Boolean);
+    const hit = (n) => segs.some((sg) => n.acc.includes(sg) || n.acc.some((a) => nosp(a) === nosp(sg) || (a.length > 8 && lev(a, sg) <= 1)));
+    return nodig.filter((n) => !hit(n));
+  }
+
+  // ---------- K1. geef de tijd en vertaal: alle mogelijkheden ----------
+  unit({
+    id: "alle_mog", group: "V", label: "Geef de tijd en vertaal – alle mogelijkheden (zoals op de toets)", page: "kleine toets",
+    rule: "Een vorm zonder lengtetekens kan meer dan één tijd zijn: invenimus = praesens (wij vinden) én perfectum (wij vonden / hebben gevonden). Kijk eerst: perfectumstam (3de stamtijd)? Kenletters ba / bi-bo-bu-be / losse e? Geef álle mogelijkheden.",
+    items: (s) => ktItems(s),
+    gen(level, w, s) {
+      const F = vf(w), ks = ktKeys(w, s), inf = head(w.la);
+      const amb = ks.filter((k) => uniq(lezingen(w, F[k][0], s).map((x) => G.keyParts(x).tijd)).length > 1);
+      const k = amb.length && Math.random() < 0.5 ? pick(amb) : pick(ks), f = plain(F[k][0]);
+      const lez = lezingen(w, F[k][0], s), cats = uniq(lez.map((x) => G.keyParts(x).tijd));
+      const nodig = nlNodig(w, lez), metNl = level !== "easy" && nodig.length && nodig.every((n) => n.acc.length);
+      const toonNl = nodig.filter((n) => n.toon.length).map((n) => n.toon.join(" / "));
+      return base(this, { mode: "multi", check: "allemog", instruction: `Geef de tijd${metNl ? " en vertaal" : ""}. Geef <b>alle</b> mogelijkheden.`, prompt: lat(f) + `<small> (${esc(inf)}${w.mid ? ", " + esc(w.mid) : ""})</small>`, promptClass: "latin",
+        multiLabel: "tijd(en)", opts: KT_TIJD.map((t) => ({ v: t, html: KT_NAAM[t] })), answerSet: cats, cats, nodig: metNl ? nodig : [],
+        textLabel: metNl ? "vertaling(en) – scheid met / " : "", textPh: "bv. wij vinden / wij vonden",
+        answerShown: lez.map((x) => lezingTxt(w, x)).join("<br>") + (toonNl.length ? `<br><b>${esc(toonNl.join(" · "))}</b>` : ""),
+        page: `§${w.sec} · nr. ${w.nr}`, tag: "tijd", key: `allm:${w.nr}`, itemLabel: `${w.nr}. ${f}: ${cats.map((c) => KT_NAAM[c]).join(" + ")}`, nr: w.nr });
+    },
+  });
+
+  // ---------- K2. wat past niet in het rijtje, en waarom? ----------
+  const ODD_SLOTS = Array.from({ length: 15 }, (_, i) => ({ slot: i }));
+  unit({
+    id: "odd_one", group: "V", label: "Wat past niet in het rijtje, en waarom?", page: "kleine toets",
+    rule: "Zoek wat de vormen gemeen hebben (bv. allemaal perfectum: -ī, -ērunt na de perfectumstam). De indringer lijkt erop, maar is iets anders: redi = imperatief van redīre, poterunt = futurum van posse.",
+    items: (s) => (ktItems(s).length >= 6 ? ODD_SLOTS : []), noRange: true,
+    gen(level, it, s) {
+      const ws = ktItems(s);
+      for (let poging = 0; poging < 60; poging++) {
+        const w0 = pick(ws), kA = pick(ktKeys(w0, s)), tA = G.keyParts(kA).tijd;
+        // vier vormen van dezelfde tijd, persoon en getal
+        const A = uniq(shuffle(ws).filter((w) => vf(w)[kA] && ktOk(s, kA)).map((w) => plain(vf(w)[kA][0]))).slice(0, 4);
+        if (A.length < 4) continue;
+        const end = (f) => f.slice(-2), ends = new Set(A.map(end));
+        const kand = [];
+        shuffle(ws).slice(0, 80).forEach((w) => lezIndex(w, s).forEach((ks, f) => {
+          if (A.includes(f)) return;
+          const cats = uniq(ks.map((y) => G.keyParts(y).tijd)); if (cats.includes(tA)) return;
+          kand.push({ f, cats, w, k: ks[0], mooi: ends.has(end(f)) });
+        }));
+        const mooi = kand.filter((x) => x.mooi), I = pick(mooi.length ? mooi : kand);
+        if (!I) continue;
+        const rij = shuffle([...A, I.f]);
+        const redenen = KT_TIJD.filter((t) => t !== tA);
+        return base(this, { mode: "pick", check: "pick", instruction: "Wat past niet in het rijtje? Zeg ook waarom.", prompt: rij.map(lat).join(" – "), promptClass: "latin",
+          picks: [{ label: "past niet", opts: rij.map((f) => ({ v: f, html: lat(f) })) }, { label: "waarom", opts: redenen.map((t) => ({ v: t, html: `is ${KT_NAAM[t]} <small>(de rest: ${KT_NAAM[tA]})</small>` })) }],
+          valid: I.cats.map((c) => `${I.f}|${c}`),
+          answerShown: `<b>${esc(I.f)}</b> = ${I.cats.map((c) => KT_NAAM[c]).join(" of ")} van ${esc(head(I.w.la))} (${esc(waarom(I.w, I.k))}); de andere zijn ${KT_NAAM[tA]}`,
+          tag: "tijd", key: `odd:${it.slot}`, itemLabel: `rijtje ${it.slot + 1}: ${I.f} past niet` });
+      }
+      return null;
+    },
+    byKey(rest) { return ODD_SLOTS[+rest]; },
+  });
+
+  // ---------- K3. zet in de juiste tabel ----------
+  const TAB_SLOTS = Array.from({ length: 10 }, (_, i) => ({ slot: i }));
+  const KOL = ["praes", "imperf", "fut", "perf"], kolOf = (t) => (t === "imp" || t === "inf" ? "praes" : t);
+  unit({
+    id: "tabel_sort", group: "V", label: "Zet in de juiste tabel (praesens, imperfectum, futurum, perfectum)", page: "kleine toets",
+    rule: "Perfectum = perfectumstam (3de stamtijd) + -ī, -istī, -it … · kenletters bi/bo/bu/be of losse e = futurum simplex · ba = imperfectum · -itis (praesens) ≠ -istis (perfectum) · dubbele vormen (occidit, veni) in twee kolommen · imperatief en infinitief bij het praesens · een kolom mag leeg blijven.",
+    items: (s) => (ktItems(s).length >= 6 ? TAB_SLOTS : []), noRange: true,
+    gen(level, it, s) {
+      const ws = ktItems(s), n = level === "easy" ? 6 : level === "hard" ? 12 : 10, rows = [], seen = new Set();
+      const leeg = Math.random() < 0.25 ? pick(KOL.filter((c) => c !== "perf" && c !== "praes")) : null;
+      const doelen = KOL.filter((c) => c !== leeg && (c === "praes" || tijdOk(s, c)));
+      for (let t = 0; rows.length < n && t < 600; t++) {
+        const doel = doelen[rows.length % doelen.length]; // evenwichtig over de kolommen
+        const w = pick(ws), ks = ktKeys(w, s).filter((k) => kolOf(G.keyParts(k).tijd) === doel);
+        if (!ks.length) continue;
+        const k = pick(ks), f = plain(vf(w)[k][0]);
+        if (seen.has(f)) continue;
+        const cols = uniq(lezingen(w, vf(w)[k][0], s).map((x) => kolOf(G.keyParts(x).tijd)));
+        if (leeg && cols.includes(leeg)) continue;
+        const dubbel = cols.length > 1;
+        if (!dubbel && rows.filter((r) => r.cols.length > 1).length < 2 && rows.length >= n - 2) continue; // minstens twee dubbele vormen
+        seen.add(f); rows.push({ f, w, k, cols, lez: lezingen(w, vf(w)[k][0], s) });
+      }
+      const answerShown = KOL.map((c) => `<b>${KT_NAAM[c]}</b>: ${rows.filter((r) => r.cols.includes(c)).map((r) => esc(r.f)).join(", ") || "<i>geen</i>"}`).join("<br>");
+      rows.sort(() => Math.random() - 0.5);
+      return base(this, { mode: "grid", check: "grid", instruction: "Zet in de juiste tabel. Een vorm kan in twee kolommen horen; een kolom mag leeg blijven.", prompt: "", rowClass: "latin",
+        rows: rows.map((r) => ({ html: esc(r.f) })), cols: KOL.map((c) => ({ v: c, html: { praes: "praes.", imperf: "imperf.", fut: "fut. s.", perf: "perf." }[c] })), answerGrid: rows.map((r) => r.cols),
+        uitleg: rows.map((r) => `${r.f}: ${r.lez.map((x) => `${wwTxt(x)} van ${head(r.w.la)}`).join(" of ")}`),
+        answerShown, tag: "tijd", key: `tab:${it.slot}`, itemLabel: `tabel ${it.slot + 1}: ${rows.map((r) => r.f).join(", ")}` });
+    },
+    byKey(rest) { return TAB_SLOTS[+rest]; },
+  });
+
+  // ---------- K4. determineren mét grondwoord ----------
+  unit({
+    id: "det_lemma", group: "V", label: "Determineer en geef het grondwoord (fiebat, rettulistis, feretis …)", page: "kleine toets",
+    rule: "Tempel: vorm – wijs – tijd – persoon – getal, en van welk werkwoord (de infinitief uit de woordenlijst). Let op samengestelde werkwoorden: rettulistis → referre, reditis → redīre. Losse e na de stam = futurum (feretis).",
+    items: (s) => ktItems(s),
+    gen(level, w, s) {
+      const F = vf(w), k = pick(ktKeys(w, s)), f = plain(F[k][0]), lez = lezingen(w, F[k][0], s), inf = head(w.la);
+      const pre = (a, b) => { let i = 0; while (i < a.length && i < b.length && plain(a[i]) === plain(b[i])) i++; return i; };
+      const v0 = vs(w), kin = (x) => vs(x) && (vs(x).base || vs(x).kind) === (v0.base || v0.kind);
+      const andere = uniq(shuffle(WOORDEN.filter((x) => x.soort === "ww" && vs(x) && head(x.la) !== inf)).sort((a, b) => pre(head(b.la), f) + (kin(b) ? 1 : 0) - (pre(head(a.la), f) + (kin(a) ? 1 : 0))).map((x) => head(x.la))).slice(0, 3);
+      const lem = shuffle([inf, ...andere]);
+      return base(this, { mode: "pick", check: "pick", instruction: "Determineer en geef het grondwoord.", prompt: lat(f), promptClass: "latin",
+        picks: [...pickWW(KT_TIJD.filter((t) => tijdOk(s, t) || t === "imp" || t === "inf")), { label: "werkwoord", opts: lem.map((x) => ({ v: x, html: lat(x) })) }],
+        valid: lez.map((x) => `${anWW(x)}|${inf}`), answerShown: lez.map((x) => lezingTxt(w, x)).join("<br>") + ` <small>van <b>${esc(inf)}</b>${w.mid ? ", " + esc(w.mid) : ""} (${esc(w.nl)})</small>`,
+        page: `§${w.sec} · nr. ${w.nr}`, tag: "bepalen_ww", key: `detl:${w.nr}`, itemLabel: `${w.nr}. ${f}: determineren + grondwoord`, nr: w.nr });
+    },
+  });
+
+  // ============================================================
   // TOETS SAMENSTELLEN
   // ============================================================
   // naamwoord-grammatica (naamvallen, voorzetsels, voornaamwoorden, modeltabellen) valt weg als substantieven én adjectieven uitgevinkt zijn
@@ -1079,8 +1231,8 @@
     if (!sel.length) return [];
     const out = [];
     if (s.count === "all") {
-      sel.forEach((u) => items(u, s).forEach((it) => out.push(u.gen(s.level, it, s))));
-      return shuffle(out);
+      sel.forEach((u) => items(u, s).forEach((it) => { const q = u.gen(s.level, it, s); if (q) out.push(q); }));
+      return s.ordered ? out : shuffle(out);
     }
     const decks = {};
     for (let i = 0; out.length < s.count && i < s.count * 4; i++) {
@@ -1088,7 +1240,8 @@
       const weighted = sel.flatMap((u) => (/W$/.test(u.group) ? [u, u, u] : [u]));
       const u = pick(weighted);
       if (!decks[u.id] || !decks[u.id].length) decks[u.id] = shuffle(items(u, s));
-      out.push(u.gen(s.level, decks[u.id].pop(), s));
+      const q = u.gen(s.level, decks[u.id].pop(), s);
+      if (q) out.push(q);
     }
     return shuffle(out);
   }
@@ -1097,12 +1250,20 @@
   const KEY_UNIT = { vertalen: "vertalen", midden: "midden", herkennen: "herkennen", vv: "voorvoegsels", dekl: "verbuiging", gs: "geslacht", verv: "vervoeging", dat: "datief", sfx: "achtervoegsels",
     nvorm: "nw_vorm", ntab: "nw_tabel", nbep: "nw_bepalen", cong: "congruentie", bn2: "bn2", mod: "modellen",
     wbep: "ww_bepalen", wvorm: "ww_vorm", wtab: "ww_tabel", wspl: "ww_splitsen", verw: "ww_verwar", winf: "ww_inf", wmod: "ww_model", wvert: "ww_vertalen", regel: "regels",
-    fz: "functies", vz: "voorzetsels", vnwp: "vnw_pers", vnwz: "vnw_zin", bez: "vnw_bez", aw: "aanw_bep", awc: "aanw_cong", awv: "aanw_vorm", pp: "praes_perf", cr: "cregels", stap: "stappenplan", bord: "bord_pp" };
-  function fromKey(key, level, s = {}) {
+    fz: "functies", vz: "voorzetsels", vnwp: "vnw_pers", vnwz: "vnw_zin", bez: "vnw_bez", aw: "aanw_bep", awc: "aanw_cong", awv: "aanw_vorm", pp: "praes_perf", cr: "cregels", stap: "stappenplan", bord: "bord_pp", allm: "alle_mog", odd: "odd_one", tab: "tabel_sort", detl: "det_lemma" };
+  // unitHint (doorloop): het onderdeel waaruit de vraag kwam, bv. een caput-onderdeel dat dezelfde sleutels gebruikt als het algemene
+  function fromKey(key, level, s = {}, unitHint) {
     const i = key.indexOf(":"), pre = key.slice(0, i), rest = key.slice(i + 1), u = UNITS.find((x) => x.id === KEY_UNIT[pre]);
     if (!u) return null;
     const all = { bereik: [MIN, MAX] };
     Object.assign(all, { nwKlasse: s.nwKlasse, wwTijd: s.wwTijd, nwKlassen: s.nwKlassen, wwTijden: s.wwTijden, woordsoorten: s.woordsoorten, midWW: s.midWW });
+    if (unitHint && unitHint !== u.id) {
+      const W = UNITS.find((x) => x.id === unitHint), S = { ...s, ...all };
+      if (W) {
+        const it = W.byKey ? W.byKey(rest) : pre === "wvert" ? W.items(S).find((x) => head(x.la) === rest) : W.items(S).find((x) => x.nr === +rest);
+        if (it) return W.gen(level, it, S);
+      }
+    }
     if (pre === "sfx") { const it = SFX_ITEMS.find((x) => (x.t === "duidt" ? x.g.sfx : x.w[2]) === rest); return it ? u.gen(level, it, all) : null; }
     if (pre === "mod") { const it = MOD_ITEMS.find((x) => modKey(x) === key); return it ? u.gen(level, it, all) : null; }
     if (pre === "wvert") { const it = VERT_ITEMS.find((x) => head(x.la) === rest); return it ? u.gen(level, it, all) : null; }
@@ -1131,6 +1292,15 @@
       if (!bad.length) r = res.includes("macron") ? { status: "correct", note: "Let wel op de lengtetekens (zie hieronder)." } : { status: "correct" };
       else r = { status: "wrong", tag: q.tag, note: `${q.cells.length - bad.length} van ${q.cells.length} juist. Fout: ${bad.join(", ")}.` };
       if (r.status === "correct" && res.includes("macron")) r.note = `Met lengtetekens: ${q.acc.map((a) => a[0]).join(", ")}`;
+    } else if (q.check === "allemog") {
+      const sel = (given && given.sel) || [], te = q.cats.filter((c) => !sel.includes(c)), teveel = sel.filter((c) => !q.cats.includes(c));
+      const mis = q.nodig.length ? checkNlAlle(given && given.text, q.nodig) : [];
+      if (!te.length && !teveel.length && !mis.length) r = { status: "correct" };
+      else r = { status: "wrong", tag: te.length && q.cats.length > 1 ? "dubbel" : "tijd",
+        note: [te.length ? `Vergeten: ${te.map((c) => KT_NAAM[c]).join(", ")}.` : "", teveel.length ? `Niet mogelijk: ${teveel.map((c) => KT_NAAM[c]).join(", ")}.` : "", !te.length && !teveel.length && mis.length ? "De tijden zijn juist, de vertaling niet (volledig)." : mis.length ? "Ook de vertaling is niet (volledig) juist." : ""].filter(Boolean).join(" ") };
+    } else if (q.check === "grid") {
+      const fout = q.answerGrid.map((a, i) => { const g = (given || [])[i] || []; return a.length === g.length && a.every((c) => g.includes(c)) ? null : q.rows[i].html; }).filter(Boolean);
+      r = !fout.length ? { status: "correct" } : { status: "wrong", tag: fout.length && q.answerGrid.some((a) => a.length > 1) ? "dubbel" : "tijd", note: `${q.rows.length - fout.length} van ${q.rows.length} juist. Fout: ${fout.join(", ")}. (${q.uitleg.filter((u) => fout.includes(u.split(":")[0])).join(" · ")})` };
     } else if (q.check === "pick") {
       const key = given.join("|");
       if (q.valid.includes(key)) r = { status: "correct" };
@@ -1240,6 +1410,10 @@
       wrap("praes_perf", "c2_praesperf", 2, GR, "Praesens of perfectum?");
       wrap("bord_pp", "c2_bordpp", 2, GR, "Praesens én perfectum: welke vertaling? (bordschema)");
       wrap("stappenplan", "c2_stappenplan", 2, GR, "Stappenplan: werkwoord determineren en vertalen", { _tijden: T2, _passVolt: false });
+      wrap("alle_mog", "c2_allemog", 2, GR, "Kleine toets: geef de tijd en vertaal – alle mogelijkheden", { _tijden: T2, _passVolt: false });
+      wrap("odd_one", "c2_odd", 2, GR, "Kleine toets: wat past niet in het rijtje, en waarom?", { _tijden: T2, _passVolt: false });
+      wrap("tabel_sort", "c2_tabel", 2, GR, "Kleine toets: zet in de juiste tabel", { _tijden: T2, _passVolt: false });
+      wrap("det_lemma", "c2_detlemma", 2, GR, "Kleine toets: determineer en geef het grondwoord", { _tijden: T2, _passVolt: false });
       wrap("ww_bepalen", "c2_wwbep", 2, GR, "Werkwoordsvorm bepalen (met perfectum)", { _tijden: T2, _passVolt: false });
       wrap("ww_vertalen", "c2_wwvert", 2, GR, "Perfectum vertalen: OVT of VTT", { _tijden: ["perf"], _passVolt: false });
       wrap("vnw_pers", "c2_vnwpers", 2, GR, "Persoonlijke voornaamwoorden (ego, tū, sē, nōs, vōs)");
@@ -1368,6 +1542,7 @@
       { label: "📚 Enkel woordenschat", select: (u) => u.group === "W" },
       { label: "🧩 Substantieven + adjectieven", select: (u) => u.group === "N" },
       { label: "⚙️ Werkwoorden", select: (u) => u.group === "V" },
+      { label: "📝 Kleine toets caput 2 (zoals in de klas)", select: (u) => ["c2_allemog", "c2_odd", "c2_tabel", "c2_detlemma", "c2_praesperf", "c2_bordpp"].includes(u.id) },
       { label: "🏟️ Caput 8: 3e klasse + futurum", select: (u) => ["verbuiging", "nw_vorm", "nw_tabel", "nw_bepalen", "congruentie", "ww_bepalen", "ww_vorm", "ww_splitsen", "ww_verwar", "ww_vertalen", "ww_inf", "regels"].includes(u.id) },
     ],
     settings: [
