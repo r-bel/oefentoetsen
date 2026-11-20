@@ -232,9 +232,9 @@
     }
     const k = String(w.verv);
     const r = R[k];
-    if (!r || !r.st.test(inf) || inf === "dare") return null;
+    if (!r || (!r.st.test(inf) && inf !== "dare")) return null; // dare: korte a, verder zoals amāre
     const trans = !ONOVERG.test(w.nl || "") && w.naamval !== "dat.";
-    return perfInfo({ inf, kind: k, st: inf.replace(r.st, ""), pass: trans }, w);
+    return perfInfo({ inf, kind: k, st: inf === "dare" ? "d" : inf.replace(r.st, ""), pass: trans }, w);
   }
   // perfectumstam en participium perfectum uit de middenkolom (of volgens het model bij amāre, monēre, audīre)
   // werkwoorden waarvan de stamtijden niet uit het model volgen (lege middenkolom) of die halfdeponens zijn
@@ -244,7 +244,7 @@
     if (v.inf in PERF_FIX && !PERF_FIX[v.inf]) return v;
     const mid = (PERF_FIX[v.inf] || w.mid || "").trim();
     let perf = null, sup = null;
-    if (mid && !/^\(/.test(mid) && !/sum$/.test(mid)) {
+    if (mid && !/^\(/.test(mid) && !/\ssum$/.test(mid)) { // let op: supinum op -sum (vīsum) is geen deponens (hortātus sum)
       [perf, sup] = mid.split(",").map((x) => x && x.trim());
       if (sup === "-" || sup === "–") sup = null;
     } else if (!mid && v.kind !== "onr") {
@@ -285,6 +285,8 @@
     out["act.imp.2.enk"] = [imp[0]]; out["act.imp.2.mv"] = [imp[1]];
     out["act.inf.0.0"] = [v.inf];
     if (v.pass) out["pass.inf.0.0"] = [v.kind === "3" || v.kind === "3io" ? s + "ī" : v.inf.replace(/e$/, "ī")];
+    // dare heeft een korte a (damus, dabam, dabō), behalve in dās en dā
+    if (v.inf === "dare") Object.keys(out).forEach((k) => { out[k] = out[k].map((f) => (f === "dās" || f === "dā" ? f : f.replace(/^dā/, "da"))); });
     return addPerf(v, out);
   }
   // voltooide tijden: actief = perfectumstam + uitgangen; passief = participium perfectum + vorm van esse

@@ -335,7 +335,7 @@
     W(296, "2.4", "venīre, ~iō", "vēnī, ventum", "komen", "ww", { verv: 4, vet: true }),
     W(297, "2.4", "propter + acc.", "(voorzetsel)", "wegens", "vz", { naamval: "acc.", vet: true, s2: true }),
     W(298, "2.4", "compōnere, ~ō", "composuī,", "samenplaatsen;", "ww", { verv: 3, vet: true, s2: true, afl: "Ndl. de compositie" }),
-    W(299, "2.4", "cōnsīdere, ~ō", "cōnsēdi, cōnsessum", "gaan zitten", "ww", { verv: 3, vet: true }),
+    W(299, "2.4", "cōnsīdere, ~ō", "cōnsēdī, cōnsessum", "gaan zitten", "ww", { verv: 3, vet: true }),
     W(300, "2.4", "convenīre, ~iō", "convēnī, conventum", "samenkomen; overeenkomen", "ww", { verv: 4, vet: true, s2: true }),
     W(301, "2.4", "corripere, ~iō", "corripuī, correptum", "vastgrijpen; meesleuren", "ww", { verv: "3io" }),
     W(302, "2.4", "prōvidēre, ~eō", "prōvīdī, prōvīsum", "voorzien; zorgen voor", "ww", { verv: 2, vet: true, s2: true }),
