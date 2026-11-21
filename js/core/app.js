@@ -459,6 +459,9 @@
       area.innerHTML = `<div class="row-input"><input id="answer" class="answer ${q.short || q.mode === "num" ? "shortans" : ""}" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" inputmode="${q.mode === "num" ? "decimal" : "text"}" placeholder="${q.mode === "num" ? "getal" : "Typ je antwoord…"}">${q.unitSuffix ? `<span class="suffix">${esc(q.unitSuffix)}</span>` : ""}</div>` +
         (helpers.length ? `<div class="helpers">${helpers.map((h) => `<button type="button" class="hlp acc">${h}</button>`).join("")}</div>` : "") + keyboard;
       const inp = $("#answer");
+      // optioneel: het vak toont wat je typt als wiskunde (bv. 2^-3 → 2⁻³)
+      if (q.preview) { area.insertAdjacentHTML("beforeend", `<div id="ansPreview" class="anspreview"></div>`); const upd = () => { const el = $("#ansPreview"); if (!el || !inp.isConnected) return; let h = ""; try { h = inp.value.trim() ? q.preview(inp.value) : ""; } catch (e) { h = ""; } el.innerHTML = h ? `jij schrijft: ${h}` : ""; }; inp.addEventListener("input", upd); area.onclick = () => setTimeout(upd, 0); }
+      else area.onclick = null;
       $$("#qAnswerArea .acc").forEach((b) => b.addEventListener("click", () => insertAt(inp, b.textContent === "−" ? "-" : b.textContent)));
       setTimeout(() => inp.isConnected && inp.focus(), 30);
     } else if (q.mode === "coord") {
