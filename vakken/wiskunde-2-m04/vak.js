@@ -484,6 +484,26 @@
       return mcQ(base(this, { instruction: esc(vraag), prompt: "", answerShown: esc(ok), key: `b_regels:${c}`, itemLabel: vraag, caseIdx: c }), esc(ok), fout.map(esc), level);
     } });
 
+  // ---------- theorieblad: definities en rekenregels in woorden én symbolen ----------
+  // de formule zelf niet afbreken (enkel na de kwantoren)
+  const TH = I.THEORIE.map((t) => ({ ...t, s: t.s.replace(/^(.*?[ℤℕ]) : (.*)$/, '$1 : <span style="white-space:nowrap">$2</span>') })), TH_ITEMS = TH.flatMap((t, i) => [["naam-w", i], ["naam-s", i], ["w-s", i], ["s-w", i]]);
+  unit({ id: "b_theorie", group: "B", label: "Theorieblad: rekenregels in woorden en in symbolen", page: "theorieblad", list: TH_ITEMS, tag: "begrip",
+    rule: "Leer per rekenregel de naam, de regel in woorden en de regel in symbolen (met ∀ a ∈ ℚ₀, ∀ m, p ∈ ℤ).",
+    gen(level, c) {
+      const [soort, i] = this.list[c], t = TH[i], ander = TH.filter((x) => x !== t);
+      const q = (instr, prompt, ok, fout, shown) => mcQ(base(this, { instruction: instr, prompt, promptClass: "theorie", answerShown: shown, key: `b_theorie:${c}`, itemLabel: `theorie: ${t.naam} (${soort})`, caseIdx: c }), ok, fout, level);
+      if (soort === "naam-w") return q("Welke regel in woorden hoort hierbij?", `<b>${esc(t.naam)}</b>`, esc(t.w), ander.map((x) => esc(x.w)), esc(t.w));
+      if (soort === "naam-s") return q("Welke regel in symbolen hoort hierbij?", `<b>${esc(t.naam)}</b>`, t.s, ander.map((x) => x.s), t.s);
+      if (soort === "w-s") return q("Welke regel in symbolen hoort bij deze regel in woorden?", esc(t.w), t.s, ander.map((x) => x.s), t.s);
+      return q("Welke rekenregel of definitie is dit?", t.s, esc(t.naam), ander.map((x) => esc(x.naam)), `${esc(t.naam)} <small>– ${esc(t.w)}</small>`);
+    } });
+  unit({ id: "b_kwantor", group: "B", label: "Theorieblad: kwantoren lezen (∀, ∈, ℚ₀, ℕ, ℤ)", page: "theorieblad, D52", list: I.KWANTOR, tag: "begrip",
+    rule: "∀ = voor alle (voor elk) · ∈ = is een element van · ℚ₀ = de rationale getallen zonder 0 · ℕ = natuurlijke getallen · ℤ = gehele getallen.",
+    gen(level, c) {
+      const [vraag, ok, ...fout] = this.list[c];
+      return mcQ(base(this, { instruction: vraag, prompt: "", answerShown: ok, key: `b_kwantor:${c}`, itemLabel: `kwantor: ${vraag.replace(/<[^>]+>/g, "")}`, caseIdx: c }), ok, fout, level);
+    } });
+
   // ============================================================
   // TOETS
   // ============================================================
@@ -527,9 +547,10 @@
   // ============================================================
   // LEERKAARTEN: begrippen en regels
   // ============================================================
-  const KAART_UNITS = ["b_begrip", "h7_si"];
+  const KAART_UNITS = ["b_theorie", "b_begrip", "h7_si"];
   function kaarten(s) {
     const sel = s && Array.isArray(s.units) ? s.units : KAART_UNITS, out = [];
+    if (sel.includes("b_theorie")) TH.forEach((t, i) => out.push({ key: `b_theorie:${TH_ITEMS.findIndex((x) => x[1] === i && x[0] === "naam-s")}`, unit: "b_theorie", soort: "Theorieblad", ask: "Ken je de regel in woorden én in symbolen?", front: `<b>${esc(t.naam)}</b>`, back: `${t.s}<br><br>${esc(t.w)}`, page: "theorieblad", label: t.naam }));
     if (sel.includes("b_begrip")) I.BEGRIPPEN.forEach((b, c) => out.push({ key: `b_begrip:${c}`, unit: "b_begrip", soort: "Begrip / regel", ask: "Wat weet je hierover?", front: esc(b.t), back: esc(b.d), page: b.p, label: b.t }));
     if (sel.includes("h7_si")) I.SI.forEach((x, c) => out.push({ key: `h7_si:${c}`, unit: "h7_si", soort: "SI-voorvoegsel", ask: "Welke factor?", front: `${esc(x[0])} (${esc(x[1])})`, back: `10${sup(minus(String(x[2])))}`, page: "29", label: `${x[0]} = 10^${x[2]}` }));
     return out;
@@ -544,7 +565,8 @@
       { label: "✏️ Rekenregels (1-5)", select: (u) => /^H[1-5]$/.test(u.group) },
       { label: "🔀 Door elkaar + vraagstukken", select: (u) => u.group === "H6" },
       { label: "🔬 Wetenschappelijke schrijfwijze", select: (u) => u.group === "H7" },
-      { label: "📖 Begrippen", select: (u) => u.group === "B" },
+      { label: "📖 Begrippen + theorieblad", select: (u) => u.group === "B" },
+      { label: "📄 Theorieblad rekenregels", select: (u) => u.id === "b_theorie" || u.id === "b_kwantor" },
     ],
     settings: [],
     levels: I.levels, allInfo: I.allInfo,

@@ -551,3 +551,4 @@ ul.dlitems li.todo { opacity: .55; }
 .fld.wide .answer { width: 100%; }
 .anspreview { margin-top: 8px; font-size: 1.05rem; color: #cbd5e1; min-height: 1.6em; }
 .anspreview .mth, .prompt .mth { white-space: nowrap; }
+.prompt.theorie { font-size: 1.05rem; line-height: 1.6; }

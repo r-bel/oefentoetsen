@@ -20,7 +20,7 @@
     { id: "H5", titel: "5 Macht van een quotiënt", short: "macht van een quotiënt", p: "9-10" },
     { id: "H6", titel: "Alle rekenregels door elkaar + vraagstukken", short: "door elkaar", p: "10, 20" },
     { id: "H7", titel: "6 Wetenschappelijke schrijfwijze", short: "wetenschappelijk", p: "11" },
-    { id: "B", titel: "Begrippen, definities en rekenregels", short: "begrippen", p: "3-11" },
+    { id: "B", titel: "Begrippen, definities en rekenregels + theorieblad", short: "begrippen", p: "3-11" },
   ];
 
   // ---------- reken uit (waarde) ----------
@@ -278,6 +278,42 @@
     ["Wat betekent micro (μ)?", "10⁻⁶", "10⁻³", "10⁻⁹", "10⁶"],
   ];
 
+  // ---------- theorieblad "M4 – Rekenregels voor machten" (definities + rekenregels in woorden en symbolen) ----------
+  // s = symbolen (HTML), w = in woorden
+  const Q0 = "ℚ<sub>0</sub>";
+  const fr = (a, b) => `<span class="fr"><span>${a}</span><span>${b}</span></span>`;
+  const THEORIE = [
+    { naam: "Definitie machten", w: "aⁿ is een product van n gelijke factoren a (n > 1); a¹ = a en a⁰ = 1 met a ≠ 0.",
+      s: "<i>a</i><sup><i>n</i></sup> = <i>a</i> · <i>a</i> · … · <i>a</i> (<i>n</i> factoren, <i>n</i> > 1) · <i>a</i><sup>1</sup> = <i>a</i> · <i>a</i><sup>0</sup> = 1 met <i>a</i> ≠ 0" },
+    { naam: "Macht met een negatieve exponent", w: "Een macht met een negatieve exponent is het omgekeerde van de macht met de positieve exponent.",
+      s: `∀ <i>a</i> ∈ ${Q0}, ∀ <i>m</i> ∈ ℕ : <i>a</i><sup>−<i>m</i></sup> = ${fr("1", "<i>a</i><sup><i>m</i></sup>")}` },
+    { naam: "Breuk met een negatieve exponent", w: "Een breuk met een negatieve exponent: keer de breuk om en maak de exponent positief.",
+      s: `∀ <i>a</i>, <i>b</i> ∈ ${Q0}, ∀ <i>m</i> ∈ ℕ : (${fr("<i>a</i>", "<i>b</i>")})<sup>−<i>m</i></sup> = (${fr("<i>b</i>", "<i>a</i>")})<sup><i>m</i></sup>` },
+    { naam: "Machten met eenzelfde grondtal vermenigvuldigen", w: "Om machten met eenzelfde grondtal te vermenigvuldigen, behoud je het grondtal en tel je de exponenten bij elkaar op.",
+      s: `∀ <i>a</i> ∈ ${Q0}, ∀ <i>m</i>, <i>p</i> ∈ ℤ : <i>a</i><sup><i>m</i></sup> · <i>a</i><sup><i>p</i></sup> = <i>a</i><sup><i>m</i>+<i>p</i></sup>` },
+    { naam: "Machten met eenzelfde grondtal delen", w: "Om machten met eenzelfde grondtal te delen, behoud je het grondtal en trek je de exponenten van elkaar af.",
+      s: `∀ <i>a</i> ∈ ${Q0}, ∀ <i>m</i>, <i>p</i> ∈ ℤ : <i>a</i><sup><i>m</i></sup> : <i>a</i><sup><i>p</i></sup> = <i>a</i><sup><i>m</i>−<i>p</i></sup>` },
+    { naam: "Macht van een macht", w: "Om een macht van een macht te bepalen, behoud je het grondtal en vermenigvuldig je de exponenten met elkaar.",
+      s: `∀ <i>a</i> ∈ ${Q0}, ∀ <i>m</i>, <i>p</i> ∈ ℤ : (<i>a</i><sup><i>m</i></sup>)<sup><i>p</i></sup> = <i>a</i><sup><i>m</i>·<i>p</i></sup>` },
+    { naam: "Macht van een product", w: "Om een product tot een macht te verheffen, verhef je elke factor van dat product tot die macht.",
+      s: `∀ <i>a</i>, <i>b</i> ∈ ${Q0}, ∀ <i>m</i> ∈ ℤ : (<i>a</i> · <i>b</i>)<sup><i>m</i></sup> = <i>a</i><sup><i>m</i></sup> · <i>b</i><sup><i>m</i></sup>` },
+    { naam: "Macht van een quotiënt", w: "Om een quotiënt tot een macht te verheffen, verhef je deler en deeltal tot die macht.",
+      s: `∀ <i>a</i>, <i>b</i> ∈ ${Q0}, ∀ <i>m</i> ∈ ℤ : (<i>a</i> : <i>b</i>)<sup><i>m</i></sup> = <i>a</i><sup><i>m</i></sup> : <i>b</i><sup><i>m</i></sup>` },
+    { naam: "Macht van een breuk", w: "Om een breuk tot een macht te verheffen, verhef je teller en noemer tot die macht.",
+      s: `∀ <i>a</i>, <i>b</i> ∈ ${Q0}, ∀ <i>m</i> ∈ ℤ : (${fr("<i>a</i>", "<i>b</i>")})<sup><i>m</i></sup> = ${fr("<i>a</i><sup><i>m</i></sup>", "<i>b</i><sup><i>m</i></sup>")}` },
+  ];
+  // vragen over de schrijfwijze met kwantoren (theorieblad + D52)
+  const KWANTOR = [
+    ["Wat betekent <b>∀ a ∈ ℚ<sub>0</sub></b>?", "voor elk rationaal getal a, verschillend van 0", "er bestaat een rationaal getal a", "voor elk natuurlijk getal a", "voor elk rationaal getal a, ook 0"],
+    ["Wat betekent <b>∀ m, p ∈ ℤ</b>?", "voor alle gehele getallen m en p (ook negatieve)", "voor alle natuurlijke getallen m en p", "voor alle rationale getallen m en p", "voor één geheel getal m en één geheel getal p"],
+    ["Wat betekent <b>∀ m ∈ ℕ</b>?", "voor elk natuurlijk getal m (0, 1, 2, 3 …)", "voor elk geheel getal m", "voor elk negatief getal m", "voor elk rationaal getal m"],
+    ["Waarom staat er ℚ<sub>0</sub> (en niet ℚ) bij het grondtal?", "het grondtal mag niet 0 zijn (0 tot een negatieve macht of 0⁰ bestaat niet)", "omdat het grondtal altijd positief moet zijn", "omdat het grondtal een geheel getal moet zijn", "omdat de exponent niet 0 mag zijn"],
+    ["Welk symbool betekent 'voor alle' (voor elk)?", "∀", "∈", "ℤ", "ℚ"],
+    ["Wat betekent het symbool <b>∈</b>?", "is een element van (behoort tot)", "voor alle", "is gelijk aan", "is groter dan"],
+    ["Bij welke regels mogen de exponenten <b>gehele getallen</b> (ℤ) zijn?", "bij alle vijf de rekenregels (vermenigvuldigen, delen, macht van een macht, product, quotiënt)", "enkel bij vermenigvuldigen", "bij geen enkele: enkel natuurlijke getallen", "enkel bij de macht van een macht"],
+    ["In de definitie a<sup>−m</sup> = 1/a<sup>m</sup> is m een element van …", "ℕ (een natuurlijk getal)", "ℤ", "ℚ<sub>0</sub>", "ℝ"],
+  ];
+
   const TAGS = {
     negexp: { title: "Negatieve exponent", short: "neg. exponent", advice: "a⁻ᵐ = 1/aᵐ en (a/b)⁻ᵐ = (b/a)ᵐ: een negatieve exponent maakt het getal niet negatief, maar keert het om.", page: "4" },
     teken: { title: "Teken (haakjes!)", short: "teken", advice: "(−3)² = 9 maar −3² = −9: zonder haakjes hoort de exponent enkel bij het getal. Negatief grondtal: even exponent → positief, oneven → negatief.", page: "3" },
@@ -292,7 +328,7 @@
   Vakken.setInhoud("wiskunde-2-m04", {
     vak: "Wiskunde", icon: "🔢", theme: "blue",
     titel: "Module 4 – Machten", klas: "2de middelbaar",
-    bron: "getallenleer en algebra, module 4 (p. 1-31)",
+    bron: "getallenleer en algebra, module 4 (p. 1-31) + theorieblad rekenregels",
     levels: {
       easy: { title: "🙂 Makkelijk", desc: "meerkeuze" },
       normal: { title: "💪 Normaal", desc: "meerkeuze + zelf uitrekenen en typen" },
@@ -300,6 +336,6 @@
     },
     allInfo: "<b>Eindtoets-modus:</b> elke oefening uit de gekozen onderdelen (verwerkingsopdrachten, signaaloefeningen en het differentiatietraject) komt één keer aan bod.",
     GROUPS, REKEN_H1, POS_H1, TEGEN, VUL_EXP, TEKEN, VERGELIJK, RIJTJES, POS_H2, REKEN_H2, KAN_REGEL, PLUSMIN, POS_H3, REKEN_H3,
-    ZONDER_H4, REKEN_H4, GELIJK, ZONDER_H5, SLIM, KLEUR, VRAAG, NAAR_WET, TERUG, IS_WET, VUL_WET, REKEN_WET, ORDEN, SI, BEGRIPPEN, REGELVRAGEN, TAGS,
+    ZONDER_H4, REKEN_H4, GELIJK, ZONDER_H5, SLIM, KLEUR, VRAAG, NAAR_WET, TERUG, IS_WET, VUL_WET, REKEN_WET, ORDEN, SI, BEGRIPPEN, REGELVRAGEN, THEORIE, KWANTOR, TAGS,
   });
 })();
