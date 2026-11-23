@@ -20,6 +20,7 @@
     { id: "H5", titel: "5 Macht van een quotiënt", short: "macht van een quotiënt", p: "9-10" },
     { id: "H6", titel: "Alle rekenregels door elkaar + vraagstukken", short: "door elkaar", p: "10, 20" },
     { id: "H7", titel: "6 Wetenschappelijke schrijfwijze", short: "wetenschappelijk", p: "11" },
+    { id: "RV", titel: "Rekenvaardigheid: kommagetallen vermenigvuldigen en delen (RV9-RV10)", short: "RV kommagetallen", p: "RV9-RV10" },
     { id: "B", titel: "Begrippen, definities en rekenregels + theorieblad", short: "begrippen", p: "3-11" },
   ];
 
@@ -314,6 +315,44 @@
     ["In de definitie a<sup>−m</sup> = 1/a<sup>m</sup> is m een element van …", "ℕ (een natuurlijk getal)", "ℤ", "ℚ<sub>0</sub>", "ℝ"],
   ];
 
+  // ---------- rekenvaardigheid RV9 (vermenigvuldigen) en RV10 (delen) met kommagetallen ----------
+  const RV9 = [
+    ["RV9", "27,5·100"], ["RV9", "-3,16·0,1"], ["RV9", "-3,6·(-0,2)"], ["RV9", "2,05·(-1,001)"], ["RV9", "3,45·1000"], ["RV9", "0,12·740"],
+    ["RV9", "0,324·0,5"], ["RV9", "0,5·128"], ["RV9", "-2,5·0,04"], ["RV9", "0,25·(-8)"], ["RV9", "25·0,2"], ["RV9", "-0,5·2"],
+    ["extra", "-1,5·(-0,3)"], ["extra", "0,07·0,6"], ["extra", "-12,4·0,01"], ["extra", "4,8·(-0,25)"], ["extra", "-0,9·(-0,9)"], ["extra", "1,25·0,8"],
+    ["extra", "-2·(-0,5)·(-3)"], ["extra", "0,003·200"], ["extra", "-6,02·1000"], ["extra", "0,4·(-0,4)·10"],
+  ];
+  const RV10 = [
+    ["RV10", "-4,5:(-5)"], ["RV10", "8,55:0,5"], ["RV10", "12,5:0,125"], ["RV10", "-16,4:0,04"], ["RV10", "-32:(-0,5)"],
+    ["RV10", "1,2:0,5"], ["RV10", "400,4:4"], ["RV10", "16,16:(-2)"], ["RV10", "55,25:0,5"], ["RV10", "-0,25:125"],
+    ["extra", "7,2:0,9"], ["extra", "-0,36:(-0,06)"], ["extra", "4,5:0,15"], ["extra", "-9:0,25"], ["extra", "0,84:(-1,2)"], ["extra", "6,3:(-0,07)"],
+    ["extra", "-1,44:1,2"], ["extra", "0,5:0,002"], ["extra", "-27,3:(-0,3)"], ["extra", "3:0,75"],
+  ];
+  // teken bepalen door de mintekens te tellen
+  const RV_TEKEN = [
+    "-3,6·(-0,2)", "2,05·(-1,001)", "-2,5·0,04", "-4,5:(-5)", "-16,4:0,04", "-32:(-0,5)", "16,16:(-2)",
+    "-2·(-0,5)·(-3)", "-1,2·(-3)·(-0,1)·(-5)", "(-0,6):(-0,2)·(-1)", "-0,25:125", "4·(-0,5):(-2)",
+  ];
+  // stappenplan: delen → evenveel cijfers na de komma, dan de komma's weglaten
+  const RV_GELIJK = [
+    ["8,55:0,5", "855:50"], ["12,5:0,125", "12500:125"], ["1,2:0,5", "12:5"], ["-16,4:0,04", "-1640:4"], ["55,25:0,5", "5525:50"],
+    ["-32:(-0,5)", "-320:(-5)"], ["7,2:0,09", "720:9"], ["4,5:0,15", "450:15"], ["0,5:0,002", "500:2"], ["6,3:(-0,07)", "630:(-7)"],
+  ];
+  // stappenplan: vermenigvuldigen → hoeveel cijfers na de komma in het product (voor je vereenvoudigt)?
+  const RV_KOMMA = [
+    ["0,324·0,5", 4], ["2,05·(-1,001)", 5], ["-3,6·(-0,2)", 2], ["0,12·740", 2], ["-2,5·0,04", 3], ["0,25·(-8)", 2], ["0,07·0,6", 3], ["1,25·0,8", 3], ["-12,4·0,01", 3], ["0,003·200", 3],
+  ];
+  const RV_REGELS = [
+    ["Hoe bepaal je het teken bij vermenigvuldigen en delen?", "tel de mintekens: even aantal → positief, oneven aantal → negatief", "het teken van het grootste getal", "altijd het teken van de eerste factor", "positief als er een minteken staat"],
+    ["Stap 2 bij kommagetallen vermenigvuldigen?", "denk de komma even weg en bereken het product van de getallen", "zet de komma's onder elkaar", "maak evenveel cijfers na de komma", "rond eerst af op een geheel getal"],
+    ["Stap 3 bij kommagetallen vermenigvuldigen?", "plaats de komma terug: tel het aantal cijfers na de komma van elke factor op", "neem het aantal cijfers na de komma van de grootste factor", "zet de komma na het eerste cijfer", "het product heeft geen komma"],
+    ["Stap 2 bij kommagetallen delen?", "zorg voor evenveel cijfers na de komma bij deeltal en deler (nullen toevoegen), daarna de komma's weglaten", "denk de komma weg en tel de cijfers na de komma op", "deel eerst de gehele delen, dan de decimalen", "vermenigvuldig het deeltal met 10"],
+    ["Wat is stap 1 bij kommagetallen vermenigvuldigen of delen?", "het teken van het resultaat bepalen", "de komma's weglaten", "nullen toevoegen", "het quotiënt berekenen"],
+    ["Met 100 vermenigvuldigen: de komma …", "schuift 2 plaatsen naar rechts", "schuift 2 plaatsen naar links", "blijft staan", "schuift 1 plaats naar rechts"],
+    ["Met 0,1 vermenigvuldigen is hetzelfde als …", "delen door 10 (komma 1 plaats naar links)", "vermenigvuldigen met 10", "delen door 100", "1 aftrekken"],
+    ["Delen door 0,5 is hetzelfde als …", "vermenigvuldigen met 2", "delen door 2", "vermenigvuldigen met 5", "vermenigvuldigen met 0,5"],
+  ];
+
   const TAGS = {
     negexp: { title: "Negatieve exponent", short: "neg. exponent", advice: "a⁻ᵐ = 1/aᵐ en (a/b)⁻ᵐ = (b/a)ᵐ: een negatieve exponent maakt het getal niet negatief, maar keert het om.", page: "4" },
     teken: { title: "Teken (haakjes!)", short: "teken", advice: "(−3)² = 9 maar −3² = −9: zonder haakjes hoort de exponent enkel bij het getal. Negatief grondtal: even exponent → positief, oneven → negatief.", page: "3" },
@@ -322,13 +361,14 @@
     wet: { title: "Wetenschappelijke schrijfwijze", short: "wetenschappelijk", advice: "Eén cijfer (≠ 0) voor de komma, dan · 10 tot een macht. Komma naar links verschuiven → exponent groter; naar rechts → kleiner (negatief bij getallen kleiner dan 1).", page: "11" },
     reken: { title: "Rekenfout", short: "rekenfout", advice: "Werk stap voor stap: eerst de rekenregel toepassen, dan pas uitrekenen. Controleer het teken.", page: "" },
     begrip: { title: "Begrippen en regels", short: "begrippen", advice: "Herhaal de definities (a⁰ = 1, a⁻ᵐ = 1/aᵐ) en de vijf rekenregels in woorden en in symbolen.", page: "3-11" },
+    komma: { title: "Komma verkeerd geplaatst", short: "komma", advice: "Vermenigvuldigen: tel de cijfers na de komma van alle factoren op. Delen: maak eerst evenveel cijfers na de komma bij deeltal en deler, laat dan de komma's weg.", page: "RV9-RV10" },
     fout: { title: "Fout", short: "fout", advice: "", page: "" },
   };
 
   Vakken.setInhoud("wiskunde-2-m04", {
     vak: "Wiskunde", icon: "🔢", theme: "blue",
     titel: "Module 4 – Machten", klas: "2de middelbaar",
-    bron: "getallenleer en algebra, module 4 (p. 1-31) + theorieblad rekenregels",
+    bron: "getallenleer en algebra, module 4 (p. 1-31) + theorieblad rekenregels + RV9-RV10 kommagetallen",
     levels: {
       easy: { title: "🙂 Makkelijk", desc: "meerkeuze" },
       normal: { title: "💪 Normaal", desc: "meerkeuze + zelf uitrekenen en typen" },
@@ -336,6 +376,6 @@
     },
     allInfo: "<b>Eindtoets-modus:</b> elke oefening uit de gekozen onderdelen (verwerkingsopdrachten, signaaloefeningen en het differentiatietraject) komt één keer aan bod.",
     GROUPS, REKEN_H1, POS_H1, TEGEN, VUL_EXP, TEKEN, VERGELIJK, RIJTJES, POS_H2, REKEN_H2, KAN_REGEL, PLUSMIN, POS_H3, REKEN_H3,
-    ZONDER_H4, REKEN_H4, GELIJK, ZONDER_H5, SLIM, KLEUR, VRAAG, NAAR_WET, TERUG, IS_WET, VUL_WET, REKEN_WET, ORDEN, SI, BEGRIPPEN, REGELVRAGEN, THEORIE, KWANTOR, TAGS,
+    ZONDER_H4, REKEN_H4, GELIJK, ZONDER_H5, SLIM, KLEUR, VRAAG, NAAR_WET, TERUG, IS_WET, VUL_WET, REKEN_WET, ORDEN, SI, BEGRIPPEN, REGELVRAGEN, THEORIE, KWANTOR, RV9, RV10, RV_TEKEN, RV_GELIJK, RV_KOMMA, RV_REGELS, TAGS,
   });
 })();

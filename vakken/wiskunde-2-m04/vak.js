@@ -471,6 +471,63 @@
       return mcQ(base(this, { instruction: "Welk voorvoegsel hoort bij deze factor?", prompt: P(e), answerShown: `${esc(naam)} (${esc(sym)})`, key: `h7_si:${c}`, itemLabel: `10^${e} = ${naam}`, caseIdx: c }), `${esc(naam)} (${esc(sym)})`, I.SI.filter((x) => x[2] !== e).map((x) => `${esc(x[0])} (${esc(x[1])})`), level);
     } });
 
+  // ---------- RV rekenvaardigheid: kommagetallen vermenigvuldigen (RV9) en delen (RV10) ----------
+  const decH = (q) => thou(qDecStr(q, 12) || "?");
+  const RVR = {
+    verm: "Stappenplan: 1) bepaal het TEKEN (even aantal mintekens → positief, oneven → negatief) · 2) denk de komma weg en bereken het product · 3) plaats de komma terug: tel de cijfers na de komma van elke factor op.",
+    deel: "Stappenplan: 1) bepaal het TEKEN (even aantal mintekens → positief, oneven → negatief) · 2) zorg voor evenveel cijfers na de komma bij deeltal en deler (nullen toevoegen), laat de komma's weg · 3) bereken het quotiënt.",
+  };
+  function rvUnit(id, label, page, list, rule) {
+    return unit({ id, group: "RV", label, page, list, rule, tag: "komma",
+      gen(level, c) {
+        const [lbl, src] = this.list[c], t = val(src).c;
+        const q = base(this, { instruction: "Reken uit.", prompt: `${H(src)} =`, answerShown: decH(t), key: `${id}:${c}`, itemLabel: `${lbl}: ${src}`, caseIdx: c, page: lbl });
+        if (typed(level, 0.7)) return Object.assign(q, { mode: "text", noKeyboard: true, short: true, helpers: ["−"], chk: (g) => {
+          const x = qDec(String(g).replace(/[−–]/g, "-"));
+          if (!x) return { status: "wrong", tag: "komma", note: "Typ een getal, bv. −0,72." };
+          if (qEq(x, t)) return { status: "correct" };
+          if (qEq(x, Q(-t.n, t.d))) return { status: "wrong", tag: "teken", note: "Het teken klopt niet: tel de mintekens." };
+          for (const k of [10n, 100n, 1000n]) if (qEq(x, qMul(t, Q(k))) || qEq(x, qDiv(t, Q(k)))) return { status: "wrong", tag: "komma", note: "De cijfers kloppen, maar de komma staat verkeerd." };
+          return { status: "wrong", tag: "reken" };
+        } });
+        const fout = [qMul(t, Q(10)), qDiv(t, Q(10)), Q(-t.n, t.d), qMul(t, Q(100)), qDiv(t, Q(100))].filter((x) => !qEq(x, t)).map(decH);
+        return mcQ(q, decH(t), fout, level);
+      } });
+  }
+  rvUnit("rv9", "RV9 Kommagetallen vermenigvuldigen", "RV9", I.RV9, RVR.verm);
+  rvUnit("rv10", "RV10 Kommagetallen delen", "RV10", I.RV10, RVR.deel);
+  unit({ id: "rv_teken", group: "RV", label: "Het teken bepalen (mintekens tellen)", page: "RV9-RV10", list: I.RV_TEKEN, tag: "teken",
+    rule: "Tel de mintekens: een even aantal → positief resultaat, een oneven aantal → negatief resultaat.",
+    gen(level, c) {
+      const src = this.list[c], t = val(src).c, pos = qCmp(t, Q(0)) > 0, n = (src.match(/-/g) || []).length;
+      return base(this, { mode: "mc", instruction: "Is het resultaat positief of negatief? (tel de mintekens)", prompt: H(src), options: [{ v: "pos", html: "positief" }, { v: "neg", html: "negatief" }], answer: pos ? "pos" : "neg",
+        answerShown: `${pos ? "positief" : "negatief"} <small>(${n} ${n === 1 ? "minteken" : "mintekens"}: ${n % 2 ? "oneven" : "even"} → ${decH(t)})</small>`, key: `rv_teken:${c}`, itemLabel: `teken: ${src}`, caseIdx: c });
+    } });
+  unit({ id: "rv_stap", group: "RV", label: "Stappenplan: komma's weglaten en terugplaatsen", page: "RV9-RV10", list: [...I.RV_GELIJK.map((x) => ["deel", x]), ...I.RV_KOMMA.map((x) => ["verm", x])], tag: "komma",
+    rule: RVR.verm + " " + RVR.deel,
+    gen(level, c) {
+      const [soort, it] = this.list[c];
+      if (soort === "deel") {
+        const [src, ok] = it, a = parse(src);
+        // foute keuzes: de komma's gewoon weglaten zonder evenveel cijfers na de komma
+        // foute keuzes: de komma's weglaten zonder evenveel cijfers na de komma, of een nul te veel
+        const naief = src.replace(/,/g, "").replace(/(^|[^\d])0+(?=\d)/g, "$1");
+        const [l, r] = ok.split(":"), more = (x) => x.replace(/(\d+)(\)?)$/, "$10$2");
+        const opts = [...new Set([naief, `${more(l)}:${r}`, `${l}:${more(r)}`].filter((x) => x !== ok))];
+        return mcQ(base(this, { instruction: "Stap 2 bij delen: zorg voor evenveel cijfers na de komma en laat de komma's weg. Welke deling krijg je?", prompt: `<span class="mth">${html(a)}</span>`, answerShown: `${H(ok)} <small>= ${decH(val(src).c)}</small>`, key: `rv_stap:${c}`, itemLabel: `stap deling: ${src}`, caseIdx: c }),
+          H(ok), opts.map(H), level);
+      }
+      const [src, n] = it;
+      const q = base(this, { instruction: "Stap 3 bij vermenigvuldigen: hoeveel cijfers na de komma krijgt het product (voor je nullen achteraan schrapt)?", prompt: H(src), answerShown: `${n} <small>(product = ${decH(val(src).c)})</small>`, key: `rv_stap:${c}`, itemLabel: `stap product: ${src}`, caseIdx: c });
+      if (typed(level, 0.5)) return Object.assign(q, { mode: "num", chk: (g) => (parseInt(g, 10) === n ? { status: "correct" } : { status: "wrong", tag: "komma" }) });
+      return Object.assign(q, { mode: "mc", options: [...new Set([n, n - 1, n + 1, Math.max(1, n - 2)])].filter((x) => x >= 0).map((x) => ({ v: String(x), html: String(x) })), answer: String(n) });
+    } });
+  unit({ id: "rv_regels", group: "RV", label: "Rekenregels en stappenplan (kennis)", page: "RV9-RV10", list: I.RV_REGELS, tag: "begrip", rule: RVR.verm + " " + RVR.deel,
+    gen(level, c) {
+      const [vraag, ok, ...fout] = this.list[c];
+      return mcQ(base(this, { instruction: esc(vraag), prompt: "", answerShown: esc(ok), key: `rv_regels:${c}`, itemLabel: vraag, caseIdx: c }), esc(ok), fout.map(esc), level);
+    } });
+
   // ---------- B begrippen ----------
   unit({ id: "b_begrip", group: "B", label: "Begrippen, definities en rekenregels (in woorden)", page: "3-11", list: I.BEGRIPPEN, tag: "begrip", rule: "Herhaal de kaders 'definitie' en 'rekenregel' (in woorden en in symbolen).",
     gen(level, c) {
@@ -566,6 +623,7 @@
       { label: "🔀 Door elkaar + vraagstukken", select: (u) => u.group === "H6" },
       { label: "🔬 Wetenschappelijke schrijfwijze", select: (u) => u.group === "H7" },
       { label: "📖 Begrippen + theorieblad", select: (u) => u.group === "B" },
+      { label: "🧮 RV9-RV10 kommagetallen", select: (u) => u.group === "RV" },
       { label: "📄 Theorieblad rekenregels", select: (u) => u.id === "b_theorie" || u.id === "b_kwantor" },
     ],
     settings: [],
