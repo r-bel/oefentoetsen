@@ -1250,7 +1250,7 @@
   const KEY_UNIT = { vertalen: "vertalen", midden: "midden", herkennen: "herkennen", vv: "voorvoegsels", dekl: "verbuiging", gs: "geslacht", verv: "vervoeging", dat: "datief", sfx: "achtervoegsels",
     nvorm: "nw_vorm", ntab: "nw_tabel", nbep: "nw_bepalen", cong: "congruentie", bn2: "bn2", mod: "modellen",
     wbep: "ww_bepalen", wvorm: "ww_vorm", wtab: "ww_tabel", wspl: "ww_splitsen", verw: "ww_verwar", winf: "ww_inf", wmod: "ww_model", wvert: "ww_vertalen", regel: "regels",
-    fz: "functies", vz: "voorzetsels", vnwp: "vnw_pers", vnwz: "vnw_zin", bez: "vnw_bez", aw: "aanw_bep", awc: "aanw_cong", awv: "aanw_vorm", pp: "praes_perf", cr: "cregels", stap: "stappenplan", bord: "bord_pp", allm: "alle_mog", odd: "odd_one", tab: "tabel_sort", detl: "det_lemma" };
+    fz: "functies", vz: "voorzetsels", vnwp: "vnw_pers", vnwz: "vnw_zin", bez: "vnw_bez", aw: "aanw_bep", awc: "aanw_cong", awv: "aanw_vorm", pp: "praes_perf", cr: "cregels", pvt: "p_tabel", pvtn: "p_tabnl", pvv: "p_vorm", pvn: "p_nl", pvz: "p_invul", pvb: "p_bez", pvr: "p_bez", stap: "stappenplan", bord: "bord_pp", allm: "alle_mog", odd: "odd_one", tab: "tabel_sort", detl: "det_lemma" };
   // unitHint (doorloop): het onderdeel waaruit de vraag kwam, bv. een caput-onderdeel dat dezelfde sleutels gebruikt als het algemene
   function fromKey(key, level, s = {}, unitHint) {
     const i = key.indexOf(":"), pre = key.slice(0, i), rest = key.slice(i + 1), u = UNITS.find((x) => x.id === KEY_UNIT[pre]);
@@ -1286,6 +1286,12 @@
     if (q.mode === "mc") r = given === q.answer ? { status: "correct" } : { status: "wrong", tag: q.tag || (q.unit === "vertalen" ? "betekenis" : "fout") };
     else if (q.check === "mid") r = checkMid(given, q, level);
     else if (q.check === "form") r = formResult(bestOf(given, q.accepted), q.accepted[0], q.tag);
+    else if (q.check === "ovnl") { const x = nlCell(given, q.nlAcc); r = x === "ok" ? { status: "correct" } : x === "spelling" ? { status: "spelling", tag: "spelling" } : { status: "wrong", tag: q.tag }; }
+    else if (q.check === "ovtab") {
+      const res = q.spec.map((c, i) => (c.la ? bestOf(given[i], c.la) : nlCell(given[i], c.nl)));
+      const bad = q.spec.filter((c, i) => res[i] !== "ok" && res[i] !== "macron").map((c) => c.lbl);
+      r = !bad.length ? { status: "correct" } : { status: "wrong", tag: q.tag, note: `${q.spec.length - bad.length} van ${q.spec.length} juist. Fout: ${bad.join(", ")}.` };
+    }
     else if (q.check === "table") {
       const res = given.map((g, i) => bestOf(g, q.acc[i]));
       const bad = q.cells.map((c, i) => (res[i] === "ok" || res[i] === "macron" ? null : q.fields[i].label)).filter(Boolean);
@@ -1337,6 +1343,12 @@
     const tags = {};
     results.forEach((r) => { if (r.status !== "correct" && r.tag && TAGS[r.tag]) tags[r.tag] = (tags[r.tag] || 0) + 1; });
     Object.entries(tags).sort((a, b) => b[1] - a[1]).forEach(([t, n]) => out.push({ type: n >= 2 ? "bad" : "ok", text: `<b>${TAGS[t].title}</b> (${n}×): ${TAGS[t].advice}` }));
+    const pRes = results.filter((r) => r.q && r.q.group === "P");
+    if (pRes.length) {
+      const pf = pRes.filter((r) => r.status !== "correct");
+      out.push(!pf.length ? { type: "good", text: `🎯 Voornaamwoorden: <b>perfect</b> (${pRes.length}/${pRes.length}). Herhaal af en toe op 'Moeilijk' om het zo te houden.` }
+        : { type: "bad", text: `🎯 Voornaamwoorden: ${pRes.length - pf.length}/${pRes.length}. Het doel is <b>100%</b>: oefen de fouten opnieuw (knop hieronder) tot alles juist is, en doe daarna de doorloop op 'Moeilijk'. Fout: ${uniq(pf.map((r) => r.q.itemLabel)).slice(0, 8).map(esc).join(" · ")}` });
+    }
     const wrongNrs = uniq(results.filter((r) => !r.points && r.q.nr).map((r) => r.q.nr)).sort((a, b) => a - b);
     if (wrongNrs.length) out.push({ type: "ok", text: `Herhaal de woorden met nummer: ${wrongNrs.join(", ")}.` });
     if (!results.some((r) => r.status !== "correct") && total) out.push({ type: "good", text: "Geen enkele fout. Probeer eens <i>moeilijk</i> of een groter bereik." });
@@ -1352,6 +1364,117 @@
     w.soort === "nw" && w.gs ? `${GS_NAAM[w.gs]}${w.dekl ? " · " + DEKL_NAAM[w.dekl] : ""}` : w.soort === "ww" && w.verv ? VERV_NAAM[w.verv] : SOORT_NAAM[w.soort] || "",
     w.naamval ? "+ " + w.naamval : "",
   ].filter(Boolean).join(" · ");
+  // ============================================================
+  // P. OVERZICHT PERSOONLIJK EN BEZITTELIJK VOORNAAMWOORD (perfect kennen)
+  // Examenvorm = invuloefeningen: op elk niveau zelf invullen (geen meerkeuze).
+  // makkelijk = met hulp (vertaling of woordenbank) · normaal = zonder hulp · moeilijk = zonder hulp, elk vakje moet juist zijn
+  // ============================================================
+  const OV = G.VNW_OV, OV_NV = ["nom", "acc", "gen", "dat", "abl"];
+  const ovCells = (k) => OV_NV.filter((n) => k.c[n]);
+  const ovLa = (k, n) => k.c[n][0].split("/");
+  const NV_VOL = { nom: "nominatief", acc: "accusatief", gen: "genitief", dat: "datief", abl: "ablatief" };
+  const nlVar = (x) => { const v = [x]; if (/\(/.test(x)) v.push(x.replace(/\(([^)]*)\)/g, "$1"), x.replace(/\s*\([^)]*\)\s*/g, " ")); return uniq(v.map((y) => norm(y).replace(/[,/]+/g, " ").replace(/\s+/g, " ").trim())); };
+  function nlCell(given, list) {
+    const g = norm(given).replace(/[,/]+/g, " ").replace(/\s+/g, " ").trim(), acc = uniq(list.flatMap(nlVar));
+    if (!g) return null;
+    if (acc.includes(g)) return "ok";
+    return acc.some((a) => a.length > 4 && lev(a, g) <= 1) ? "spelling" : null;
+  }
+  const ovRule = "Ken het overzicht perfect: ego, mē, mihi, mē · tū, tē, tibi, tē · nōs, nōs, nōbīs, nōbīs · vōs, vōs, vōbīs, vōbīs · (refl.) sē, sibi, sē · is, eum, eius, eī, eō · ea, eam, eius, eī, eā · id, id, eius, eī, eō · iī, eōs, eōrum, eīs/iīs · eae, eās, eārum, eīs/iīs · ea, ea, eōrum, eīs/iīs.";
+  unit({
+    id: "p_tabel", group: "P", label: "Tabel invullen: de Latijnse vormen (per kolom)", page: "overzicht persoonlijk vnw",
+    rule: ovRule,
+    items: () => OV, noRange: true,
+    gen(level, k) {
+      const cells = ovCells(k);
+      return base(this, { mode: "fields", check: "ovtab", instruction: `Vul de tabel in: <b>${esc(k.titel)}</b>`, prompt: level === "easy" ? `<small>hulp: ${cells.map((n) => esc(k.c[n][1])).join(" · ")}</small>` : "",
+        fields: cells.map((n) => ({ label: NVL[n] + (level === "easy" ? ` <small>(${esc(k.c[n][1])})</small>` : ""), short: true })),
+        spec: cells.map((n) => ({ la: ovLa(k, n), lbl: NVL[n] })),
+        answerShown: cells.map((n) => `${NVL[n]} <span class="latin">${esc(k.c[n][0])}</span> <small>(${esc(k.c[n][1])})</small>`).join(" · "),
+        tag: "vnw_ov", key: `pvt:${k.id}`, itemLabel: `tabel ${k.kort} (${k.titel})` });
+    },
+    byKey(rest) { return OV.find((k) => k.id === rest); },
+  });
+  unit({
+    id: "p_tabnl", group: "P", label: "Tabel invullen: de vertalingen (ik, mij, aan mij, door mij …)", page: "overzicht persoonlijk vnw",
+    rule: "Vertaal zoals op het overzicht: nom. ik/jij/wij/jullie/hij/zij/het · acc. mij/jou/ons/jullie/zich(zelf)/hem/haar/het/hen · gen. zijn/haar/hun · dat. aan … (eraan) · abl. door … (erdoor).",
+    items: () => OV, noRange: true,
+    gen(level, k) {
+      const cells = ovCells(k);
+      return base(this, { mode: "fields", check: "ovtab", instruction: `Vul de vertalingen in: <b>${esc(k.titel)}</b>`, prompt: "",
+        fields: cells.map((n) => ({ label: `${NVL[n]} <span class="latin">${esc(k.c[n][0])}</span>` })),
+        spec: cells.map((n) => ({ nl: [k.c[n][1]], lbl: NVL[n] })),
+        answerShown: cells.map((n) => `<span class="latin">${esc(k.c[n][0])}</span> = ${esc(k.c[n][1])}`).join(" · "),
+        tag: "vnw_ov", key: `pvtn:${k.id}`, itemLabel: `vertalingen ${k.kort} (${k.titel})` });
+    },
+    byKey(rest) { return OV.find((k) => k.id === rest); },
+  });
+  const OV_ITEMS = OV.flatMap((k) => ovCells(k).map((n) => ({ k, n })));
+  const ovItem = (rest) => { const [id, n] = rest.split(":"); return OV_ITEMS.find((x) => x.k.id === id && x.n === n); };
+  unit({
+    id: "p_vorm", group: "P", label: "Vul de Latijnse vorm in (naamval + persoon gegeven)", page: "overzicht persoonlijk vnw",
+    rule: ovRule,
+    items: () => OV_ITEMS, noRange: true,
+    gen(level, { k, n }) {
+      const bank = level === "easy" ? uniq(ovCells(k).flatMap((m) => ovLa(k, m))) : null;
+      return base(this, { mode: "text", lang: "la", check: "form", short: true, accepted: ovLa(k, n),
+        instruction: `Vul in: <b>${NV_VOL[n]}</b> – ${esc(k.titel)}`, prompt: `<span class="icon">✍️</span>${esc(k.c[n][1])}`,
+        hint: bank ? `kies uit: ${shuffle(bank).join(" · ")}` : "", answerShown: `<span class="latin">${esc(k.c[n][0])}</span>`,
+        tag: "vnw_ov", key: `pvv:${k.id}:${n}`, itemLabel: `${NVL[n]} ${k.titel} = ${k.c[n][0]}` });
+    },
+    byKey: ovItem,
+  });
+  unit({
+    id: "p_nl", group: "P", label: "Vul de vertaling in (Latijn → Nederlands)", page: "overzicht persoonlijk vnw",
+    rule: "Vertaal zoals op het overzicht: dat. = aan … (onzijdig: eraan), abl. = door … (onzijdig: erdoor), gen. van is/ea/id = zijn/haar/hun.",
+    items: () => OV_ITEMS, noRange: true,
+    gen(level, { k, n }) {
+      return base(this, { mode: "text", check: "ovnl", nlAcc: [k.c[n][1]], noKeyboard: true,
+        instruction: `Vul de vertaling in <small>(${NV_VOL[n]}, ${esc(k.titel)})</small>`, prompt: lat(k.c[n][0]), promptClass: "latin",
+        hint: level === "easy" ? `begint met: ${esc(k.c[n][1].slice(0, k.c[n][1].startsWith("aan") || k.c[n][1].startsWith("door") ? k.c[n][1].indexOf(" ") + 2 : 1))}…` : "",
+        answerShown: esc(k.c[n][1]), tag: "vnw_ov", key: `pvn:${k.id}:${n}`, itemLabel: `${k.c[n][0]} (${NVL[n]} ${k.titel}) = ${k.c[n][1]}` });
+    },
+    byKey: ovItem,
+  });
+  const INV = G.VNW_INVUL.map(([z, nl, la, kol, wat], i) => ({ i, z, nl, la: la.split("/"), kol, wat }));
+  const INV_BANK = uniq(INV.flatMap((x) => x.la));
+  unit({
+    id: "p_invul", group: "P", label: "Invulzinnen: het juiste voornaamwoord (persoonlijk, reflexief, bezittelijk)", page: "overzicht persoonlijk en bezittelijk vnw",
+    rule: "Bepaal eerst persoon, getal en naamval (ik/mij/aan mij/door mij …). Verwijst het naar het onderwerp? Dan sē/sibi of suus (zijn/haar/hun eigen). Naar iemand anders? Dan eum, eam, eōs … of eius (zijn/haar) en eōrum/eārum (hun).",
+    items: () => INV, noRange: true,
+    gen(level, it) {
+      const gat = it.z.replace(/\[\[[^\]]+\]\]/, "<b>_______</b>");
+      const near = level === "easy" ? uniq([...it.la.slice(0, 1), ...shuffle(INV_BANK.filter((f) => !it.la.includes(f))).slice(0, 4)]) : null;
+      return base(this, { mode: "text", lang: "la", check: "form", short: true, accepted: it.la,
+        instruction: "Vul het juiste voornaamwoord in.", prompt: `<span class="latin">${gat.replace(/<b>_______<\/b>/, "</span><b>_______</b><span class=\"latin\">")}</span><div class="muted small">${esc(it.nl).replace(/\*([^*]+)\*/, "<b>$1</b>")}</div>`,
+        hint: near ? `kies uit: ${shuffle(near).join(" · ")}` : "", answerShown: lat(it.z.replace(/\[\[([^\]]+)\]\]/, "$1")) + ` <small>(${esc(it.la.join(" / "))})</small>`,
+        tag: it.kol === "bez" ? "vnw_refl" : "vnw_ov", key: `pvz:${it.i}`, itemLabel: `${it.z.replace(/\[\[([^\]]+)\]\]/, "[$1]")}` });
+    },
+    byKey(rest) { return INV[+rest]; },
+  });
+  const BEZ_ITEMS = [...G.BEZ_OV.flatMap((b) => [{ t: "la", b }, { t: "nl", b }]), ...G.BEZ_NIETREFL.map((r) => ({ t: "refl", r }))];
+  unit({
+    id: "p_bez", group: "P", label: "Bezittelijk voornaamwoord: meus, tuus, suus, noster, vester · eius, eōrum, eārum", page: "overzicht bezittelijk vnw",
+    rule: "meus, mea, meum (mijn) · tuus, tua, tuum (jouw) · suus, sua, suum (zijn/haar/hun eigen, reflexief) · noster, nostra, nostrum (ons, onze) · vester, vestra, vestrum (jullie). Alle uitgangen zoals de 1ste klasse. Niet-reflexief: eius (zijn/haar), eōrum/eārum (hun).",
+    items: () => BEZ_ITEMS, noRange: true,
+    gen(level, it) {
+      if (it.t === "la") return base(this, { mode: "fields", check: "ovtab", instruction: "Vul het bezittelijk voornaamwoord in (m. – v. – o.)", prompt: `<span class="icon">✍️</span>${esc(it.b.nl)}`,
+        fields: ["m.", "v.", "o."].map((l) => ({ label: l, short: true })), spec: it.b.la.map((f, i) => ({ la: [f], lbl: ["m.", "v.", "o."][i] })),
+        answerShown: lat(it.b.la.join(", ")), tag: "vnw_bez", key: `pvb:${it.b.id}:la`, itemLabel: `${it.b.nl} = ${it.b.la.join(", ")}` });
+      if (it.t === "nl") return base(this, { mode: "text", check: "ovnl", nlAcc: it.b.acc, noKeyboard: true, instruction: "Vul de betekenis in.", prompt: lat(it.b.la.join(", ")), promptClass: "latin",
+        answerShown: esc(it.b.nl), tag: "vnw_bez", key: `pvb:${it.b.id}:nl`, itemLabel: `${it.b.la.join(", ")} = ${it.b.nl}` });
+      return base(this, { mode: "text", lang: "la", check: "form", short: true, accepted: it.r.la, instruction: "Welk Latijns woord gebruik je?", prompt: `<span class="icon">✍️</span>${esc(it.r.vraag)}`,
+        answerShown: lat(it.r.la[it.r.la.length - 1]), tag: "vnw_refl", key: `pvr:${it.r.id}`, itemLabel: `${it.r.vraag} = ${it.r.la[0]}` });
+    },
+    byKey(rest) { const [id, t] = rest.split(":"); return t ? BEZ_ITEMS.find((x) => x.b && x.b.id === id && x.t === t) : BEZ_ITEMS.find((x) => x.r && x.r.id === id); },
+  });
+  const ovCards = () => [
+    ...OV.map((k) => ({ key: `pvt:${k.id}`, unit: "p_tabel", soort: "Tabel", ask: "Geef de vormen en hun vertaling", front: esc(k.titel), info: `<span class="latin">${esc(k.kort)}</span>`,
+      back: ptab(["", "Latijn", "vertaling"], ovCells(k).map((n) => [NVL[n], k.c[n][0], k.c[n][1]])), page: "overzicht persoonlijk vnw", label: `tabel ${k.kort}` })),
+    ...G.BEZ_OV.map((b) => ({ key: `pvb:${b.id}:la`, unit: "p_tabel", soort: "Bezittelijk", ask: "Latijn (m., v., o.)?", front: esc(b.nl), back: esc(b.la.join(", ")), backCls: "latin", page: "overzicht bezittelijk vnw", label: `${b.nl} = ${b.la.join(", ")}` })),
+    ...G.BEZ_NIETREFL.map((r) => ({ key: `pvr:${r.id}`, unit: "p_tabel", soort: "Reflexief?", ask: "Welk Latijns woord?", front: esc(r.vraag), back: esc(r.la[r.la.length - 1]), backCls: "latin", page: "overzicht bezittelijk vnw", label: r.vraag })),
+  ];
+
   // ============================================================
   // CAPUT-GROEPEN (leerwerkboek): per caput woordenschat en grammatica
   // De onderdelen hergebruiken de generatoren hierboven, beperkt tot de woorden en de leerstof van dat caput.
@@ -1440,7 +1563,7 @@
   // ============================================================
   // KAARTEN (studiemodule): eerst de betekenis, pas daarna de middenkolom
   // ============================================================
-  const KAART_UNITS = ["vertalen", "midden", "regels", ...[1, 2, 3].flatMap((c) => [`c${c}_vertalen`, `c${c}_midden`, `c${c}_kennog`, `c${c}_regels`])];
+  const KAART_UNITS = ["p_tabel", "vertalen", "midden", "regels", ...[1, 2, 3].flatMap((c) => [`c${c}_vertalen`, `c${c}_midden`, `c${c}_kennog`, `c${c}_regels`])];
   const ptab = (head1, rows) => `<table class="ptab"><tr>${head1.map((h) => `<th>${h}</th>`).join("")}</tr>${rows.map((r) => `<tr>${r.map((c, i) => (i ? `<td class="latin">${esc(c)}</td>` : `<th>${c}</th>`)).join("")}</tr>`).join("")}</table>`;
   const PERS_RIJ = ["1ste p. enk.", "2de p. enk.", "3de p. enk.", "1ste p. mv.", "2de p. mv.", "3de p. mv."];
   const wwModels = () => Object.values(G.MODEL_WW).map((inf) => WOORDEN.find((x) => x.soort === "ww" && head(x.la) === inf)).filter(Boolean);
@@ -1516,6 +1639,7 @@
       if (sel.includes(`c${c}_regels`)) capCards(c).forEach(add);
     });
     if (sel.includes("regels")) grammarCards().forEach(add);
+    if (sel.includes("p_tabel")) ovCards().forEach(add);
     return out;
   }
 
@@ -1526,6 +1650,7 @@
     id: "latijn-2", vak: I.vak, icon: I.icon, theme: I.theme, titel: I.titel, klas: I.klas, bron: I.bron,
     groups: [
       ...CAPUT_GROUPS,
+      { id: "P", short: "voornaamwoorden (overzicht)", titel: "🎯 Persoonlijk en bezittelijk voornaamwoord – overzicht (perfect kennen, invuloefeningen)", p: "" },
       { id: "W", short: "woorden", titel: "Alle capita – woordenschat (volgens de nummers hieronder)", p: "", closed: true },
       { id: "N", short: "naamwoorden", titel: "Alle capita – substantieven en adjectieven (klassen)", p: "", closed: true },
       { id: "V", short: "werkwoorden", titel: "Alle capita – werkwoorden (alle tijden)", p: "", closed: true },
@@ -1536,6 +1661,7 @@
     quick: [
       { label: "Alles", select: () => true },
       ...[1, 2, 3].map((c) => ({ label: `📘 Caput ${c}`, select: (u) => u.group === `C${c}W` || u.group === `C${c}G` })),
+      { label: "🎯 Voornaamwoorden: overzicht (perfect)", select: (u) => u.group === "P" },
       { label: "📖 Woordenschat caput 1-3", select: (u) => /^C\dW$/.test(u.group) },
       { label: "🧩 Grammatica caput 1-3", select: (u) => /^C\dG$/.test(u.group) },
       { label: "📖 Vertalen + middenkolom", select: (u) => u.id === "vertalen" || u.id === "midden" },

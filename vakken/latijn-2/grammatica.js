@@ -716,11 +716,90 @@
     ],
   };
 
+  // ---------- OVERZICHT persoonlijk en bezittelijk voornaamwoord (blad van de leerkracht; moet perfect gekend zijn) ----------
+  // per kolom: naamval → [Latijnse vorm(en) met / gescheiden, vertaling zoals op het blad]
+  // 1ste en 2de persoon: geen genitief op het overzicht ("/")
+  const VNW_OV = [
+    { id: "ego", titel: "1ste p. enk.", kort: "ego", c: { nom: ["ego", "ik"], acc: ["mē", "mij"], dat: ["mihi", "aan mij"], abl: ["mē", "door mij"] } },
+    { id: "tu", titel: "2de p. enk.", kort: "tū", c: { nom: ["tū", "jij"], acc: ["tē", "jou"], dat: ["tibi", "aan jou"], abl: ["tē", "door jou"] } },
+    { id: "nos", titel: "1ste p. mv.", kort: "nōs", c: { nom: ["nōs", "wij"], acc: ["nōs", "ons"], dat: ["nōbīs", "aan ons"], abl: ["nōbīs", "door ons"] } },
+    { id: "vos", titel: "2de p. mv.", kort: "vōs", c: { nom: ["vōs", "jullie"], acc: ["vōs", "jullie"], dat: ["vōbīs", "aan jullie"], abl: ["vōbīs", "door jullie"] } },
+    { id: "se", titel: "3de p. reflexief (enk. en mv.)", kort: "sē", c: { acc: ["sē", "zich(zelf)"], dat: ["sibi", "aan zichzelf"], abl: ["sē", "door zichzelf"] } },
+    { id: "is", titel: "3de p. enk. niet-reflexief, mannelijk", kort: "is", c: { nom: ["is", "hij"], acc: ["eum", "hem"], gen: ["eius", "zijn"], dat: ["eī", "aan hem"], abl: ["eō", "door hem"] } },
+    { id: "ea", titel: "3de p. enk. niet-reflexief, vrouwelijk", kort: "ea", c: { nom: ["ea", "zij"], acc: ["eam", "haar"], gen: ["eius", "haar"], dat: ["eī", "aan haar"], abl: ["eā", "door haar"] } },
+    { id: "id", titel: "3de p. enk. niet-reflexief, onzijdig", kort: "id", c: { nom: ["id", "het"], acc: ["id", "het"], gen: ["eius", "zijn"], dat: ["eī", "eraan"], abl: ["eō", "erdoor"] } },
+    { id: "ii", titel: "3de p. mv. niet-reflexief, mannelijk", kort: "iī", c: { nom: ["iī", "zij"], acc: ["eōs", "hen"], gen: ["eōrum", "hun"], dat: ["eīs/iīs", "aan hen"], abl: ["eīs/iīs", "door hen"] } },
+    { id: "eae", titel: "3de p. mv. niet-reflexief, vrouwelijk", kort: "eae", c: { nom: ["eae", "zij"], acc: ["eās", "hen"], gen: ["eārum", "hun"], dat: ["eīs/iīs", "aan hen"], abl: ["eīs/iīs", "door hen"] } },
+    { id: "eao", titel: "3de p. mv. niet-reflexief, onzijdig", kort: "ea (o. mv.)", c: { nom: ["ea", "zij"], acc: ["ea", "hen"], gen: ["eōrum", "hun"], dat: ["eīs/iīs", "aan hen"], abl: ["eīs/iīs", "door hen"] } },
+  ];
+  // bezittelijk voornaamwoord: bijvoeglijk, alle uitgangen zoals de 1ste klasse (bonus, bona, bonum)
+  const BEZ_OV = [
+    { id: "meus", la: ["meus", "mea", "meum"], nl: "mijn", acc: ["mijn"] },
+    { id: "tuus", la: ["tuus", "tua", "tuum"], nl: "jouw", acc: ["jouw", "je"] },
+    { id: "suus", la: ["suus", "sua", "suum"], nl: "zijn/haar/hun (eigen) – reflexief", acc: ["zijn/haar/hun (eigen)", "zijn haar hun", "zijn eigen haar eigen hun eigen", "zijn/haar/hun", "zijn, haar, hun (eigen)"] },
+    { id: "noster", la: ["noster", "nostra", "nostrum"], nl: "ons, onze", acc: ["ons, onze", "ons onze", "onze ons", "ons/onze"] },
+    { id: "vester", la: ["vester", "vestra", "vestrum"], nl: "jullie", acc: ["jullie"] },
+  ];
+  // niet-reflexief gebruik je eius (zijn/haar) en eōrum/eārum (hun)
+  const BEZ_NIETREFL = [
+    { id: "eius", vraag: "zijn / haar – niet-reflexief (van iemand anders dan het onderwerp)", la: ["eius"] },
+    { id: "eorum", vraag: "hun – niet-reflexief, de bezitters zijn mannelijk (of onzijdig)", la: ["eōrum"] },
+    { id: "earum", vraag: "hun – niet-reflexief, de bezitters zijn vrouwelijk", la: ["eārum"] },
+    { id: "suus", vraag: "zijn / haar / hun (eigen) – reflexief (verwijst naar het onderwerp)", la: ["suus", "suus, sua, suum"] },
+  ];
+  // invulzinnen: [Latijnse zin met [[gat]], Nederlandse vertaling met *woord*, aanvaarde vormen (/), kolom, naamval]
+  const VNW_INVUL = [
+    ["[[Ego]] librum legō.", "*Ik* lees een boek.", "ego", "ego", "nom"],
+    ["Pater [[mē]] laudat.", "Vader prijst *mij*.", "mē", "ego", "acc"],
+    ["Māter [[mihi]] dōnum dat.", "Moeder geeft *aan mij* een geschenk.", "mihi", "ego", "dat"],
+    ["Mārcus ā [[mē]] laudātus est.", "Marcus is *door mij* geprezen.", "mē", "ego", "abl"],
+    ["[[Tū]] bene cantās.", "*Jij* zingt goed.", "tū", "tu", "nom"],
+    ["Amīcus [[tē]] vocat.", "De vriend roept *jou*.", "tē", "tu", "acc"],
+    ["Pater [[tibi]] librum dat.", "Vader geeft *aan jou* een boek.", "tibi", "tu", "dat"],
+    ["Servus ā [[tē]] iuvātus est.", "De slaaf is *door jou* geholpen.", "tē", "tu", "abl"],
+    ["[[Nōs]] in hortō ambulāmus.", "*Wij* wandelen in de tuin.", "nōs", "nos", "nom"],
+    ["Magister [[nōs]] laudat.", "De leraar prijst *ons*.", "nōs", "nos", "acc"],
+    ["Avus [[nōbīs]] fābulam nārrat.", "Grootvader vertelt *aan ons* een verhaal.", "nōbīs", "nos", "dat"],
+    ["Urbs ā [[nōbīs]] servāta est.", "De stad is *door ons* gered.", "nōbīs", "nos", "abl"],
+    ["[[Vōs]] in viā lūditis.", "*Jullie* spelen op straat.", "vōs", "vos", "nom"],
+    ["Dominus [[vōs]] videt.", "De meester ziet *jullie*.", "vōs", "vos", "acc"],
+    ["Māter [[vōbīs]] cēnam parat.", "Moeder maakt *voor jullie* het avondmaal klaar.", "vōbīs", "vos", "dat"],
+    ["Hostēs ā [[vōbīs]] victī sunt.", "De vijanden zijn *door jullie* overwonnen.", "vōbīs", "vos", "abl"],
+    ["Mārcus [[sē]] in aquā videt.", "Marcus ziet *zichzelf* in het water.", "sē", "se", "acc"],
+    ["Puerī [[sē]] laudant.", "De jongens prijzen *zichzelf*.", "sē", "se", "acc"],
+    ["Puella [[sibi]] dōnum emit.", "Het meisje koopt *voor zichzelf* een geschenk.", "sibi", "se", "dat"],
+    ["Ubi est servus? [[Is]] in agrō labōrat.", "Waar is de slaaf? *Hij* werkt op het veld.", "is", "is", "nom"],
+    ["Mārcus amīcum videt et [[eum]] salūtat.", "Marcus ziet zijn vriend en groet *hem*.", "eum", "is", "acc"],
+    ["Mārcus servum vocat et [[eī]] aquam dat.", "Marcus roept de slaaf en geeft *aan hem* water.", "eī", "is", "dat"],
+    ["Servus labōrat; dominus ab [[eō]] iuvātus est.", "De slaaf werkt; de meester is *door hem* geholpen.", "eō", "is", "abl"],
+    ["Ubi est Iūlia? [[Ea]] in hortō est.", "Waar is Julia? *Zij* is in de tuin.", "ea", "ea", "nom"],
+    ["Mārcus Iūliam videt et [[eam]] salūtat.", "Marcus ziet Julia en groet *haar*.", "eam", "ea", "acc"],
+    ["Mārcus Iūliam amat; [[eī]] rosam dat.", "Marcus houdt van Julia; hij geeft *aan haar* een roos.", "eī", "ea", "dat"],
+    ["Iūlia adest; Mārcus ab [[eā]] vocātus est.", "Julia is er; Marcus is *door haar* geroepen.", "eā", "ea", "abl"],
+    ["Dōnum pulchrum est; Iūlia [[id]] amat.", "Het geschenk is mooi; Julia houdt van *het* (ervan).", "id", "id", "acc"],
+    ["Servī labōrant; [[iī]] fessī sunt.", "De slaven werken; *zij* zijn moe.", "iī", "ii", "nom"],
+    ["Servī labōrant; dominus [[eōs]] laudat.", "De slaven werken; de meester prijst *hen*.", "eōs", "ii", "acc"],
+    ["Servī fessī sunt; dominus [[eīs]] aquam dat.", "De slaven zijn moe; de meester geeft *aan hen* water.", "eīs/iīs", "ii", "dat"],
+    ["Puellae cantant; [[eae]] laetae sunt.", "De meisjes zingen; *zij* zijn blij.", "eae", "eae", "nom"],
+    ["Puellae cantant; omnēs [[eās]] audiunt.", "De meisjes zingen; iedereen hoort *hen*.", "eās", "eae", "acc"],
+    ["Mārcus [[suum]] librum legit.", "Marcus leest *zijn (eigen)* boek.", "suum", "bez", "suus"],
+    ["Iūlia cum amīcā [[suā]] ambulat.", "Julia wandelt met *haar (eigen)* vriendin.", "suā", "bez", "suus"],
+    ["Puerī cum patre [[suō]] ambulant.", "De jongens wandelen met *hun (eigen)* vader.", "suō", "bez", "suus"],
+    ["Paulus adest; Mārcus librum [[eius]] legit.", "Paulus is er; Marcus leest *zijn* boek (het boek van Paulus).", "eius", "bez", "eius"],
+    ["Iūlia adest; Mārcus mātrem [[eius]] salūtat.", "Julia is er; Marcus groet *haar* moeder (de moeder van Julia).", "eius", "bez", "eius"],
+    ["Servī abeunt; dominus casam [[eōrum]] videt.", "De slaven gaan weg; de meester ziet *hun* hut.", "eōrum", "bez", "eorum"],
+    ["Puellae cantant; māter vōcem [[eārum]] audit.", "De meisjes zingen; moeder hoort *hun* stem.", "eārum", "bez", "earum"],
+    ["Amīcus [[meus]] venit.", "*Mijn* vriend komt.", "meus", "bez", "meus"],
+    ["Librum [[tuum]] legō.", "Ik lees *jouw* boek.", "tuum", "bez", "tuus"],
+    ["Patria [[nostra]] pulchra est.", "*Ons* vaderland is mooi.", "nostra", "bez", "noster"],
+    ["Ubi est casa [[vestra]]?", "Waar is *jullie* huis?", "vestra", "bez", "vester"],
+  ];
+
   Object.assign(I, {
     GRAM: {
       NV, NV_NAAM, GETAL, GS, CELLS, MODELLEN, MODEL_LABEL, KLASSE_NAAM, DEKL_KLASSE, SPECIAAL, ADJ_MODELLEN, ADJ_GROEP,
       TIJD, TIJD_VOLT, TIJD_ALLE, TIJD_NAAM, VORM_NAAM, PERS, MODEL_WW, MODEL_WW_NL, ONR, NL_WW, REGELS,
-      CAPUT_INFO, KEN_JE_NOG, VOORZETSELS, FUNCTIES, ZINNEN_FUNCTIE, AANWIJZEND, PERSOONLIJK, BEZITTELIJK, VNW_ZINNEN, REGELS_CAPUT, BORD_PP,
+      CAPUT_INFO, KEN_JE_NOG, VOORZETSELS, FUNCTIES, ZINNEN_FUNCTIE, AANWIJZEND, PERSOONLIJK, BEZITTELIJK, VNW_ZINNEN, REGELS_CAPUT, BORD_PP, VNW_OV, BEZ_OV, BEZ_NIETREFL, VNW_INVUL,
       nounModel, nounForms, modelKlasse, modelNaam, adjInfo, adjForms, verbSpec, verbForms, futSplit, keyParts, isVolt, nlVorm, nlAlle, slot, gsOf, tabelNw,
     },
   });
