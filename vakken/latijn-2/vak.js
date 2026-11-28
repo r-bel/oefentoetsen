@@ -1250,7 +1250,7 @@
   const KEY_UNIT = { vertalen: "vertalen", midden: "midden", herkennen: "herkennen", vv: "voorvoegsels", dekl: "verbuiging", gs: "geslacht", verv: "vervoeging", dat: "datief", sfx: "achtervoegsels",
     nvorm: "nw_vorm", ntab: "nw_tabel", nbep: "nw_bepalen", cong: "congruentie", bn2: "bn2", mod: "modellen",
     wbep: "ww_bepalen", wvorm: "ww_vorm", wtab: "ww_tabel", wspl: "ww_splitsen", verw: "ww_verwar", winf: "ww_inf", wmod: "ww_model", wvert: "ww_vertalen", regel: "regels",
-    fz: "functies", vz: "voorzetsels", vnwp: "vnw_pers", vnwz: "vnw_zin", bez: "vnw_bez", aw: "aanw_bep", awc: "aanw_cong", awv: "aanw_vorm", pp: "praes_perf", cr: "cregels", pvt: "p_tabel", pvtn: "p_tabnl", pvv: "p_vorm", pvn: "p_nl", pvz: "p_invul", pvb: "p_bez", pvr: "p_bez", stap: "stappenplan", bord: "bord_pp", allm: "alle_mog", odd: "odd_one", tab: "tabel_sort", detl: "det_lemma" };
+    fz: "functies", vz: "voorzetsels", vnwp: "vnw_pers", vnwz: "vnw_zin", bez: "vnw_bez", aw: "aanw_bep", awc: "aanw_cong", awv: "aanw_vorm", pp: "praes_perf", cr: "cregels", pvt: "p_tabel", pvtn: "p_tabnl", pvv: "p_vorm", pvn: "p_nl", pvz: "p_invul", pvb: "p_bez", pvr: "p_bez", pvtb: "p_tabblanco", stap: "stappenplan", bord: "bord_pp", allm: "alle_mog", odd: "odd_one", tab: "tabel_sort", detl: "det_lemma" };
   // unitHint (doorloop): het onderdeel waaruit de vraag kwam, bv. een caput-onderdeel dat dezelfde sleutels gebruikt als het algemene
   function fromKey(key, level, s = {}, unitHint) {
     const i = key.indexOf(":"), pre = key.slice(0, i), rest = key.slice(i + 1), u = UNITS.find((x) => x.id === KEY_UNIT[pre]);
@@ -1287,6 +1287,11 @@
     else if (q.check === "mid") r = checkMid(given, q, level);
     else if (q.check === "form") r = formResult(bestOf(given, q.accepted), q.accepted[0], q.tag);
     else if (q.check === "ovnl") { const x = nlCell(given, q.nlAcc); r = x === "ok" ? { status: "correct" } : x === "spelling" ? { status: "spelling", tag: "spelling" } : { status: "wrong", tag: q.tag }; }
+    else if (q.check === "vtab") {
+      const ok = q.spec.map((x, i) => (x.soort === "la" ? latAll(given[i], x.exp) : nlCell(given[i], x.exp) === "ok"));
+      const n = ok.filter(Boolean).length;
+      r = n === ok.length ? { status: "correct", cellOk: ok } : { status: "wrong", tag: q.tag, cellOk: ok, note: `${n} van ${ok.length} vakjes juist. De juiste vormen staan in het groen onder de foute vakjes.` };
+    }
     else if (q.check === "ovtab") {
       const res = q.spec.map((c, i) => (c.la ? bestOf(given[i], c.la) : nlCell(given[i], c.nl)));
       const bad = q.spec.filter((c, i) => res[i] !== "ok" && res[i] !== "macron").map((c) => c.lbl);
@@ -1468,7 +1473,61 @@
     },
     byKey(rest) { const [id, t] = rest.split(":"); return t ? BEZ_ITEMS.find((x) => x.b && x.b.id === id && x.t === t) : BEZ_ITEMS.find((x) => x.r && x.r.id === id); },
   });
+  // ---------- de tabellen van het overzicht letterlijk: tabel met lege vakjes ----------
+  const VT_TABS = [
+    { id: "t12", titel: "Persoonlijk voornaamwoord (zelfstandig) – 1ste en 2de persoon", head: [[{ h: "" }, { h: "1e p. ev." }, { h: "2e p. ev." }, { h: "1e p. mv." }, { h: "2e p. mv." }]], cols: ["ego", "tu", "nos", "vos"] },
+    { id: "t3", titel: "Persoonlijk voornaamwoord – 3de persoon", head: [[{ h: "" }, { h: "3e p. ev." }, { h: "3e p. ev.", span: 3 }, { h: "3e p. mv.", span: 3 }], [{ h: "" }, { h: "reflexief" }, { h: "niet-reflexief", span: 3 }, { h: "niet-reflexief", span: 3 }]], cols: ["se", "is", "ea", "id", "ii", "eae", "eao"] },
+    { id: "tb", titel: "Bezittelijk voornaamwoord (bijvoeglijk / bij een substantief) – alle uitgangen zoals de 1ste klasse", head: [[{ h: "" }, { h: "Latijn" }, { h: "betekenis" }]], bez: true },
+  ];
+  const VT_MODES = { la: "de Latijnse vormen", nl: "de vertalingen", mix: "Latijn én vertaling" };
+  const VT_ITEMS = VT_TABS.flatMap((t) => Object.keys(VT_MODES).map((m) => ({ t, m })));
+  // opbouw: rijen met cellen, elke cel = lijst van delen { t (vast) } of { soort: "la"|"nl", exp, lbl }
+  function vtBuild(t) {
+    if (t.bez) {
+      const rows = G.BEZ_OV.map((b) => ({ th: b.id === "suus" ? "reflexief" : "", cells: [[{ soort: "la", exp: b.la, toon: b.la.join(", "), lbl: b.acc[0], wide: true }], [{ soort: "nl", exp: [...b.acc, b.nl], toon: b.acc[0], lbl: b.la[0] }]] }));
+      rows.push({ th: "niet-reflexief", cells: [[{ soort: "la", exp: ["eius"], toon: "eius", lbl: "niet-refl. zijn/haar", wide: true }], [{ t: "zijn/haar", cls: "nl" }]] });
+      rows.push({ th: "niet-reflexief", cells: [[{ soort: "la", exp: ["eōrum", "eārum"], toon: "eōrum/eārum", lbl: "niet-refl. hun", wide: true }], [{ t: "hun", cls: "nl" }]] });
+      return rows;
+    }
+    return OV_NV.map((n) => ({ th: NVL[n].replace(/^./, (x) => x.toUpperCase()), cells: t.cols.map((id) => {
+      const k = OV.find((x) => x.id === id);
+      if (!k.c[n]) return [{ t: n === "gen" ? "/" : "", cls: "latin" }];
+      return [{ soort: "la", exp: k.c[n][0].split("/"), toon: k.c[n][0], lbl: `${NVL[n]} ${k.kort}` }, { soort: "nl", exp: [k.c[n][1]], toon: k.c[n][1], lbl: `${NVL[n]} ${k.kort} (vert.)` }];
+    }) }));
+  }
+  function latAll(given, exp) {
+    const toks = String(given || "").toLowerCase().split(/[\s,\/;]+/).filter((x) => x && x !== "of" && x !== "en");
+    if (toks.length !== exp.length) return false;
+    const used = new Set();
+    return exp.every((e) => { const i = toks.findIndex((t, j) => !used.has(j) && ["ok", "macron"].includes(bestOf(t, [e]))); if (i < 0) return false; used.add(i); return true; });
+  }
+  unit({
+    id: "p_tabblanco", group: "P", label: "De tabellen letterlijk: vul de lege vakjes in", page: "overzicht persoonlijk en bezittelijk vnw",
+    rule: "Leer de drie tabellen van het overzicht letterlijk: elke vorm én elke vertaling, op de juiste plaats. Bij eis/iis schrijf je beide vormen; bij meus, mea, meum alle drie.",
+    items: () => VT_ITEMS, noRange: true,
+    gen(level, { t, m }) {
+      const rows = vtBuild(t), parts = rows.flatMap((r) => r.cells.flat()).filter((x) => x.soort && (m === "mix" || x.soort === m));
+      const frac = level === "easy" ? 0.25 : level === "hard" ? 1 : 0.5;
+      const kies = new Set(shuffle(parts).slice(0, Math.max(1, Math.round(parts.length * frac))));
+      const spec = [];
+      const outRows = rows.map((r) => ({ th: r.th, cells: r.cells.map((cell) => cell.map((x) => {
+        if (!x.soort) return x;
+        if (!kies.has(x)) return { t: x.toon, cls: x.soort === "la" ? "latin" : "nl" };
+        spec.push(x); return { blank: spec.length - 1, cls: (x.soort === "nl" ? "nl" : "latin") + (x.wide ? " wide" : ""), ph: x.soort === "nl" ? "vertaling" : "" };
+      })) }));
+      return base(this, { mode: "tabel", check: "vtab", instruction: `Vul de tabel aan (${VT_MODES[m]}): <b>${esc(t.titel)}</b>`, prompt: "",
+        tabel: { head: t.head, rows: outRows }, nBlank: spec.length, spec, blankAns: spec.map((x) => x.toon),
+        answerShown: spec.length <= 3 ? spec.map((x) => `${esc(x.lbl)}: <span class="${x.soort === "la" ? "latin" : ""}">${esc(x.toon)}</span>`).join(" · ") : "zie de groene vormen in de tabel",
+        tag: t.bez ? "vnw_bez" : "vnw_ov", key: `pvtb:${t.id}:${m}`, itemLabel: `tabel ${t.titel} – ${VT_MODES[m]}` });
+    },
+    byKey(rest) { const [id, m] = rest.split(":"); return VT_ITEMS.find((x) => x.t.id === id && x.m === m); },
+  });
+  UNITS.splice(UNITS.findIndex((u) => u.id === "p_tabel"), 0, UNITS.pop()); // vooraan in de sectie
+  const vtCard = (t) => ({ key: `pvtb:${t.id}:mix`, unit: "p_tabel", soort: "Tabel (overzicht)", ask: "Schrijf de volledige tabel op en controleer", front: esc(t.titel), frontCls: "",
+    back: `<div class="vtabwrap"><table class="vtab">${t.head.map((r) => `<tr>${r.map((c) => `<th${c.span ? ` colspan="${c.span}"` : ""}>${c.h}</th>`).join("")}</tr>`).join("")}${vtBuild(t).map((r) => `<tr><th>${r.th}</th>${r.cells.map((cell) => `<td>${cell.map((x) => `<span class="tfix ${x.soort === "nl" || x.cls === "nl" ? "nl" : "latin"}">${esc(x.toon ?? x.t) || "&nbsp;"}</span>`).join("")}</td>`).join("")}</tr>`).join("")}</table></div>`,
+    page: "overzicht persoonlijk en bezittelijk vnw", label: `volledige tabel: ${t.titel}` });
   const ovCards = () => [
+    ...VT_TABS.map(vtCard),
     ...OV.map((k) => ({ key: `pvt:${k.id}`, unit: "p_tabel", soort: "Tabel", ask: "Geef de vormen en hun vertaling", front: esc(k.titel), info: `<span class="latin">${esc(k.kort)}</span>`,
       back: ptab(["", "Latijn", "vertaling"], ovCells(k).map((n) => [NVL[n], k.c[n][0], k.c[n][1]])), page: "overzicht persoonlijk vnw", label: `tabel ${k.kort}` })),
     ...G.BEZ_OV.map((b) => ({ key: `pvb:${b.id}:la`, unit: "p_tabel", soort: "Bezittelijk", ask: "Latijn (m., v., o.)?", front: esc(b.nl), back: esc(b.la.join(", ")), backCls: "latin", page: "overzicht bezittelijk vnw", label: `${b.nl} = ${b.la.join(", ")}` })),

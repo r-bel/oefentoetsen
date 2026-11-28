@@ -493,6 +493,14 @@
         if (e.key === "Enter" && nxt && !nxt.value) { e.preventDefault(); e.stopPropagation(); nxt.focus(); }
       }));
       setTimeout(() => $("#fld0") && $("#fld0").focus(), 30);
+    } else if (q.mode === "tabel") {
+      // tabel met lege vakjes (bv. voornaamwoorden): q.tabel = { head: [[{h, span}]], rows: [{ th, cells: [[{t, cls} | {blank: k, ph}]] }] }
+      const T = q.tabel, part = (x) => (x.blank !== undefined ? `<input id="fld${x.blank}" class="answer tcell ${x.cls || ""}" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="${esc(x.ph || "")}">` : `<span class="tfix ${x.cls || ""}">${x.t === "" ? "&nbsp;" : esc(x.t)}</span>`);
+      area.innerHTML = `<div class="vtabwrap"><table class="vtab">${(T.head || []).map((r) => `<tr>${r.map((c) => `<th${c.span ? ` colspan="${c.span}"` : ""}>${c.h}</th>`).join("")}</tr>`).join("")}` +
+        T.rows.map((r) => `<tr><th>${r.th}</th>${r.cells.map((c) => `<td${c.span ? ` colspan="${c.span}"` : ""}>${(c.parts || c).map(part).join("")}</td>`).join("")}</tr>`).join("") + `</table></div>`;
+      const ins = $$("#qAnswerArea input.tcell");
+      ins.forEach((inp, i) => inp.addEventListener("keydown", (e) => { if (e.key === "Enter" && !inp.value) return; if (e.key === "Enter") { const nx = $(`#fld${+inp.id.slice(3) + 1}`); if (nx) { e.preventDefault(); e.stopPropagation(); nx.focus(); } } }));
+      setTimeout(() => $("#fld0") && $("#fld0").focus(), 30);
     } else if (q.mode === "pick") {
       // bepalen: per rij één keuze (bv. naamval · genus · getal, of vorm · tijd · persoon · getal)
       state.picks = q.picks.map(() => null);
@@ -591,6 +599,7 @@
     if (q.mode === "multi") { const t = q.textLabel ? $("#answer").value.trim() : ""; return state.multi.size && (!q.textLabel || t) ? { sel: [...state.multi], text: t } : null; }
     if (q.mode === "grid") return state.grid.every((x) => x.size) ? state.grid.map((x) => [...x]) : null;
     if (q.mode === "fields") { const v = q.fields.map((f, i) => $(`#fld${i}`).value.trim()); return v.every((x, i) => x || q.fields[i].optional) ? v : null; }
+    if (q.mode === "tabel") { const v = Array.from({ length: q.nBlank }, (_, i) => $(`#fld${i}`).value.trim()); return v.every((x) => x) ? v : null; }
     if (q.mode === "pick") return state.picks.every((x) => x != null) ? state.picks.slice() : null;
     if (q.mode === "order") return state.order.length === q.chunks.length ? state.order.map((k) => q.chunks[k]).join(" ") : null;
     return $("#answer").value;
@@ -598,6 +607,7 @@
   function givenText(q, g) {
     if (q.mode === "mc") { const o = q.options.find((x) => x.v === g); return o ? o.html : "—"; }
     if (q.givenFmt) return q.givenFmt(g);
+    if (q.mode === "tabel") return (g || []).map(esc).join(" · ");
     if (q.mode === "fields") return (g || []).map((x, i) => `${q.fields[i].label || ""} ${esc(x)}${q.fields[i].suffix ? " " + esc(q.fields[i].suffix) : ""}`.trim()).join(" · ");
     if (q.mode === "pick") return (g || []).map((v, i) => { const o = q.picks[i].opts.find((x) => x.v === v); return o ? o.html || esc(o.v) : "—"; }).join(" · ");
     if (q.mode === "map") return esc((q.hitNames && q.hitNames[g]) || g || "—");
@@ -614,7 +624,7 @@
     const given = readGiven(q);
     if (given == null || given === "" || (typeof given === "string" && !given.trim())) {
       $("#qFeedback").className = "feedback warn";
-      $("#qFeedback").textContent = q.mode === "fields" ? "Vul alle vakjes in." : q.mode === "pick" ? "Maak in elke rij een keuze." : q.mode === "order" ? "Gebruik alle stukken om de zin te maken." : q.mode === "click" ? `Duid eerst ${q.nPts} punt(en) aan.` : q.mode === "map" ? "Tik eerst iets aan op de kaart." : q.mode === "multi" ? (q.textLabel ? "Duid minstens één keuze aan én vul het tekstvak in." : "Duid minstens één keuze aan.") : q.mode === "grid" ? "Duid bij elke vorm minstens één kolom aan." : q.mode === "coord" ? "Vul beide coördinaten in." : "Geef eerst een antwoord.";
+      $("#qFeedback").textContent = q.mode === "fields" ? "Vul alle vakjes in." : q.mode === "tabel" ? "Vul alle lege vakjes in." : q.mode === "pick" ? "Maak in elke rij een keuze." : q.mode === "order" ? "Gebruik alle stukken om de zin te maken." : q.mode === "click" ? `Duid eerst ${q.nPts} punt(en) aan.` : q.mode === "map" ? "Tik eerst iets aan op de kaart." : q.mode === "multi" ? (q.textLabel ? "Duid minstens één keuze aan én vul het tekstvak in." : "Duid minstens één keuze aan.") : q.mode === "grid" ? "Duid bij elke vorm minstens één kolom aan." : q.mode === "coord" ? "Vul beide coördinaten in." : "Geef eerst een antwoord.";
       return;
     }
     const r = vak.check(given, q, state.settings.level);
@@ -638,6 +648,7 @@
     else { $$("#qAnswerArea input").forEach((i) => (i.readOnly = true)); $$("#qAnswerArea .chunk, #qAnswerArea .pick").forEach((b) => (b.disabled = true)); }
     if (q.mode === "multi" && q.answerSet) $$("#qAnswerArea .pick").forEach((b) => { const ok = q.answerSet.includes(b.dataset.v); if (ok) b.classList.add("right"); else if (b.classList.contains("on")) b.classList.add("wrongopt"); });
     if (q.mode === "grid" && q.answerGrid) $$("#qAnswerArea .pick").forEach((b) => { const ok = q.answerGrid[+b.dataset.r].includes(b.dataset.v); if (ok) b.classList.add("right"); else if (b.classList.contains("on")) b.classList.add("wrongopt"); });
+    if (q.mode === "tabel" && r.cellOk) r.cellOk.forEach((c, i) => { const inp = $(`#fld${i}`); if (!inp) return; inp.classList.add(c ? "tok" : "tbad"); if (!c && q.blankAns) inp.insertAdjacentHTML("afterend", `<span class="tsol">${esc(q.blankAns[i])}</span>`); });
     if (q.mode === "map") $$("#qFigure [data-hit]").forEach((x) => { if ((q.goodHits || [q.answer]).includes(x.dataset.hit)) x.classList.add("good"); else if (x.dataset.hit === given) x.classList.add("bad"); });
     if (q.solutionSvg && r.status !== "correct") {
       $("#qFigure").innerHTML = q.solutionSvg;

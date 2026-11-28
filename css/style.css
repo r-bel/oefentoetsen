@@ -558,3 +558,19 @@ ul.dlitems li.todo { opacity: .55; }
 .figwide { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .figwide svg.gradenboog { min-width: 560px; display: block; margin: 0 auto; }
 .figwide svg.geo { max-width: 100%; height: auto; display: block; margin: 0 auto; }
+
+/* tabel met lege vakjes (voornaamwoorden) */
+.vtabwrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+table.vtab { border-collapse: collapse; margin: 4px auto; font-size: .9rem; }
+table.vtab th, table.vtab td { border: 1px solid var(--line, #334155); padding: 4px 6px; vertical-align: top; text-align: left; }
+table.vtab th { color: #cbd5e1; font-weight: 600; font-size: .8rem; white-space: nowrap; }
+table.vtab td .tfix, table.vtab td input.tcell, table.vtab td .tsol { display: block; }
+table.vtab .tfix.latin { font-weight: 700; }
+table.vtab .tfix.nl, table.vtab input.nl { color: #94a3b8; font-size: .85em; }
+table.vtab input.tcell { width: 5.4em; min-width: 4.6em; padding: 3px 5px; margin: 2px 0; font-size: .9rem; border-radius: 7px; }
+table.vtab input.tcell.wide { width: 11em; }
+table.vtab input.tcell.tok { border-color: #22c55e; box-shadow: 0 0 0 1px #22c55e inset; }
+table.vtab input.tcell.tbad { border-color: #ef4444; box-shadow: 0 0 0 1px #ef4444 inset; }
+table.vtab .tsol { color: #86efac; font-weight: 700; font-size: .85rem; }
+table.vtab tr > th:first-child { position: sticky; left: 0; z-index: 1; background: var(--card-solid, #1e293b); }
+@media (max-width: 480px) { table.vtab { font-size: .82rem; } table.vtab th, table.vtab td { padding: 3px 4px; } }
