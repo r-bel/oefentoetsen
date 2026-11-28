@@ -552,3 +552,9 @@ ul.dlitems li.todo { opacity: .55; }
 .anspreview { margin-top: 8px; font-size: 1.05rem; color: #cbd5e1; min-height: 1.6em; }
 .anspreview .mth, .prompt .mth { white-space: nowrap; }
 .prompt.theorie { font-size: 1.05rem; line-height: 1.6; }
+
+/* wiskunde 5: brede figuren (gradenboog) en open lijnen */
+.g-open { fill: none; stroke: #f59e0b; stroke-width: 2; stroke-linejoin: round; }
+.figwide { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.figwide svg.gradenboog { min-width: 560px; display: block; margin: 0 auto; }
+.figwide svg.geo { max-width: 100%; height: auto; display: block; margin: 0 auto; }
